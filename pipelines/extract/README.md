@@ -89,3 +89,109 @@ pipelines/extract/
 ## Next Steps
 
 Output from this pipeline → **normalize/** pipeline (parsing & validation)
+
+# NSE Raw Data Extraction Pipeline
+
+## Overview
+
+This pipeline fetches raw data from National Stock Exchange (NSE) sources and persists them to `data/raw/` with metadata and validation checks. It is the first stage of Phase 2 (Data Ingestion and Normalization).
+
+## Purpose
+
+- Automate retrieval of NSE symbols, corporate actions, circulars, and market data
+- Persist raw files with date stamps for traceability
+- Detect extraction failures and data quality issues early
+- Provide staging area for normalization pipeline
+
+## Inputs
+
+Configured sources in `sources.yaml`:
+1. **NSE Listed Companies** → Symbol master, ISIN, listing dates
+2. **NSE Corporate Actions** → Dividends, splits, bonus, mergers, delistings
+3. **NSE Circulars** → Name changes, suspensions, delisting events
+4. **NSE Bhavcopy** → Daily EOD market data (validation use)
+
+## Outputs
+
+Raw data files saved to `data/raw/`:
+- `nse_symbols_{YYYY-MM-DD}.csv`
+- `nse_actions_{YYYY-MM-DD}.csv`
+- `nse_circulars_{YYYY-MM-DD}.csv`
+- `bhavcopy_{YYYY-MM-DD}.csv`
+- `extraction_log_{YYYY-MM-DD}.json` (metadata)
+- `quality_report_{YYYY-MM-DD}.json` (validation results)
+
+## Installation & Dependencies
+
+```bash
+# Install required packages
+pip install pandas requests beautifulsoup4 playwright pdfplumber lxml
+```
+
+# For Playwright (browser automation)
+```bash
+playwright install chromium
+```
+
+# For OCR (optional, for scanned PDFs)
+```bash
+pip install pytesseract
+# Also install Tesseract binary: https://github.com/UB-Mannheim/tesseract/wiki
+```
+## Manual Extraction for MVP Testing
+
+```bash
+# Extract all configured sources
+python pipelines/extract/extractor.py --all
+
+# Extract specific sources
+
+python pipelines/extract/extractor.py --source nse_symbols
+python pipelines/extract/extractor.py --source nse_actions
+python pipelines/extract/extractor.py --source nse_circulars
+
+# Extract with custom date
+python pipelines/extract/extractor.py --all --date 2026-05-15
+
+# Dry run (no file writes)
+python pipelines/extract/extractor.py --all --dry-run
+
+# Extracting individual Sources
+# NSE Symbol Master
+
+```python -c "
+from pipelines.extract.extractor import RawDataExtractor
+extractor = RawDataExtractor()
+symbols_df = extractor.fetch_nse_symbols()
+print(f'Fetched {len(symbols_df)} symbols')
+print(symbols_df.head())
+"
+# NSE Corporate Actions
+
+python -c "
+from pipelines.extract.extractor import RawDataExtractor
+extractor = RawDataExtractor()
+actions_df = extractor.fetch_nse_corporate_actions(days_back=7)
+print(f'Fetched {len(actions_df)} actions from last 7 days')
+print(actions_df.head())
+"
+
+# NSE Circulars
+
+python -c "
+from pipelines.extract.extractor import RawDataExtractor
+extractor = RawDataExtractor()
+circulars_df = extractor.fetch_nse_circulars(days_back=7)
+print(f'Fetched {len(circulars_df)} circulars')
+print(circulars_df.head())
+"
+
+# NSE Bhavcopy (EOD Data)
+
+python -c "
+from pipelines.extract.extractor import RawDataExtractor
+extractor = RawDataExtractor()
+bhavcopy_df = extractor.fetch_nse_bhavcopy(date='2026-05-29')
+print(f'Fetched {len(bhavcopy_df)} securities for 2026-05-29')
+print(bhavcopy_df.head())
+"

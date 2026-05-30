@@ -1,0 +1,19 @@
+symbol_normalization:
+  source_field: symbol
+  rules:
+    - strip whitespace
+    - uppercase
+    - remove suffixes like "-EQ", "-REPL"
+  target_field: ticker
+
+action_type_mapping:
+  BONUS: bonus_issue
+  SPLIT: stock_split
+  RIGHTS: rights_offering
+  DIVIDEND: cash_dividend
+  MERGER: merger_demerger
+
+company_name_rules:
+  - strip_extra_spaces
+  - normalize_special_chars
+  - remove_limited_variants

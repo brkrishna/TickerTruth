@@ -1,0 +1,16 @@
+rename_detection:
+  use_fuzzy_matching: true
+  fuzzy_threshold: 0.85
+  consider_sector_change: false
+
+merger_detection:
+  require_delisting: true
+  require_action_event: true
+  max_days_between_events: 30
+
+historical_mappings:
+  # Manual known mappings for difficult cases
+  - from_symbol: OLDTICK
+    to_symbol: NEWTICK
+    effective_date: 2020-06-15
+    reason: merger_with_xyz

@@ -1,0 +1,20 @@
+stock_split:
+  formula: "adjusted_price = close * (old_shares / new_shares)"
+  factor_name: "split_factor"
+  applies_to: [open, high, low, close, volume_reverse]
+
+dividend:
+  formula: "adjusted_price = close - dividend_amount"
+  factor_name: "dividend_factor"
+  applies_to: [open, high, low, close]
+  note: "Typically not adjusted for price data in India context"
+
+bonus_issue:
+  formula: "adjusted_price = close * (existing_shares / (existing_shares + bonus_shares))"
+  factor_name: "bonus_factor"
+  applies_to: [open, high, low, close, volume_reverse]
+
+rights_offering:
+  formula: "see_corporate_action_details"
+  factor_name: "rights_factor"
+  applies_to: [open, high, low, close]

@@ -1,0 +1,279 @@
+# NSE Data Sources Configuration
+# Used by pipelines/extract/extractor.py to fetch and store raw data
+
+sources:
+  
+  nse_symbols:
+    # NSE listed companies and symbol master
+    name: "NSE Listed Companies Master"
+    primary_url: "https://www.nseindia.com/companies-listing/corporate-filings-application"
+    reports_url: "https://www.nseindia.com/all-reports"
+    format: "csv"
+    frequency: "daily"
+    access_method: "web_scrape"  # web_scrape | http_download | api
+    
+    expected_fields:
+      - symbol
+      - company_name
+      - isin
+      - industry
+      - series
+      - listing_date
+      - maturity_date
+      - status
+    
+    scraping_config:
+      tool: "playwright"  # playwright | selenium | beautifulsoup
+      retry_attempts: 3
+      retry_delay_seconds: 5
+      timeout_seconds: 30
+      rotate_user_agent: true
+    
+    output:
+      directory: "data/raw"
+      filename_pattern: "nse_symbols_{YYYY-MM-DD}.csv"
+      compression: "none"
+    
+    data_quality:
+      min_rows: 3500  # Expected ~3500+ listed equities
+      required_columns: [symbol, isin, listing_date, status]
+      check_duplicates_on: [symbol, listing_date]
+      freshness_check: true  # Warn if data > 7 days old
+    
+    notes: |
+      - NSE maintains searchable database; no official bulk API
+      - Download: All Reports → Equity → Equity Master or Listing Calendar
+      - Deduplicate on [symbol, listing_date] before merge
+      - ISIN is stable identifier across renames
+
+  nse_corporate_actions:
+    # Corporate action announcements: dividends, splits, bonus, rights, mergers, delistings
+    name: "NSE Corporate Actions & Announcements"
+    primary_url: "https://www.nseindia.com/companies-listing/corporate-filings-actions"
+    format: "html_with_pdf"
+    frequency: "real_time"
+    access_method: "web_scrape"
+    
+    expected_fields:
+      - symbol
+      - announcement_date
+      - ex_date
+      - record_date
+      - payment_date
+      - action_type
+      - value_or_ratio
+      - units
+      - frequency
+      - pdf_url
+      - status
+    
+    scraping_config:
+      tool: "playwright"
+      wait_for_selector: "table.ca-table"  # Adjust based on current NSE HTML
+      retry_attempts: 3
+      retry_delay_seconds: 3
+      timeout_seconds: 60
+      rotate_user_agent: true
+      headless: true
+    
+    pdf_parsing:
+      enabled: true
+      tool: "pdfplumber"  # pdfplumber | PyPDF2 | pdfminer
+      extract_text: true
+      extract_tables: true
+      fallback_ocr: true
+      ocr_tool: "tesseract"
+      ocr_confidence_threshold: 0.7
+    
+    output:
+      directory: "data/raw"
+      filename_pattern: "nse_actions_{YYYY-MM-DD}.csv"
+      compression: "none"
+    
+    data_quality:
+      min_rows: 100  # Expected corporate actions per week
+      required_columns: [symbol, ex_date, action_type]
+      check_duplicates_on: [symbol, ex_date, action_type]
+      validate_dates: true  # ex_date <= record_date <= payment_date
+      validate_action_types: [DIVIDEND, SPLIT, BONUS, RIGHTS, MERGER, DELISTING, NAMECHANGE]
+      confidence_threshold: 0.7  # Flag low-confidence extractions
+    
+    regex_patterns:
+      # Patterns to extract key info from PDF text
+      ex_date: 'ex.?date\s+(?:of|:)?\s+(\d{1,2}[-/]\d{1,2}[-/]\d{2,4})'
+      record_date: 'record.?date\s+(?:of|:)?\s+(\d{1,2}[-/]\d{1,2}[-/]\d{2,4})'
+      payment_date: 'payment.?date\s+(?:of|:)?\s+(\d{1,2}[-/]\d{1,2}[-/]\d{2,4})'
+      dividend_amount: '₹\s*(\d+(?:\.\d{2})?)\s*(?:per\s+share)?'
+      split_ratio: 'split.*?(\d+):(\d+)'
+      bonus_ratio: 'bonus.*?(\d+).*?for.*?(\d+)'
+    
+    notes: |
+      - NSE corporate actions page uses dynamic HTML; requires Playwright/Selenium
+      - Filter by date range to avoid overwhelming data
+      - PDFs contain variable formatting; use regex + manual review for edge cases
+      - Create quality flag if parsing confidence < 0.8
+      - Cross-reference ex_dates with bhavcopy for validation
+
+  nse_circulars:
+    # Circulars for name changes, delistings, suspensions, mergers
+    name: "NSE Circulars & Exchange Communications"
+    primary_url: "https://www.nseindia.com/resources/exchange-communication-circulars"
+    format: "html_with_pdf"
+    frequency: "real_time"
+    access_method: "web_scrape"
+    
+    expected_fields:
+      - circular_number
+      - circular_date
+      - symbol
+      - old_symbol
+      - new_symbol
+      - old_name
+      - new_name
+      - event_type
+      - effective_date
+      - reason
+      - pdf_url
+    
+    scraping_config:
+      tool: "beautifulsoup"  # HTML parsing, less heavy than Playwright
+      retry_attempts: 3
+      retry_delay_seconds: 3
+      timeout_seconds: 20
+      rotate_user_agent: true
+    
+    keyword_filters:
+      # Filter circulars for relevant event types
+      - "renamed"
+      - "name change"
+      - "symbol change"
+      - "delisted"
+      - "delisting"
+      - "suspended"
+      - "merged"
+      - "merger"
+      - "demerger"
+      - "spin-off"
+      - "re-listed"
+    
+    regex_patterns:
+      event_type_rename: 'renamed?\s+(?:as|to|from)\s+([A-Z0-9]+)'
+      event_type_delisted: 'delisted?\s+(?:w\.e\.f|with\s+effect\s+from)?\s+(\d{1,2}[-/]\d{1,2}[-/]\d{2,4})?'
+      event_type_merged: 'merged?\s+with\s+([A-Za-z0-9\s&]+)'
+      effective_date: '(?:w\.e\.f|with\s+effect\s+from)\s+(\d{1,2}[-/]\d{1,2}[-/]\d{2,4})'
+    
+    output:
+      directory: "data/raw"
+      filename_pattern: "nse_circulars_{YYYY-MM-DD}.csv"
+      compression: "none"
+    
+    data_quality:
+      required_columns: [circular_number, symbol, event_type, effective_date]
+      validate_event_types: [RENAME, DELISTING, SUSPENSION, REACTIVATION, MERGER, DEMERGER]
+      confidence_threshold: 0.6  # Lower threshold; circulars are unstructured
+    
+    notes: |
+      - Circulars are unstructured documents; use keyword filtering + regex
+      - Multiple circulars may relate to single event; deduplicate
+      - Store original PDF link for manual verification
+      - Flag ambiguous extractions for manual review
+      - Effective_date is critical for lineage sequencing
+
+  nse_bhavcopy:
+    # Daily end-of-day trade data
+    name: "NSE Equity Bhavcopy (EOD Market Data)"
+    primary_url: "https://www.nseindia.com/all-reports"
+    format: "csv_in_zip"
+    frequency: "daily"
+    access_method: "http_download"
+    
+    expected_fields:
+      - symbol
+      - date
+      - open
+      - high
+      - low
+      - close
+      - last
+      - prev_close
+      - volume
+      - value
+      - no_of_trades
+    
+    download_config:
+      url_pattern: "https://www.nseindia.com/all-reports"
+      retry_attempts: 3
+      retry_delay_seconds: 5
+      timeout_seconds: 30
+      extract_zip: true
+    
+    output:
+      directory: "data/raw"
+      filename_pattern: "bhavcopy_{YYYY-MM-DD}.csv"
+      compression: "none"
+      keep_zip: false
+    
+    data_quality:
+      min_rows: 3000  # Expected ~3000+ securities per day
+      required_columns: [symbol, date, close, volume]
+      check_duplicates_on: [symbol, date]
+      validate_prices: true  # low <= close <= high
+      zero_volume_warning: true  # Flag trading halts/delistings
+    
+    use_cases:
+      - "Price gap validation for adjustment factor calculation"
+      - "Cross-check stock split adjustments"
+      - "Detect trading halts and anomalies"
+      - "Verify date consistency in corporate actions"
+    
+    notes: |
+      - Bhavcopy is official NSE EOD reference
+      - Published after market close (~6 PM IST)
+      - All symbols in file are valid trading securities
+      - Volume = 0 may indicate suspension or delisting
+
+  # Future sources (Phase 2 extensions)
+  # bse_master:
+  #   name: "BSE Listed Companies Master"
+  #   primary_url: "https://www.bseindia.com"
+  #   format: "csv"
+  #   frequency: "daily"
+  #   access_method: "web_scrape"
+  #   notes: "Excluded from MVP; included for future multi-exchange support"
+
+# Global extraction settings
+global:
+  data_directory: "data/raw"
+  staging_directory: "data/staging"
+  archive_directory: "data/raw/archive"
+  
+  rate_limiting:
+    requests_per_second: 0.5
+    retry_backoff_factor: 2
+    max_retry_delay: 60
+  
+  logging:
+    level: "INFO"
+    log_file: "logs/extraction_{YYYY-MM-DD}.log"
+  
+  validation:
+    run_quality_checks: true
+    generate_quality_report: true
+    report_file: "data/staging/quality_report_{YYYY-MM-DD}.json"
+    
+  date_formats:
+    - "DD-MM-YYYY"
+    - "DD/MM/YYYY"
+    - "YYYY-MM-DD"
+    - "DD-MMM-YYYY"
+
+# Extraction schedule (for automation, Phase 4)
+# schedule:
+#   nse_symbols:
+#     cron: "0 6 * * MON,WED"  # 6 AM Monday & Wednesday
+#   nse_corporate_actions:
+#     cron: "0 8 * * *"  # 8 AM daily
+#   nse_circulars:
+#     cron: "0 10 * * *"  # 10 AM daily
+#   nse_bhavcopy:
+#     cron: "0 19 * * 1-5"  # 7 PM weekdays
