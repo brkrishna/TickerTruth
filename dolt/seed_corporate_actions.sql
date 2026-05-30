@@ -1,0 +1,17 @@
+INSERT INTO dim_corporate_action_type (action_code, action_name, description) VALUES
+('DIVIDEND', 'Cash Dividend', 'Regular cash dividend distribution to shareholders'),
+('BONUS', 'Bonus Issue', 'Free additional shares issued to existing shareholders'),
+('SPLIT', 'Stock Split', 'Division of existing shares into smaller denominations'),
+('REVERSE_SPLIT', 'Reverse Stock Split', 'Consolidation of shares into larger denominations'),
+('RIGHTS', 'Rights Issue', 'Offer of new shares to existing shareholders at preferential rates'),
+('PREFERENCE_DIVIDEND', 'Preference Dividend', 'Dividend paid to preference shareholders'),
+('DIVIDEND_REINVESTMENT', 'Dividend Reinvestment', 'Dividend automatically reinvested as new shares'),
+('DELISTING', 'Delisting', 'Security removed from exchange trading'),
+('RELISTING', 'Relisting', 'Security restored to exchange trading after delisting'),
+('MERGER', 'Merger/Acquisition', 'Company merged or acquired by another entity'),
+('DEMERGER', 'Demerger', 'Company divided into separate entities'),
+('NAME_CHANGE', 'Name Change', 'Company name or symbol changed'),
+('CAPITAL_REDUCTION', 'Capital Reduction', 'Reduction in company''s capital structure'),
+('CAPITAL_INCREASE', 'Capital Increase', 'Increase in company''s capital structure'),
+('LISTING', 'IPO/Listing', 'Initial public offering or listing on exchange'),
+('SPECIAL_DIVIDEND', 'Special Dividend', 'One-time extraordinary dividend payment');
