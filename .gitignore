@@ -86,3 +86,5 @@ logs/
 *.temp
 tmp/
 temp/
+dolt/.dolt/noms/vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
+dolt/.dolt/noms/journal.idx

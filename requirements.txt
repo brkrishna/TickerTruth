@@ -8,6 +8,8 @@ requests==2.32.3
 beautifulsoup4==4.12.3
 
 # Database ORM
+# greenlet>=3.1.1 is required for Python 3.14; pulled automatically by playwright below.
+# SQLAlchemy uses greenlet for async features only — sync usage works without it.
 SQLAlchemy==2.0.36
 
 # Environment variables
@@ -17,3 +19,13 @@ python-dotenv==1.0.1
 pytest==7.4.4
 pytest-cov==4.1.0
 black==24.10.0
+
+# Phase 2: dynamic scraping
+# playwright 1.35.0 pinned greenlet==2.0.2 which has no Python 3.14 wheel.
+# 1.45.0+ pulls greenlet>=3.1.1 which ships a cp314 pre-built wheel.
+# After install, run once: playwright install chromium
+playwright>=1.45.0
+
+# Phase 2: fuzzy name matching for lineage detection
+# 1.0.0 had no Python 3.14 wheel. 3.x ships cp314 wheels.
+rapidfuzz>=3.0.0
