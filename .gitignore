@@ -61,11 +61,15 @@ htmlcov/
 .env.local
 .env.*.local
 
-# Local data artifacts
+# Local data artifacts — generated at runtime, never commit
 data/raw/
 data/staging/
 data/curated/
 data/samples/
+data/warehouse/
+
+# Buyer PII — names, emails, signed URLs, download logs
+data/buyers/
 
 # Release and build outputs
 releases/
@@ -88,3 +92,4 @@ tmp/
 temp/
 dolt/.dolt/noms/vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
 dolt/.dolt/noms/journal.idx
+.claude/settings.json
