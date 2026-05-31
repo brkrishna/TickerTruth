@@ -1,198 +1,324 @@
-from datetime import date
-from typing import List, Optional
+"""
+Lineage detection rules for NSE symbol and company change events.
 
+LineageEvent      — immutable value object for a single lineage event
+LineageRulesEngine — detects renames, mergers, delistings, suspensions
+"""
+
+from datetime import date
+from typing import Optional
+
+from rapidfuzz import fuzz
+
+
+# ── LineageEvent ──────────────────────────────────────────────────────────────
 
 class LineageEvent:
     """
     Represents a significant event in a security's symbol or name history.
-    
+
     Attributes:
-        symbol_from (str): Previous symbol (None for new listings)
-        symbol_to (str): New symbol (None for delistings)
+        event_type (str): RENAME | MERGER | DEMERGER | DELISTING | RELISTING
+                          | LISTING | SUSPENSION | REACTIVATION
         event_date (date): Date the event became effective
-        event_type (str): Type of event (RENAME, SPLIT, MERGER, DELISTING, LISTING, SUSPENSION, REACTIVATION)
-        confidence (float): Confidence score (0.0 to 1.0)
-        reason (str): Human-readable explanation
-        corroborating_evidence (List[str]): Supporting evidence for the event
+        symbol_from (str | None): Previous symbol; None for new listings
+        symbol_to   (str | None): New symbol; None for delistings
+        confidence  (float): 0.0 (guess) to 1.0 (certain)
+        reason      (str): Human-readable explanation
+        corroborating_evidence (list[str]): Supporting data points
     """
-    
+
+    VALID_TYPES = frozenset({
+        "RENAME", "MERGER", "DEMERGER", "DELISTING",
+        "RELISTING", "LISTING", "SUSPENSION", "REACTIVATION",
+    })
+
     def __init__(
         self,
         event_type: str,
         event_date: date,
         confidence: float,
         symbol_from: Optional[str] = None,
-        symbol_to: Optional[str] = None,
+        symbol_to:   Optional[str] = None,
         reason: str = "",
-        corroborating_evidence: Optional[List[str]] = None
+        corroborating_evidence: Optional[list] = None,
     ):
+        if event_type not in self.VALID_TYPES:
+            raise ValueError(f"Unknown event_type '{event_type}'. Valid: {self.VALID_TYPES}")
+        if not (0.0 <= confidence <= 1.0):
+            raise ValueError(f"confidence must be in [0.0, 1.0], got {confidence}")
+
+        self.event_type  = event_type
+        self.event_date  = event_date
+        self.confidence  = round(confidence, 4)
         self.symbol_from = symbol_from
-        self.symbol_to = symbol_to
-        self.event_date = event_date
-        self.event_type = event_type
-        self.confidence = confidence
-        self.reason = reason
+        self.symbol_to   = symbol_to
+        self.reason      = reason
         self.corroborating_evidence = corroborating_evidence or []
-    
+
     def __repr__(self) -> str:
         return (
             f"LineageEvent(type={self.event_type}, from={self.symbol_from}, "
             f"to={self.symbol_to}, date={self.event_date}, confidence={self.confidence})"
         )
-    
+
     def to_dict(self) -> dict:
-        """Convert to dictionary for CSV export."""
+        """Serialize to a flat dict suitable for CSV / DataFrame row."""
         return {
-            "symbol_from": self.symbol_from,
-            "symbol_to": self.symbol_to,
-            "event_date": self.event_date.isoformat(),
-            "event_type": self.event_type,
-            "confidence": self.confidence,
-            "reason": self.reason,
+            "symbol_from":            self.symbol_from,
+            "symbol_to":              self.symbol_to,
+            "event_date":             self.event_date.isoformat(),
+            "event_type":             self.event_type,
+            "confidence":             self.confidence,
+            "reason":                 self.reason,
             "corroborating_evidence": "; ".join(self.corroborating_evidence),
         }
 
 
+# ── LineageRulesEngine ────────────────────────────────────────────────────────
+
 class LineageRulesEngine:
     """
-    Engine for detecting and classifying symbol lineage events.
-    
-    Processes historical symbol lists, corporate actions, and circulars
-    to identify symbol renames, mergers, delistings, and other lineage events.
+    Detects and classifies symbol lineage events from raw NSE data.
+
+    Each method is a pure detector — it takes raw inputs and returns
+    a LineageEvent (or tuple with confidence) without side effects.
     """
-    
+
+    # ── renames ───────────────────────────────────────────────────────────────
+
     def detect_symbol_rename(
-        self, 
-        prev_symbol: str, 
-        new_symbol: str, 
+        self,
+        prev_symbol: str,
+        new_symbol: str,
         event_date: date,
         company_name: Optional[str] = None,
-        new_company_name: Optional[str] = None
+        new_company_name: Optional[str] = None,
     ) -> LineageEvent:
         """
-        Detect if symbol changed but issuer remained the same.
-        
-        Args:
-            prev_symbol: Previous trading symbol
-            new_symbol: New trading symbol
-            event_date: Date the rename became effective
-            company_name: Previous company name (optional, for validation)
-            new_company_name: New company name (optional, for validation)
-        
+        Detect a ticker symbol rename for the same issuer.
+
+        Confidence rules:
+          - 0.95 if company_name matches new_company_name (same entity confirmed)
+          - 0.85 if one company name provided (partial confirmation)
+          - 0.75 if no company names provided (symbol change, entity unverified)
+
         Returns:
-            LineageEvent with type=RENAME if rename detected
+            LineageEvent(type=RENAME, symbol_from=prev_symbol, symbol_to=new_symbol)
         """
-        # Detect if symbol changed but issuer is same
-        # Output: LineageEvent(type=RENAME, from_symbol, to_symbol, effective_date)
-        pass
+        if prev_symbol == new_symbol:
+            raise ValueError(
+                f"prev_symbol and new_symbol are identical ({prev_symbol!r}); "
+                "no rename to detect"
+            )
+
+        evidence = []
+
+        if company_name and new_company_name:
+            sim = fuzz.ratio(company_name.upper(), new_company_name.upper()) / 100
+            if sim >= 0.85:
+                confidence = 0.95
+                evidence.append(f"company_name_similarity={sim:.2f}")
+            else:
+                # Names diverged — lower confidence; might be merger disguised as rename
+                confidence = 0.70
+                evidence.append(
+                    f"company_name_similarity={sim:.2f} (names differ — may be merger)"
+                )
+        elif company_name or new_company_name:
+            confidence = 0.85
+            evidence.append("single_company_name_provided")
+        else:
+            confidence = 0.75
+            evidence.append("no_company_name_context")
+
+        return LineageEvent(
+            event_type="RENAME",
+            event_date=event_date,
+            confidence=confidence,
+            symbol_from=prev_symbol,
+            symbol_to=new_symbol,
+            reason=f"Symbol changed from {prev_symbol} to {new_symbol}",
+            corroborating_evidence=evidence,
+        )
 
     def detect_company_rename(
-        self, 
-        prev_name: str, 
-        new_name: str, 
+        self,
+        prev_name: str,
+        new_name: str,
         event_date: date,
-        fuzzy_threshold: float = 0.85
+        fuzzy_threshold: float = 0.85,
     ) -> tuple[Optional[LineageEvent], float]:
         """
-        Use fuzzy name matching to detect company renames.
-        
+        Use fuzzy name matching to detect a company rename.
+
         Args:
             prev_name: Previous company legal name
-            new_name: New company legal name
+            new_name:  New company legal name
             event_date: Date the rename became effective
-            fuzzy_threshold: Minimum similarity score (0.0-1.0) to flag as rename
-        
+            fuzzy_threshold: Minimum similarity score to flag as rename (0–1)
+
         Returns:
-            Tuple of (LineageEvent if rename detected, confidence score)
+            (LineageEvent, similarity_score) if rename detected,
+            (None, similarity_score) otherwise.
         """
-        # Use fuzzy name matching to detect renames
-        # Return: LineageEvent and confidence score
-        pass
-    
+        if not prev_name or not new_name:
+            return None, 0.0
+
+        similarity = fuzz.ratio(prev_name.upper(), new_name.upper()) / 100
+
+        if similarity < fuzzy_threshold:
+            return None, similarity
+
+        event = LineageEvent(
+            event_type="RENAME",
+            event_date=event_date,
+            confidence=round(similarity, 4),
+            reason=f"Company name changed: {prev_name!r} → {new_name!r}",
+            corroborating_evidence=[f"fuzzy_similarity={similarity:.2f}"],
+        )
+        return event, similarity
+
+    # ── mergers / demergers ───────────────────────────────────────────────────
+
     def detect_merger_demerger(
-        self, 
-        symbol_disappears: bool, 
+        self,
+        symbol_disappears: bool,
         new_symbol_appears: bool,
         old_symbol: str,
         new_symbol: str,
         event_date: date,
-        corporate_action: Optional[dict] = None
+        corporate_action: Optional[dict] = None,
     ) -> LineageEvent:
         """
         Detect merger or demerger events.
-        
-        Args:
-            symbol_disappears: Whether old symbol stops trading
-            new_symbol_appears: Whether new symbol starts trading
-            old_symbol: Symbol that disappeared
-            new_symbol: Symbol that appeared (may be same as old if demerger)
-            event_date: Date of the merger/demerger
-            corporate_action: Corporate action event dict for corroboration
-        
+
+        Classification logic:
+          - MERGER  if old symbol disappears (absorbed into another entity)
+          - DEMERGER if old symbol persists and a new one appears alongside
+
+        Confidence rules:
+          - 0.95 if corporate_action confirms MERGER/DEMERGER
+          - 0.75 if symbol disappears without corroborating action
+          - 0.60 if ambiguous (no disappearance, no action)
+
         Returns:
-            LineageEvent with type=MERGER or DEMERGER
+            LineageEvent(type=MERGER | DEMERGER)
         """
-        # Cross-reference with corporate action events
-        # Output: LineageEvent(type=MERGER or DEMERGER, from_symbol, to_symbol, date)
-        pass
-    
+        evidence = []
+        event_type = "MERGER" if symbol_disappears else "DEMERGER"
+
+        if corporate_action:
+            ca_type = str(corporate_action.get("action_code", "")).upper()
+            if ca_type in ("MERGER", "DEMERGER", "AMALGAMATION"):
+                confidence = 0.95
+                evidence.append(f"corporate_action={ca_type}")
+                if ca_type == "DEMERGER":
+                    event_type = "DEMERGER"
+            else:
+                confidence = 0.70
+                evidence.append(f"corporate_action={ca_type} (not a merger type)")
+        elif symbol_disappears:
+            confidence = 0.75
+            evidence.append("symbol_disappeared_no_corroborating_action")
+        else:
+            confidence = 0.60
+            evidence.append("inferred_from_symbol_overlap_only")
+
+        if new_symbol_appears:
+            evidence.append(f"new_symbol_appeared={new_symbol}")
+
+        return LineageEvent(
+            event_type=event_type,
+            event_date=event_date,
+            confidence=confidence,
+            symbol_from=old_symbol,
+            symbol_to=new_symbol if new_symbol != old_symbol else None,
+            reason=f"{event_type}: {old_symbol} → {new_symbol}",
+            corroborating_evidence=evidence,
+        )
+
+    # ── delistings ────────────────────────────────────────────────────────────
+
     def detect_delisting(
-        self, 
-        symbol: str, 
+        self,
+        symbol: str,
         last_trading_date: date,
-        is_explicit: bool = False
+        is_explicit: bool = False,
     ) -> LineageEvent:
         """
-        Detect when symbol stops appearing in active list (delisting).
-        
+        Detect when a symbol stops appearing in the active trading list.
+
         Args:
-            symbol: Trading symbol being delisted
-            last_trading_date: Last date symbol appeared in active trading list
-            is_explicit: Whether delisting was explicitly announced (vs. inferred)
-        
+            symbol:            Trading symbol being delisted
+            last_trading_date: Last date the symbol appeared in active data
+            is_explicit:       True if NSE published a formal delisting notice
+
         Returns:
-            LineageEvent with type=DELISTING
+            LineageEvent(type=DELISTING, symbol_from=symbol)
         """
-        # Detect when symbol stops appearing in active list
-        # Output: LineageEvent(type=DELISTING, symbol, delisting_date)
-        pass
-    
+        confidence = 0.95 if is_explicit else 0.75
+        reason = (
+            f"Explicit NSE delisting notice for {symbol}"
+            if is_explicit
+            else f"{symbol} absent from active list after {last_trading_date}"
+        )
+        evidence = ["explicit_nse_notice"] if is_explicit else ["inferred_from_absence"]
+
+        return LineageEvent(
+            event_type="DELISTING",
+            event_date=last_trading_date,
+            confidence=confidence,
+            symbol_from=symbol,
+            symbol_to=None,
+            reason=reason,
+            corroborating_evidence=evidence,
+        )
+
+    # ── relistings ────────────────────────────────────────────────────────────
+
     def detect_relisting(
         self,
         symbol: str,
         relisting_date: date,
-        reason: str = ""
+        reason: str = "",
     ) -> LineageEvent:
         """
-        Detect when a previously delisted symbol returns to trading.
-        
-        Args:
-            symbol: Trading symbol being relisted
-            relisting_date: Date symbol resumes trading
-            reason: Reason for relisting (e.g., "reopened_after_suspension")
-        
+        Detect when a previously delisted symbol resumes trading.
+
         Returns:
-            LineageEvent with type=RELISTING
+            LineageEvent(type=RELISTING, symbol_to=symbol)
         """
-        # Detect reactivation of previously delisted symbol
-        pass
-    
+        return LineageEvent(
+            event_type="RELISTING",
+            event_date=relisting_date,
+            confidence=0.90,
+            symbol_from=None,
+            symbol_to=symbol,
+            reason=reason or f"{symbol} relisted on NSE",
+            corroborating_evidence=["symbol_reappeared_in_active_list"],
+        )
+
+    # ── suspensions ───────────────────────────────────────────────────────────
+
     def detect_suspension(
         self,
         symbol: str,
         suspension_date: date,
-        reason: str = ""
+        reason: str = "",
     ) -> LineageEvent:
         """
-        Detect temporary trading suspension.
-        
-        Args:
-            symbol: Trading symbol being suspended
-            suspension_date: Date suspension began
-            reason: Reason for suspension
-        
+        Detect a temporary trading suspension.
+
         Returns:
-            LineageEvent with type=SUSPENSION
+            LineageEvent(type=SUSPENSION, symbol_from=symbol)
         """
-        # Detect temporary suspension events
-        pass
+        return LineageEvent(
+            event_type="SUSPENSION",
+            event_date=suspension_date,
+            confidence=0.90,
+            symbol_from=symbol,
+            symbol_to=None,
+            reason=reason or f"{symbol} suspended from trading",
+            corroborating_evidence=["symbol_in_suspended_status"],
+        )
