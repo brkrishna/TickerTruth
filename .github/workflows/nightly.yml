@@ -1,0 +1,82 @@
+name: Nightly Data Refresh
+
+on:
+  schedule:
+    # 2:00 AM IST = 20:30 UTC previous day (Mon–Fri trading days)
+    - cron: "30 20 * * 1-5"
+
+  # Allow manual trigger from GitHub Actions UI
+  workflow_dispatch:
+    inputs:
+      run_date:
+        description: "Override run date (YYYY-MM-DD). Defaults to today."
+        required: false
+        type: string
+      dry_run:
+        description: "Dry run — skip Dolt commit and R2 upload"
+        required: false
+        type: boolean
+        default: false
+
+env:
+  PYTHONPATH: .
+
+jobs:
+  refresh:
+    name: Data Refresh Pipeline
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install Python dependencies
+        run: pip install -r requirements.txt
+
+      - name: Install Playwright browsers
+        run: playwright install chromium --with-deps
+
+      - name: Install Dolt
+        run: |
+          curl -L https://github.com/dolthub/dolt/releases/latest/download/install.sh | bash
+          dolt version
+
+      - name: Configure Dolt identity
+        run: |
+          dolt config --global --add user.name  "ICASHTL Bot"
+          dolt config --global --add user.email "bot@icashtl.com"
+
+      - name: Run pipeline
+        env:
+          RUN_DATE:  ${{ github.event.inputs.run_date }}
+          DRY_RUN:   ${{ github.event.inputs.dry_run }}
+          R2_BUCKET: ${{ secrets.R2_BUCKET }}
+          R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
+          R2_ACCESS_KEY_ID:     ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+        run: |
+          python pipelines/run.py \
+            ${RUN_DATE:+--date $RUN_DATE} \
+            ${DRY_RUN:+--dry-run}
+
+      - name: Upload quality report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: quality-report-${{ github.run_id }}
+          path: data/staging/quality_report_*.json
+          if-no-files-found: ignore
+
+      - name: Upload release manifest
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: manifest-${{ github.run_id }}
+          path: data/samples/metadata/manifest_*.md
+          if-no-files-found: ignore

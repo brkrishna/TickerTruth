@@ -12,6 +12,9 @@ beautifulsoup4==4.12.3
 # SQLAlchemy uses greenlet for async features only — sync usage works without it.
 SQLAlchemy==2.0.36
 
+# YAML parsing (used by CI tests and future config loading)
+pyyaml>=6.0
+
 # Environment variables
 python-dotenv==1.0.1
 

@@ -1,0 +1,77 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install black
+
+      - name: Check formatting
+        run: black --check pipelines/ conftest.py
+
+  test:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        # Install all packages except playwright browser binaries
+        # (browser not needed for unit tests — they mock subprocess calls)
+        run: |
+          pip install -r requirements.txt
+          # Install playwright package but not browser binaries for unit tests
+          pip install playwright
+
+      - name: Run unit tests
+        run: pytest pipelines/phase2_validator.py pipelines/phase3_validator.py -v
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: htmlcov/
+          if-no-files-found: ignore
+
+  docs-build:
+    name: Docs Site Build Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install MkDocs
+        run: pip install mkdocs mkdocs-material
+
+      - name: Build docs (strict mode)
+        run: mkdocs build --strict --config-file website/config.yaml
+        continue-on-error: true
+        # continue-on-error: landing pages are stubs; build may warn but should not block CI

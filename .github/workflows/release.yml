@@ -1,0 +1,87 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"   # triggers on any tag like v2026.06.30
+
+env:
+  PYTHONPATH: .
+
+jobs:
+  build-and-publish:
+    name: Build Release Artifacts
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install Python dependencies
+        run: pip install -r requirements.txt
+
+      - name: Extract release date from tag
+        id: tag
+        # Tag format: v2026.06.30 → run_date: 2026-06-30
+        run: |
+          TAG="${GITHUB_REF_NAME#v}"
+          RUN_DATE=$(echo "$TAG" | sed 's/\./\-/g')
+          echo "run_date=$RUN_DATE" >> "$GITHUB_OUTPUT"
+
+      - name: Run export pipeline
+        env:
+          RUN_DATE: ${{ steps.tag.outputs.run_date }}
+        run: |
+          python pipelines/run.py \
+            --date "$RUN_DATE" \
+            --tasks export,manifest,release-notes \
+            --no-fetch \
+            --no-dolt-commit
+
+      - name: Generate GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: "Release ${{ github.ref_name }}"
+          body_path: releases/monthly/${{ github.ref_name }}.md
+          fail_on_unmatched_files: false
+          files: |
+            data/samples/public/*.csv
+            data/samples/public/*.sha256
+            data/samples/metadata/manifest_*.md
+
+      - name: Upload paid-tier artifacts to R2
+        if: ${{ env.R2_BUCKET != '' }}
+        env:
+          R2_BUCKET:            ${{ secrets.R2_BUCKET }}
+          R2_ENDPOINT:          ${{ secrets.R2_ENDPOINT }}
+          R2_ACCESS_KEY_ID:     ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+        run: |
+          pip install boto3
+          python - <<'EOF'
+          import boto3, os
+          from pathlib import Path
+
+          s3 = boto3.client(
+              "s3",
+              endpoint_url=os.environ["R2_ENDPOINT"],
+              aws_access_key_id=os.environ["R2_ACCESS_KEY_ID"],
+              aws_secret_access_key=os.environ["R2_SECRET_ACCESS_KEY"],
+          )
+          bucket  = os.environ["R2_BUCKET"]
+          run_date = os.environ["RUN_DATE"]
+
+          for tier in ["paid_tier_1", "paid_tier_2"]:
+              for path in Path(f"data/samples/{tier}").glob("*"):
+                  key = f"releases/{run_date}/{tier}/{path.name}"
+                  s3.upload_file(str(path), bucket, key)
+                  print(f"Uploaded {key}")
+          EOF
+        env:
+          RUN_DATE: ${{ steps.tag.outputs.run_date }}
