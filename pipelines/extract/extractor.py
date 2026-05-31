@@ -2,15 +2,15 @@
 Raw data extractor for NSE equity master, corporate actions, and bhavcopy.
 
 Step 5a: fetch_nse_symbols()           — NSE equity master CSV (implemented)
-Step 5b: fetch_bhavcopy()              — NSE daily EOD zip (stub)
-Step 5c: fetch_nse_corporate_actions() — NSE corporate actions via Playwright (stub)
+Step 5b: fetch_bhavcopy()              — NSE daily EOD zip (implemented)
+Step 5c: fetch_nse_corporate_actions() — NSE corporate actions (implemented)
 Step 5d: consolidate_to_staging()      — merge daily raw files to staging (stub)
 """
 
 import json
 import logging
 import time
-from datetime import date
+from datetime import date, timedelta
 from io import StringIO
 from pathlib import Path
 
@@ -39,6 +39,36 @@ MIN_SYMBOL_ROWS = 3500
 
 # Required columns (after normalization) for validation
 REQUIRED_SYMBOL_COLUMNS = ["SYMBOL", "ISIN", "LISTING_DATE", "STATUS"]
+
+# Corporate actions JSON API — requires a valid NSE session cookie
+NSE_CORP_ACTIONS_API = (
+    "https://www.nseindia.com/api/corporates-corporateActions"
+)
+
+# Corporate actions page for Playwright fallback
+NSE_CORP_ACTIONS_PAGE = (
+    "https://www.nseindia.com/companies-listing/corporate-filings-actions"
+)
+
+# NSE API returns at most ~30 days of records per call; chunk longer ranges
+CORP_ACTIONS_CHUNK_DAYS = 30
+
+# Default lookback when no date range is specified
+CORP_ACTIONS_DEFAULT_LOOKBACK_DAYS = 90
+
+# Map NSE API field names → our canonical column names
+_CORP_ACTION_API_COLUMNS = {
+    "symbol":   "SYMBOL",
+    "series":   "SERIES",
+    "subject":  "ACTION_TYPE_RAW",
+    "exDate":   "EX_DATE",
+    "recDate":  "RECORD_DATE",
+    "payDate":  "PAYMENT_DATE",
+    "comp":     "COMPANY_NAME",
+    "faceVal":  "FACE_VALUE",
+    "bcStDate": "BC_START_DATE",
+    "bcEndDate":"BC_END_DATE",
+}
 
 # Browser-like headers — NSE rejects requests without these
 _BROWSER_HEADERS = {
@@ -427,11 +457,330 @@ class RawDataExtractor:
             len(df), trading_date,
         )
 
-    # ── step 5c stub ─────────────────────────────────────────────────────────
+    # ── step 5c: NSE corporate actions ──────────────────────────────────────
 
-    def fetch_nse_corporate_actions(self) -> pd.DataFrame:
-        """Scrape NSE corporate actions page using Playwright."""
-        raise NotImplementedError("Step 5c — implement fetch_nse_corporate_actions()")
+    def fetch_nse_corporate_actions(
+        self,
+        from_date: date | None = None,
+        to_date: date | None = None,
+    ) -> pd.DataFrame:
+        """
+        Fetch NSE corporate action announcements for a date range.
+
+        Tries the NSE JSON API first (fast, no browser). Falls back to
+        Playwright scraping if the API is blocked or returns no data.
+
+        NSE limits API responses to ~30 days per call. Longer ranges are
+        automatically split into monthly chunks and concatenated.
+
+        Args:
+            from_date: Start of date range (inclusive). Defaults to
+                       CORP_ACTIONS_DEFAULT_LOOKBACK_DAYS days ago.
+            to_date:   End of date range (inclusive). Defaults to today.
+
+        Returns:
+            DataFrame with columns: SYMBOL, SERIES, ACTION_TYPE_RAW,
+            EX_DATE, RECORD_DATE, PAYMENT_DATE, COMPANY_NAME, FACE_VALUE.
+
+        Raises:
+            RuntimeError: if both the API and Playwright fallback fail.
+        """
+        to_date = to_date or date.today()
+        from_date = from_date or (to_date - timedelta(days=CORP_ACTIONS_DEFAULT_LOOKBACK_DAYS))
+
+        out_path = self.output_dir / (
+            f"nse_actions_{from_date.isoformat()}_{to_date.isoformat()}.csv"
+        )
+
+        if out_path.exists() and out_path.stat().st_size > 0:
+            logger.info("Using cached corporate actions: %s", out_path)
+            return pd.read_csv(out_path)
+
+        # Try JSON API first — split into monthly chunks
+        session = self._get_session()
+        chunks = list(self._date_chunks(from_date, to_date, CORP_ACTIONS_CHUNK_DAYS))
+        logger.info(
+            "Fetching corporate actions %s → %s in %d chunk(s)",
+            from_date, to_date, len(chunks),
+        )
+
+        all_frames: list[pd.DataFrame] = []
+        api_failed = False
+
+        for chunk_from, chunk_to in chunks:
+            df = self._fetch_corp_actions_api(session, chunk_from, chunk_to)
+            if df is None:
+                logger.warning(
+                    "JSON API failed for chunk %s → %s", chunk_from, chunk_to
+                )
+                api_failed = True
+                break
+            if not df.empty:
+                all_frames.append(df)
+            time.sleep(1.5)   # rate limit between chunk calls
+
+        if api_failed or not all_frames:
+            logger.warning("Falling back to Playwright for corporate actions")
+            fallback_df = self._fetch_corp_actions_playwright(from_date, to_date)
+            if fallback_df is None or fallback_df.empty:
+                raise RuntimeError(
+                    f"Failed to fetch corporate actions {from_date} → {to_date} "
+                    "from both JSON API and Playwright."
+                )
+            all_frames = [fallback_df]
+
+        df = pd.concat(all_frames, ignore_index=True)
+        df = self._normalize_corp_actions_columns(df)
+        df.drop_duplicates(
+            subset=["SYMBOL", "EX_DATE", "ACTION_TYPE_RAW"], keep="last", inplace=True
+        )
+        self._validate_corp_actions(df)
+
+        df.to_csv(out_path, index=False)
+        logger.info("Saved %d corporate action rows → %s", len(df), out_path)
+        return df
+
+    # ── corp actions helpers ─────────────────────────────────────────────────
+
+    @staticmethod
+    def _date_chunks(
+        from_date: date, to_date: date, chunk_days: int
+    ):
+        """Yield (chunk_from, chunk_to) pairs covering [from_date, to_date]."""
+        cursor = from_date
+        while cursor <= to_date:
+            chunk_end = min(cursor + timedelta(days=chunk_days - 1), to_date)
+            yield cursor, chunk_end
+            cursor = chunk_end + timedelta(days=1)
+
+    def _fetch_corp_actions_api(
+        self,
+        session: requests.Session,
+        from_date: date,
+        to_date: date,
+    ) -> pd.DataFrame | None:
+        """
+        Call the NSE corporate actions JSON API for a single date chunk.
+        Returns None on any failure so the caller can fall back to Playwright.
+        """
+        # NSE date format for this API: DD-MM-YYYY
+        params = {
+            "index": "equities",
+            "from_date": from_date.strftime("%d-%m-%Y"),
+            "to_date":   to_date.strftime("%d-%m-%Y"),
+        }
+        try:
+            resp = session.get(
+                NSE_CORP_ACTIONS_API,
+                params=params,
+                headers={"Accept": "application/json"},
+                timeout=30,
+            )
+            resp.raise_for_status()
+            data = resp.json()
+        except (requests.RequestException, json.JSONDecodeError) as exc:
+            logger.warning("Corp actions API error: %s", exc)
+            return None
+
+        # API returns a list of dicts directly, or wrapped under a key
+        if isinstance(data, list):
+            records = data
+        elif isinstance(data, dict):
+            records = data.get("data", data.get("records", []))
+        else:
+            logger.warning("Corp actions API returned unexpected type: %s", type(data))
+            return None
+
+        if not records:
+            logger.info("Corp actions API returned 0 records for %s → %s", from_date, to_date)
+            return pd.DataFrame()
+
+        return pd.DataFrame(records)
+
+    def _fetch_corp_actions_playwright(
+        self,
+        from_date: date,
+        to_date: date,
+    ) -> pd.DataFrame | None:
+        """
+        Scrape NSE corporate actions page with a headless Chromium browser.
+
+        Navigates the corporate actions page, applies date filters, and
+        extracts all table rows including across paginated pages.
+        Returns None on unrecoverable errors.
+        """
+        from playwright.sync_api import sync_playwright, TimeoutError as PWTimeout
+
+        rows: list[dict] = []
+
+        try:
+            with sync_playwright() as pw:
+                browser = pw.chromium.launch(headless=True)
+                ctx = browser.new_context(
+                    user_agent=_BROWSER_HEADERS["User-Agent"],
+                    locale="en-US",
+                )
+                page = ctx.new_page()
+
+                # Cookie handshake: visit homepage before the target page
+                page.goto(NSE_BASE, timeout=30_000)
+                page.wait_for_timeout(2_000)
+
+                logger.info("Playwright: navigating to corporate actions page")
+                page.goto(NSE_CORP_ACTIONS_PAGE, timeout=30_000)
+                page.wait_for_timeout(3_000)
+
+                # Fill date range filters
+                # NSE uses DD-MM-YYYY in its date inputs
+                fmt = "%d-%m-%Y"
+                self._pw_fill_date_filter(page, from_date.strftime(fmt), to_date.strftime(fmt))
+
+                # Wait for the data table to appear
+                try:
+                    page.wait_for_selector("table", timeout=15_000)
+                except PWTimeout:
+                    logger.warning("Playwright: table did not appear within timeout")
+                    browser.close()
+                    return None
+
+                # Paginate and collect all rows
+                page_num = 1
+                while True:
+                    logger.info("Playwright: extracting page %d", page_num)
+                    page_rows = self._pw_extract_table_rows(page)
+                    if not page_rows:
+                        break
+                    rows.extend(page_rows)
+
+                    # Try to click "Next" pagination button
+                    next_btn = page.query_selector(
+                        "a[aria-label='Next'], button:has-text('Next'), li.next a"
+                    )
+                    if not next_btn or not next_btn.is_enabled():
+                        break
+                    next_btn.click()
+                    page.wait_for_timeout(2_000)
+                    page_num += 1
+
+                browser.close()
+
+        except Exception as exc:
+            logger.warning("Playwright scraping failed: %s", exc)
+            return None
+
+        if not rows:
+            logger.warning("Playwright: extracted 0 rows from corporate actions page")
+            return pd.DataFrame()
+
+        return pd.DataFrame(rows)
+
+    @staticmethod
+    def _pw_fill_date_filter(page, from_date_str: str, to_date_str: str) -> None:
+        """
+        Fill date range inputs on the NSE corporate actions page.
+        NSE uses various input selectors across site versions; try common ones.
+        """
+        date_input_pairs = [
+            ("#fromDate", "#toDate"),
+            ("input[name='fromDate']", "input[name='toDate']"),
+            ("input[placeholder='From Date']", "input[placeholder='To Date']"),
+        ]
+        for from_sel, to_sel in date_input_pairs:
+            try:
+                if page.query_selector(from_sel):
+                    page.fill(from_sel, from_date_str)
+                    page.fill(to_sel, to_date_str)
+                    # Click search/filter button
+                    for btn_sel in ("button[type='submit']", "#search", "button:has-text('Search')"):
+                        btn = page.query_selector(btn_sel)
+                        if btn:
+                            btn.click()
+                            page.wait_for_timeout(2_000)
+                            break
+                    return
+            except Exception:
+                continue
+        logger.warning("Playwright: could not locate date filter inputs — using page defaults")
+
+    @staticmethod
+    def _pw_extract_table_rows(page) -> list[dict]:
+        """Extract all data rows from the visible table on the page."""
+        return page.evaluate("""
+            () => {
+                const table = document.querySelector('table');
+                if (!table) return [];
+                const headers = Array.from(table.querySelectorAll('thead th, thead td'))
+                                     .map(th => th.innerText.trim());
+                if (!headers.length) return [];
+                return Array.from(table.querySelectorAll('tbody tr')).map(tr => {
+                    const cells = Array.from(tr.querySelectorAll('td'))
+                                       .map(td => td.innerText.trim());
+                    const row = {};
+                    headers.forEach((h, i) => { row[h] = cells[i] || ''; });
+                    return row;
+                }).filter(r => Object.values(r).some(v => v !== ''));
+            }
+        """)
+
+    def _normalize_corp_actions_columns(self, df: pd.DataFrame) -> pd.DataFrame:
+        """
+        Map NSE API field names to canonical column names.
+        Handles both JSON API responses and Playwright-scraped table headers.
+        """
+        # Rename API fields using the constant mapping
+        rename_map = {k: v for k, v in _CORP_ACTION_API_COLUMNS.items() if k in df.columns}
+        if rename_map:
+            df.rename(columns=rename_map, inplace=True)
+
+        # Also uppercase any remaining column names (handles Playwright scrape headers)
+        df.columns = [c.strip().upper() for c in df.columns]
+
+        # Playwright scrape produces human-readable headers — map common ones
+        scrape_aliases = {
+            "SYMBOL": "SYMBOL",
+            "PURPOSE": "ACTION_TYPE_RAW",
+            "SUBJECT": "ACTION_TYPE_RAW",
+            "EX DATE": "EX_DATE",
+            "EX-DATE": "EX_DATE",
+            "RECORD DATE": "RECORD_DATE",
+            "RECORD-DATE": "RECORD_DATE",
+            "PAYMENT DATE": "PAYMENT_DATE",
+            "PAYMENT-DATE": "PAYMENT_DATE",
+            "COMPANY NAME": "COMPANY_NAME",
+            "COMPANY": "COMPANY_NAME",
+        }
+        scrape_rename = {k: v for k, v in scrape_aliases.items() if k in df.columns and k != v}
+        if scrape_rename:
+            df.rename(columns=scrape_rename, inplace=True)
+
+        return df.reset_index(drop=True)
+
+    def _validate_corp_actions(self, df: pd.DataFrame) -> None:
+        """
+        Validate corporate actions DataFrame.
+        Hard fail on missing critical columns; soft warnings otherwise.
+        """
+        required = ["SYMBOL", "EX_DATE", "ACTION_TYPE_RAW"]
+        missing = [c for c in required if c not in df.columns]
+        if missing:
+            raise ValueError(
+                f"Corporate actions missing required columns: {missing}. "
+                f"Columns present: {list(df.columns)}"
+            )
+
+        null_symbol = df["SYMBOL"].isna().sum()
+        if null_symbol:
+            logger.warning("%d corporate action rows have a missing SYMBOL", null_symbol)
+
+        null_exdate = df["EX_DATE"].isna().sum()
+        if null_exdate:
+            logger.warning("%d corporate action rows have a missing EX_DATE", null_exdate)
+
+        logger.info(
+            "Corporate actions validation passed: %d rows, %d missing symbol, "
+            "%d missing ex_date",
+            len(df), null_symbol, null_exdate,
+        )
 
     # ── step 5d stub ─────────────────────────────────────────────────────────
 
