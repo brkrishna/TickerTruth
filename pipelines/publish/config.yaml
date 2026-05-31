@@ -1,0 +1,76 @@
+# ICASHTL Delivery Configuration
+# Defines tier contents, R2 settings, and bundle parameters.
+
+tiers:
+  explorer:
+    label: "Explorer (Free)"
+    price_inr: 0
+    securities_limit: 20          # top N active securities
+    actions_years: 2              # last N years of corporate actions
+    includes_adjustments: false
+    includes_lineage: false
+    includes_confidence_scores: false
+    update_delay_weeks: 4         # behind live data
+    format: csv
+    notes: "Trial and evaluation. No PII, no adjustments."
+
+  starter:
+    label: "Starter"
+    price_inr_min: 15000
+    price_inr_max: 35000
+    securities_limit: null        # all active + recently delisted
+    actions_years: 3
+    includes_adjustments: true
+    includes_lineage: true
+    includes_confidence_scores: false
+    update_delay_weeks: 0
+    format: parquet
+    notes: "Small teams, backtesting, academic research."
+
+  professional:
+    label: "Professional"
+    price_inr_min: 40000
+    price_inr_max: 100000
+    securities_limit: null
+    actions_years: null           # full history from 2000
+    includes_adjustments: true
+    includes_lineage: true
+    includes_confidence_scores: true
+    custom_date_ranges: true
+    update_delay_weeks: 0
+    format: parquet
+    notes: "Production quant systems, broker research platforms."
+
+  enterprise:
+    label: "Enterprise"
+    price_inr_min: 150000
+    securities_limit: null
+    actions_years: null
+    includes_adjustments: true
+    includes_lineage: true
+    includes_confidence_scores: true
+    custom_date_ranges: true
+    bse_addon: true               # future: BSE cross-reference
+    dedicated_refresh: true
+    update_delay_weeks: 0
+    format: parquet
+    notes: "Large institutional players, data platform integrations."
+
+bundle:
+  include_license: true
+  include_readme: true
+  include_sample_queries: true
+  include_manifest: true
+  zip_output: true
+
+r2:
+  bucket_env: R2_BUCKET
+  endpoint_env: R2_ENDPOINT
+  access_key_env: R2_ACCESS_KEY_ID
+  secret_key_env: R2_SECRET_ACCESS_KEY
+  signed_url_expires_hours: 168   # 7-day download window
+  prefix: releases                # key prefix in bucket
+
+buyers:
+  registry_file: data/buyers/buyers.csv
+  download_log:  data/buyers/download_log.csv
