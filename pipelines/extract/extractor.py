@@ -262,9 +262,170 @@ class RawDataExtractor:
 
     # ── step 5b stub ─────────────────────────────────────────────────────────
 
+    # ── step 5b: NSE bhavcopy ────────────────────────────────────────────────
+
     def fetch_bhavcopy(self, trading_date: date) -> pd.DataFrame:
-        """Download NSE daily EOD bhavcopy zip for a given trading date."""
-        raise NotImplementedError(f"Step 5b — implement fetch_bhavcopy() for {trading_date}")
+        """
+        Download NSE equity bhavcopy (EOD market data) for a given trading date.
+
+        NSE publishes a ZIP file after market close (~6 PM IST) containing a CSV
+        with OHLCV data for all traded securities.
+
+        URL pattern:
+            https://archives.nseindia.com/content/historical/EQUITIES/
+            {YYYY}/{MMM}/cm{DD}{MMM}{YYYY}bhav.csv.zip
+
+        Args:
+            trading_date: The trading date to fetch. Must be a weekday when
+                          markets were open — NSE does not publish bhavcopy
+                          for holidays or weekends.
+
+        Returns:
+            DataFrame with columns: SYMBOL, SERIES, OPEN, HIGH, LOW, CLOSE,
+            LAST, PREVCLOSE, TOTTRDQTY, TOTTRDVAL, TIMESTAMP, TOTALTRADES, ISIN.
+
+        Raises:
+            RuntimeError: if the download fails (e.g. holiday, network error).
+            ValueError: if required columns are missing or OHLC sanity fails.
+        """
+        out_path = self.output_dir / f"bhavcopy_{trading_date.isoformat()}.csv"
+
+        # Skip download if file already exists (idempotent)
+        if out_path.exists() and out_path.stat().st_size > 0:
+            logger.info("Using cached bhavcopy: %s", out_path)
+            return pd.read_csv(out_path)
+
+        url = self._bhavcopy_url(trading_date)
+        logger.info("Downloading bhavcopy from %s", url)
+
+        session = self._get_session()
+        try:
+            resp = session.get(url, timeout=30)
+            resp.raise_for_status()
+        except requests.HTTPError as exc:
+            if exc.response.status_code == 404:
+                raise RuntimeError(
+                    f"Bhavcopy not found for {trading_date} (HTTP 404). "
+                    "Likely a market holiday, weekend, or the file is not yet published."
+                ) from exc
+            raise RuntimeError(f"Failed to download bhavcopy for {trading_date}: {exc}") from exc
+        except requests.RequestException as exc:
+            raise RuntimeError(f"Failed to download bhavcopy for {trading_date}: {exc}") from exc
+
+        df = self._extract_bhavcopy_zip(resp.content, trading_date)
+        df = self._normalize_bhavcopy_columns(df)
+        self._validate_bhavcopy(df, trading_date)
+
+        df.to_csv(out_path, index=False)
+        logger.info("Saved %d rows bhavcopy → %s", len(df), out_path)
+        return df
+
+    def _bhavcopy_url(self, trading_date: date) -> str:
+        """Build the NSE archives URL for a given trading date."""
+        yyyy = trading_date.strftime("%Y")
+        mmm = trading_date.strftime("%b").upper()   # e.g. MAY, JAN
+        dd = trading_date.strftime("%d")             # zero-padded day
+        filename = f"cm{dd}{mmm}{yyyy}bhav.csv.zip"
+        return (
+            f"https://archives.nseindia.com/content/historical/"
+            f"EQUITIES/{yyyy}/{mmm}/{filename}"
+        )
+
+    def _extract_bhavcopy_zip(self, content: bytes, trading_date: date) -> pd.DataFrame:
+        """Extract the CSV from the downloaded ZIP bytes and parse into DataFrame."""
+        import zipfile
+        from io import BytesIO
+
+        try:
+            zf = zipfile.ZipFile(BytesIO(content))
+        except zipfile.BadZipFile as exc:
+            raise RuntimeError(
+                f"Downloaded file for {trading_date} is not a valid ZIP. "
+                "NSE may have returned an error page instead."
+            ) from exc
+
+        csv_files = [n for n in zf.namelist() if n.lower().endswith(".csv")]
+        if not csv_files:
+            raise RuntimeError(
+                f"No CSV found inside bhavcopy ZIP for {trading_date}. "
+                f"ZIP contents: {zf.namelist()}"
+            )
+
+        # Prefer the equity bhavcopy file (cm*.csv) over any other CSV in the zip
+        csv_name = next(
+            (n for n in csv_files if n.upper().startswith("CM")),
+            csv_files[0],
+        )
+        logger.info("Extracting %s from ZIP", csv_name)
+        return pd.read_csv(zf.open(csv_name))
+
+    def _normalize_bhavcopy_columns(self, df: pd.DataFrame) -> pd.DataFrame:
+        """Uppercase and strip all column names; rename legacy header variants."""
+        df.columns = [c.strip().upper() for c in df.columns]
+
+        # Handle older bhavcopy formats that used different column names
+        bhavcopy_aliases = {
+            "TOTTRDQTY": "TOTTRDQTY",   # already standard
+            "VOLUME": "TOTTRDQTY",
+            "TOTTRDVAL": "TOTTRDVAL",
+            "VALUE": "TOTTRDVAL",
+            "TOTALTRADES": "TOTALTRADES",
+            "NO_OF_TRADES": "TOTALTRADES",
+        }
+        rename_map = {k: v for k, v in bhavcopy_aliases.items() if k in df.columns and k != v}
+        if rename_map:
+            df.rename(columns=rename_map, inplace=True)
+
+        return df.reset_index(drop=True)
+
+    def _validate_bhavcopy(self, df: pd.DataFrame, trading_date: date) -> None:
+        """
+        Validate bhavcopy DataFrame before saving.
+        Hard failures raise ValueError; soft issues log warnings.
+        """
+        required = ["SYMBOL", "OPEN", "HIGH", "LOW", "CLOSE"]
+        missing = [c for c in required if c not in df.columns]
+        if missing:
+            raise ValueError(
+                f"Bhavcopy for {trading_date} missing required columns: {missing}. "
+                f"Columns present: {list(df.columns)}"
+            )
+
+        # Minimum row count — a normal trading day has ~2000+ EQ series rows
+        min_rows = 500
+        if len(df) < min_rows:
+            raise ValueError(
+                f"Bhavcopy for {trading_date} has only {len(df)} rows — "
+                f"expected ≥ {min_rows}. File may be incomplete."
+            )
+
+        # OHLC sanity: LOW <= CLOSE <= HIGH (allow tiny float drift)
+        eq = df[df.get("SERIES", pd.Series(["EQ"] * len(df))) == "EQ"] if "SERIES" in df.columns else df
+        ohlc_ok = (
+            (eq["LOW"] <= eq["CLOSE"] + 0.01) &
+            (eq["CLOSE"] <= eq["HIGH"] + 0.01)
+        )
+        bad_ohlc = (~ohlc_ok).sum()
+        if bad_ohlc > 0:
+            logger.warning(
+                "%d rows in bhavcopy for %s fail OHLC sanity (LOW > CLOSE or CLOSE > HIGH)",
+                bad_ohlc, trading_date,
+            )
+
+        # Warn on zero-volume rows (suspended/delisted securities)
+        if "TOTTRDQTY" in df.columns:
+            zero_vol = (df["TOTTRDQTY"] == 0).sum()
+            if zero_vol:
+                logger.warning(
+                    "%d rows have zero volume in bhavcopy for %s "
+                    "(may indicate suspended or delisted securities)",
+                    zero_vol, trading_date,
+                )
+
+        logger.info(
+            "Bhavcopy validation passed: %d rows, date=%s",
+            len(df), trading_date,
+        )
 
     # ── step 5c stub ─────────────────────────────────────────────────────────
 
