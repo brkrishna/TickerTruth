@@ -4,7 +4,7 @@ Raw data extractor for NSE equity master, corporate actions, and bhavcopy.
 Step 5a: fetch_nse_symbols()           — NSE equity master CSV (implemented)
 Step 5b: fetch_bhavcopy()              — NSE daily EOD zip (implemented)
 Step 5c: fetch_nse_corporate_actions() — NSE corporate actions (implemented)
-Step 5d: consolidate_to_staging()      — merge daily raw files to staging (stub)
+Step 5d: consolidate_to_staging()      — merge daily raw files to staging (implemented)
 """
 
 import json
@@ -22,7 +22,8 @@ logger = logging.getLogger(__name__)
 # ── constants ────────────────────────────────────────────────────────────────
 
 PROJECT_ROOT = Path(__file__).parent.parent.parent
-DATA_RAW = PROJECT_ROOT / "data" / "raw"
+DATA_RAW     = PROJECT_ROOT / "data" / "raw"
+DATA_STAGING = PROJECT_ROOT / "data" / "staging"
 
 NSE_BASE = "https://www.nseindia.com"
 
@@ -782,8 +783,174 @@ class RawDataExtractor:
             len(df), null_symbol, null_exdate,
         )
 
-    # ── step 5d stub ─────────────────────────────────────────────────────────
+    # ── step 5d: consolidate to staging ─────────────────────────────────────
 
-    def consolidate_to_staging(self) -> None:
-        """Merge all daily raw files in data/raw/ into consolidated staging files."""
-        raise NotImplementedError("Step 5d — implement consolidate_to_staging()")
+    def consolidate_to_staging(self, staging_dir: Path = DATA_STAGING) -> dict:
+        """
+        Merge all daily raw files in data/raw/ into consolidated staging files.
+
+        Reads every date-stamped raw CSV for each source type, concatenates
+        them, deduplicates on natural keys, and writes one consolidated CSV
+        per source to data/staging/. Also writes a JSON quality report.
+
+        Returns:
+            dict with keys 'symbols', 'bhavcopy', 'actions', each containing:
+              - files_found (int)
+              - rows_before_dedup (int)
+              - rows_after_dedup (int)
+              - date_range (tuple[str, str] | None)
+        """
+        staging_dir = Path(staging_dir)
+        staging_dir.mkdir(parents=True, exist_ok=True)
+
+        report: dict = {}
+
+        report["symbols"] = self._consolidate_source(
+            pattern="nse_symbols_*.csv",
+            out_file=staging_dir / "nse_symbols_consolidated.csv",
+            dedup_cols=["SYMBOL", "LISTING_DATE"],
+            date_col="LISTING_DATE",
+            label="NSE symbols",
+        )
+
+        report["bhavcopy"] = self._consolidate_source(
+            pattern="bhavcopy_*.csv",
+            out_file=staging_dir / "bhavcopy_consolidated.csv",
+            dedup_cols=["SYMBOL", "TIMESTAMP"],
+            date_col="TIMESTAMP",
+            label="Bhavcopy EOD",
+        )
+
+        report["actions"] = self._consolidate_source(
+            pattern="nse_actions_*.csv",
+            out_file=staging_dir / "nse_actions_consolidated.csv",
+            dedup_cols=["SYMBOL", "EX_DATE", "ACTION_TYPE_RAW"],
+            date_col="EX_DATE",
+            label="Corporate actions",
+        )
+
+        self._write_quality_report(report, staging_dir)
+        return report
+
+    # ── consolidation helpers ────────────────────────────────────────────────
+
+    def _consolidate_source(
+        self,
+        pattern: str,
+        out_file: Path,
+        dedup_cols: list[str],
+        date_col: str,
+        label: str,
+    ) -> dict:
+        """
+        Find all raw files matching pattern, concatenate, dedup, and save.
+
+        Args:
+            pattern:    glob pattern relative to self.output_dir
+            out_file:   destination CSV path in staging/
+            dedup_cols: columns to deduplicate on (keeps last row per key)
+            date_col:   column used to compute the date range for the report
+            label:      human-readable name for log messages
+
+        Returns:
+            dict with files_found, rows_before_dedup, rows_after_dedup,
+            date_range (tuple of min/max date strings, or None if empty).
+        """
+        files = sorted(self.output_dir.glob(pattern))
+        result = {
+            "files_found": len(files),
+            "rows_before_dedup": 0,
+            "rows_after_dedup": 0,
+            "date_range": None,
+        }
+
+        if not files:
+            logger.warning("%s: no raw files found matching %s", label, pattern)
+            return result
+
+        frames: list[pd.DataFrame] = []
+        for f in files:
+            try:
+                df = pd.read_csv(f)
+                frames.append(df)
+                logger.info("%s: loaded %d rows from %s", label, len(df), f.name)
+            except Exception as exc:
+                logger.warning("%s: skipping %s — %s", label, f.name, exc)
+
+        if not frames:
+            logger.warning("%s: all files failed to load", label)
+            return result
+
+        combined = pd.concat(frames, ignore_index=True)
+        result["rows_before_dedup"] = len(combined)
+
+        # Dedup only on columns that actually exist (guards against schema drift)
+        valid_dedup = [c for c in dedup_cols if c in combined.columns]
+        if valid_dedup:
+            combined.drop_duplicates(subset=valid_dedup, keep="last", inplace=True)
+        else:
+            logger.warning(
+                "%s: none of dedup columns %s found — skipping dedup", label, dedup_cols
+            )
+
+        combined.reset_index(drop=True, inplace=True)
+        result["rows_after_dedup"] = len(combined)
+
+        # Compute date range from the date column if present
+        if date_col in combined.columns:
+            non_null = combined[date_col].dropna()
+            if not non_null.empty:
+                result["date_range"] = (str(non_null.min()), str(non_null.max()))
+
+        combined.to_csv(out_file, index=False)
+        logger.info(
+            "%s: %d files → %d rows (-%d dupes) → %s",
+            label,
+            len(files),
+            result["rows_after_dedup"],
+            result["rows_before_dedup"] - result["rows_after_dedup"],
+            out_file.name,
+        )
+        return result
+
+    def _write_quality_report(self, report: dict, staging_dir: Path) -> None:
+        """Write a JSON quality report summarising the consolidation run."""
+        today = date.today().isoformat()
+        report_path = staging_dir / f"quality_report_{today}.json"
+
+        output = {
+            "generated_on": today,
+            "raw_dir": str(self.output_dir),
+            "staging_dir": str(staging_dir),
+            "sources": report,
+            "warnings": self._quality_warnings(report),
+        }
+
+        with open(report_path, "w") as fh:
+            json.dump(output, fh, indent=2)
+
+        logger.info("Quality report written → %s", report_path)
+
+    @staticmethod
+    def _quality_warnings(report: dict) -> list[str]:
+        """Return a list of human-readable warnings derived from the report."""
+        warnings: list[str] = []
+
+        for source, stats in report.items():
+            if stats["files_found"] == 0:
+                warnings.append(f"{source}: no raw files found — run fetch step first")
+                continue
+
+            before = stats["rows_before_dedup"]
+            after  = stats["rows_after_dedup"]
+            dupes  = before - after
+            if before > 0 and dupes / before > 0.05:
+                warnings.append(
+                    f"{source}: {dupes} duplicate rows removed "
+                    f"({dupes / before:.1%} of total) — check for overlapping fetch runs"
+                )
+
+            if after == 0:
+                warnings.append(f"{source}: 0 rows after dedup — consolidated file is empty")
+
+        return warnings
