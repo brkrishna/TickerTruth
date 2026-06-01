@@ -873,13 +873,26 @@ class RawDataExtractor:
 
     # ── step 5d: consolidate to staging ─────────────────────────────────────
 
-    def consolidate_to_staging(self, staging_dir: Path = DATA_STAGING) -> dict:
+    # Warn when the most recent bhavcopy file is older than this many calendar days.
+    _BHAVCOPY_STALE_THRESHOLD_DAYS = 5
+
+    def consolidate_to_staging(
+        self,
+        staging_dir: Path = DATA_STAGING,
+        run_date: date | None = None,
+    ) -> dict:
         """
         Merge all daily raw files in data/raw/ into consolidated staging files.
 
         Reads every date-stamped raw CSV for each source type, concatenates
         them, deduplicates on natural keys, and writes one consolidated CSV
         per source to data/staging/. Also writes a JSON quality report.
+
+        Args:
+            staging_dir: destination directory for consolidated staging files.
+            run_date:    the logical pipeline run date (from --date flag).
+                         Used to detect stale bhavcopy fallback data.
+                         Defaults to today if not provided.
 
         Returns:
             dict with keys 'symbols', 'bhavcopy', 'actions', each containing:
@@ -890,6 +903,7 @@ class RawDataExtractor:
         """
         staging_dir = Path(staging_dir)
         staging_dir.mkdir(parents=True, exist_ok=True)
+        run_date = run_date or date.today()
 
         report: dict = {}
 
@@ -908,6 +922,7 @@ class RawDataExtractor:
             date_col="TIMESTAMP",
             label="Bhavcopy EOD",
         )
+        self._check_bhavcopy_staleness(run_date)
 
         report["actions"] = self._consolidate_source(
             pattern="nse_actions_*.csv",
@@ -921,6 +936,35 @@ class RawDataExtractor:
         return report
 
     # ── consolidation helpers ────────────────────────────────────────────────
+
+    def _check_bhavcopy_staleness(self, run_date: date) -> None:
+        """
+        Warn if the most recent bhavcopy raw file is significantly older than
+        the pipeline run date. Filenames follow the pattern bhavcopy_YYYY-MM-DD.csv
+        so the date is extracted from the stem, not the file's mtime.
+        """
+        candidates = sorted(
+            (f for f in self.output_dir.glob("bhavcopy_*.csv") if f.stat().st_size > 0),
+            reverse=True,
+        )
+        if not candidates:
+            return
+
+        latest = candidates[0]
+        try:
+            file_date = date.fromisoformat(latest.stem.replace("bhavcopy_", ""))
+        except ValueError:
+            return  # filename doesn't match expected pattern — skip
+
+        age_days = (run_date - file_date).days
+        if age_days > self._BHAVCOPY_STALE_THRESHOLD_DAYS:
+            logger.warning(
+                "Bhavcopy data is %d days stale: most recent file is %s "
+                "(run date %s). EOD prices in this release are out of date.",
+                age_days,
+                latest.name,
+                run_date.isoformat(),
+            )
 
     def _consolidate_source(
         self,

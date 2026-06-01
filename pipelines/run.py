@@ -81,7 +81,7 @@ def run_extract(run_date: date, dry_run: bool) -> bool:
 
     logger.info("[extract] Consolidating to staging...")
     try:
-        report = extractor.consolidate_to_staging()
+        report = extractor.consolidate_to_staging(run_date=run_date)
         for src, stats in report.items():
             logger.info("[extract] staging.%s: %d rows", src, stats["rows_after_dedup"])
     except Exception as exc:
