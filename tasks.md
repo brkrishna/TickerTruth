@@ -94,6 +94,109 @@ This document tracks progress across phases, checkpoints, and deliverables for t
 - `phase-4-complete` — CI/CD automation, release automation, runbook
 - `phase-5-complete` — delivery packaging, customer access, future migration readiness
 
+## Bugs
+
+Bugs discovered from `run.log` on 2026-06-01. Fix each and commit separately.
+
+### BUG-1 — `fact_symbol_lineage_event` column name mismatch (critical)
+
+**Symptom:** `[load] fact_symbol_lineage_event: error` on every run.
+
+**Error:**
+```
+No declared columns found in df for table 'fact_symbol_lineage_event'.
+Expected: ['security_id', 'old_symbol', 'new_symbol', 'change_date', 'change_reason', 'merged_with_symbol', 'source']
+Got:      ['symbol_from', 'symbol_to', 'event_date', 'event_type', 'confidence', 'reason', 'corroborating_evidence']
+```
+
+**Root cause:** The lineage pipeline (`pipelines/lineage/linker.py`) emits columns in its own
+internal naming convention. The Dolt schema (`dolt/schema.sql`) and the importer
+(`pipelines/publish/dolt_importer.py`) expect a different set of column names.
+The two sides were never reconciled.
+
+**Fix:** Add a column-rename mapping in `dolt_importer.py` (or in the lineage runner in
+`run.py`) to translate lineage output columns to the Dolt schema before import:
+
+| Lineage output | Dolt schema |
+|---|---|
+| `symbol_from` | `old_symbol` |
+| `symbol_to` | `new_symbol` |
+| `event_date` | `change_date` |
+| `event_type` | `change_reason` |
+| `confidence` | _(no direct mapping — drop or add column to schema)_ |
+| `reason` | _(no direct mapping — drop or map to source)_ |
+| `corroborating_evidence` | _(no direct mapping — drop or serialize)_ |
+| _(missing)_ | `security_id` — must be joined from `dim_security_master` on `old_symbol` |
+| _(missing)_ | `merged_with_symbol` — populate from `event_type == MERGER` rows |
+
+**Files to change:** `pipelines/publish/dolt_importer.py`, possibly `dolt/schema.sql`.
+
+---
+
+### BUG-2 — pandas ChainedAssignment FutureWarnings in normalizer (medium)
+
+**Symptom:** 8 `FutureWarning: ChainedAssignmentError` messages during `[normalize]` on every run.
+
+**Affected lines:**
+- `pipelines/normalize/normalizer.py`: lines 146, 150, 151, 157, 165, 168, 176, 183
+- `pipelines/normalize/quality.py`: line 77
+
+**Root cause:** Code uses `df["col"][indexer] = value` (chained indexing). pandas 3.0
+Copy-on-Write makes this a silent no-op — assignments will stop taking effect.
+
+**Fix:** Replace every chained assignment with `df.loc[indexer, "col"] = value`
+or assign to a new DataFrame. Run `pytest` and verify no values are silently dropped.
+
+**Files to change:** `pipelines/normalize/normalizer.py`, `pipelines/normalize/quality.py`.
+
+---
+
+### BUG-3 — `dim_exchange` and `dim_corporate_action_type` never populated (medium)
+
+**Symptom:** Dolt importer logs `Skipping dim_exchange — curated file not found` and
+`Skipping dim_corporate_action_type — curated file not found` on every run.
+
+**Root cause:** These are static lookup tables that should be populated once from seed
+data, but the pipeline treats them like fact tables and looks for curated CSV files
+that are never generated. The normalize stage has no step that writes
+`data/curated/dim_exchange.csv` or `data/curated/dim_corporate_action_type.csv`.
+
+**Fix:** Either:
+- Add a normalize step that writes these static lookup CSVs from hardcoded values
+  (NSE/BSE exchange records; action type taxonomy), **or**
+- Teach `dolt_importer.py` to run `dolt sql < seed_corporate_actions.sql` for these
+  two tables instead of looking for curated CSV files.
+
+**Files to change:** `pipelines/normalize/normalizer.py` or `pipelines/publish/dolt_importer.py`,
+and `dolt/seed_corporate_actions.sql`.
+
+---
+
+### BUG-4 — Corporate actions fetch fails with no cached fallback (medium)
+
+**Symptom:** `[extract] fetch_nse_corporate_actions failed (non-fatal)` on every run
+where NSE is unreachable or blocking, leaving `fact_corporate_action_event.csv` and
+`fact_adjustment_factor.csv` permanently absent. The `[validate]` step then fails
+`required_files_exist`.
+
+**Error chain:**
+1. Cookie handshake → `403 Forbidden`
+2. JSON API → empty response (JSON parse error)
+3. Playwright → `ERR_HTTP2_PROTOCOL_ERROR`
+4. No fallback → 0 corporate actions → validate FAIL
+
+**Root cause:** The extractor has no mechanism to fall back to the most recently
+successfully fetched corporate actions file when all live fetch methods fail.
+
+**Fix:** After all fetch methods fail, check for any existing `data/raw/nse_actions_*.csv`
+file and use the most recent one with a warning log. This lets the rest of the pipeline
+run on stale-but-present data rather than failing the validate check entirely.
+
+**Files to change:** `pipelines/extract/extractor.py` (add stale-cache fallback in
+`fetch_nse_corporate_actions`).
+
+---
+
 ## Progress tracking notes
 
 - Track failures and manual effort per release
