@@ -61,33 +61,53 @@ class DataValidator:
     # ── curated-file checks (no Dolt needed) ─────────────────────────────────
 
     def check_required_files_exist(self) -> CheckResult:
-        """Verify all expected curated CSV files are present and non-empty."""
-        expected = [
+        """Verify all expected curated CSV files are present and non-empty.
+
+        Core files (dim tables from equity master) must always be present.
+        Fact files that depend on NSE corporate actions API are optional — missing
+        them is a warning, not a hard failure, when the upstream API is unreachable.
+        """
+        core_files = [
             "dim_issuer.csv",
             "dim_security_master.csv",
+        ]
+        optional_files = [
             "fact_corporate_action_event.csv",
             "fact_adjustment_factor.csv",
             "fact_symbol_lineage_event.csv",
         ]
-        missing = []
-        empty   = []
-        for fname in expected:
+        missing_core = []
+        empty_core   = []
+        missing_opt  = []
+
+        for fname in core_files:
             path = self.curated_dir / fname
             if not path.exists():
-                missing.append(fname)
+                missing_core.append(fname)
             elif path.stat().st_size == 0:
-                empty.append(fname)
+                empty_core.append(fname)
+
+        for fname in optional_files:
+            path = self.curated_dir / fname
+            if not path.exists():
+                missing_opt.append(fname)
 
         errors = (
-            [f"missing: {f}" for f in missing] +
-            [f"empty: {f}"   for f in empty]
+            [f"missing: {f}" for f in missing_core] +
+            [f"empty: {f}"   for f in empty_core]
         )
+        warnings = [f"missing: {f}" for f in missing_opt]
         passed = not errors
+        total = len(core_files) + len(optional_files)
+        present = total - len(missing_core) - len(empty_core) - len(missing_opt)
+        details = f"{present}/{total} files present and non-empty"
+        if warnings:
+            details += f" ({len(missing_opt)} optional fact file(s) absent — upstream data unavailable)"
         return CheckResult(
             name="required_files_exist",
             passed=passed,
-            details=f"{len(expected) - len(errors)}/{len(expected)} files present and non-empty",
-            errors=errors,
+            details=details,
+            errors=errors + warnings,
         )
 
     def check_primary_keys_unique(self) -> CheckResult:

@@ -442,8 +442,8 @@ class DoltImporter:
         self._run(["add", "--all"])
         result = self._run(["commit", "-m", message])
         if result.returncode != 0:
-            # "nothing to commit" is a non-error
-            if "nothing to commit" in result.stdout.lower() + result.stderr.lower():
+            combined = result.stdout.lower() + result.stderr.lower()
+            if "nothing to commit" in combined or "no changes added to commit" in combined:
                 logger.info("Dolt: nothing to commit")
                 return ""
             raise RuntimeError(f"dolt commit failed: {result.stderr}")
