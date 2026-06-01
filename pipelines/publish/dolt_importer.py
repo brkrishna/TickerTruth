@@ -14,13 +14,11 @@ carry action_code strings.  _resolve_action_type_ids() does the lookup
 from Dolt before import.
 """
 
-import csv
 import json
 import logging
 import subprocess
 import tempfile
 from datetime import date
-from io import StringIO
 from pathlib import Path
 
 import pandas as pd
@@ -80,6 +78,18 @@ _TABLE_COLUMNS: dict[str, list[str]] = {
         "security_id", "trading_date",
         "open_price", "high_price", "low_price", "close_price", "volume",
     ],
+}
+
+# Maps lineage pipeline event_type values → fact_symbol_lineage_event.change_reason ENUM.
+# LISTING and SUSPENSION have no ENUM equivalent and are skipped at import time.
+_LINEAGE_EVENT_TYPE_MAP: dict[str, str] = {
+    "RENAME":       "rename",
+    "MERGER":       "merger",
+    "DEMERGER":     "merger",   # no demerger variant in current ENUM
+    "DELISTING":    "delisting",
+    "RELISTING":    "relisting",
+    "REACTIVATION": "relisting",
+    # LISTING and SUSPENSION intentionally absent — rows are dropped with a warning
 }
 
 # Import order respects FK dependencies
@@ -194,6 +204,114 @@ class DoltImporter:
         df["action_type_id"] = df["action_type_id"].astype(int)
         return df
 
+    # ── lineage transform ─────────────────────────────────────────────────────
+
+    def _get_symbol_id_map(self) -> dict[str, int]:
+        """Query Dolt for uppercase(nse_symbol) → security_id mapping."""
+        rows = self._sql_json(
+            "SELECT security_id, nse_symbol FROM dim_security_master"
+        )
+        return {r["nse_symbol"].upper(): int(r["security_id"]) for r in rows}
+
+    def transform_lineage_events(self, df: pd.DataFrame) -> pd.DataFrame:
+        """
+        Map lineage pipeline output to the fact_symbol_lineage_event Dolt schema.
+
+        Lineage pipeline produces:
+            symbol_from, symbol_to, event_date, event_type,
+            confidence, reason, corroborating_evidence
+
+        Dolt schema expects:
+            security_id, old_symbol, new_symbol, change_date,
+            change_reason, merged_with_symbol, source
+
+        Steps:
+          1. Rename columns to match Dolt schema.
+          2. Map event_type → change_reason ENUM (drop unmappable types).
+          3. Join dim_security_master on old_symbol (or new_symbol for relistings)
+             to resolve security_id; drop rows that don't resolve.
+          4. Set merged_with_symbol = new_symbol for merger rows.
+          5. Set source = 'lineage_pipeline'.
+
+        Returns a DataFrame ready for load_table(); empty if nothing survives.
+        """
+        if df.empty:
+            return df.copy()
+
+        df = df.copy()
+
+        # 1. Rename
+        df = df.rename(columns={
+            "symbol_from": "old_symbol",
+            "symbol_to":   "new_symbol",
+            "event_date":  "change_date",
+            "event_type":  "change_reason",
+        })
+
+        # 2. Map to ENUM values; drop rows whose event_type has no mapping
+        df["change_reason"] = df["change_reason"].str.upper().map(_LINEAGE_EVENT_TYPE_MAP)
+        n_unmappable = df["change_reason"].isna().sum()
+        if n_unmappable:
+            logger.warning(
+                "%d lineage rows have event_type not in Dolt ENUM "
+                "(LISTING / SUSPENSION) — skipping", n_unmappable
+            )
+            df = df[df["change_reason"].notna()].copy()
+
+        if df.empty:
+            return df
+
+        # 3. Resolve security_id
+        try:
+            sym_to_id = self._get_symbol_id_map()
+        except Exception as exc:
+            logger.warning(
+                "Could not query dim_security_master for security_id resolution: %s "
+                "— lineage import skipped", exc
+            )
+            return df.iloc[0:0]  # empty with same columns
+
+        def _resolve(row: pd.Series) -> int | None:
+            for sym in (row.get("old_symbol"), row.get("new_symbol")):
+                if sym and str(sym).upper() != "NAN":
+                    sid = sym_to_id.get(str(sym).upper())
+                    if sid is not None:
+                        return sid
+            return None
+
+        df["security_id"] = df.apply(_resolve, axis=1)
+        n_unresolved = df["security_id"].isna().sum()
+        if n_unresolved:
+            logger.warning(
+                "%d lineage rows could not resolve security_id "
+                "(symbol not in dim_security_master) — skipping", n_unresolved
+            )
+            df = df[df["security_id"].notna()].copy()
+
+        if df.empty:
+            return df
+
+        df["security_id"] = df["security_id"].astype(int)
+
+        # 4. merged_with_symbol — for merger events, new_symbol is the absorbing entity
+        df["merged_with_symbol"] = None
+        merger_mask = df["change_reason"] == "merger"
+        df.loc[merger_mask, "merged_with_symbol"] = df.loc[merger_mask, "new_symbol"]
+
+        # 5. Source tag
+        df["source"] = "lineage_pipeline"
+
+        # 6. Drop pipeline-internal columns not in the Dolt schema
+        drop_cols = [
+            c for c in ("confidence", "reason", "corroborating_evidence",
+                        "corroborated", "manual_review_required")
+            if c in df.columns
+        ]
+        if drop_cols:
+            df = df.drop(columns=drop_cols)
+
+        return df
+
     # ── table import ──────────────────────────────────────────────────────────
 
     def load_table(self, table_name: str, df: pd.DataFrame) -> int:
@@ -271,6 +389,17 @@ class DoltImporter:
                 # Special handling: resolve action_type_id FK for fact table
                 if table == "fact_corporate_action_event" and "action_code" in df.columns:
                     df = self.resolve_action_type_ids(df)
+
+                # Special handling: map lineage pipeline column names to Dolt schema
+                if table == "fact_symbol_lineage_event":
+                    df = self.transform_lineage_events(df)
+                    if df.empty:
+                        logger.info(
+                            "Skipping fact_symbol_lineage_event — "
+                            "no rows survived transform"
+                        )
+                        report["tables"][table] = {"status": "skipped", "rows": 0}
+                        continue
 
                 rows = self.load_table(table, df)
                 report["tables"][table] = {"status": "ok", "rows": rows}
