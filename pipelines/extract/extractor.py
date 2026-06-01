@@ -27,19 +27,25 @@ DATA_STAGING = PROJECT_ROOT / "data" / "staging"
 
 NSE_BASE = "https://www.nseindia.com"
 
-# NSE serves equity master as JSON via its internal API.
-# The cookie handshake (hitting the home page first) is required —
-# NSE blocks direct API calls without a valid session cookie.
+# Primary: NSE archives mirror — serves EQUITY_L.csv directly, no Akamai
+# bot challenge, no cookie handshake required.
+NSE_EQUITY_ARCHIVES_CSV = "https://nsearchives.nseindia.com/content/equities/EQUITY_L.csv"
+
+# Secondary: NSE JSON API — requires a valid session cookie
+# (Akamai blocks plain requests to www.nseindia.com)
 NSE_EQUITY_MASTER_API = "https://www.nseindia.com/api/equity-master"
 
-# Fallback: older direct CSV URL (still works on some NSE mirrors)
+# Tertiary: old direct CSV — 404 as of 2026, kept as last resort
 NSE_EQUITY_CSV_FALLBACK = "https://www.nseindia.com/content/equities/EQUITY_L.csv"
 
-# Minimum expected row count for a valid equity master file
-MIN_SYMBOL_ROWS = 3500
+# EQUITY_L.csv lists only active EQ-series equities (~2,365 rows as of 2026).
+# Full NSE universe including delisted securities is ~5,000+; raise this
+# threshold only if fetching a more complete source.
+MIN_SYMBOL_ROWS = 2000
 
-# Required columns (after normalization) for validation
-REQUIRED_SYMBOL_COLUMNS = ["SYMBOL", "ISIN", "LISTING_DATE", "STATUS"]
+# STATUS is absent from EQUITY_L.csv (all listed rows are implicitly active).
+# It is synthesized to "ACTIVE" after load — see _normalize_symbol_columns().
+REQUIRED_SYMBOL_COLUMNS = ["SYMBOL", "ISIN", "LISTING_DATE"]
 
 # Corporate actions JSON API — requires a valid NSE session cookie
 NSE_CORP_ACTIONS_API = (
@@ -154,36 +160,51 @@ class RawDataExtractor:
         """
         Download the NSE equity master and return a cleaned DataFrame.
 
-        Tries the JSON API endpoint first, falls back to the legacy CSV URL.
+        Fetch order:
+          1. nsearchives.nseindia.com/content/equities/EQUITY_L.csv
+             — works without cookies; confirmed 200 OK as of 2026
+          2. NSE JSON API (www.nseindia.com/api/equity-master)
+             — requires session cookie; falls back if archives are down
+          3. www.nseindia.com/content/equities/EQUITY_L.csv
+             — legacy URL; likely 404 but kept as last resort
+
         Saves the raw file to data/raw/nse_symbols_{YYYY-MM-DD}.csv.
 
         Returns:
-            DataFrame with columns including SYMBOL, COMPANY_NAME, ISIN,
-            LISTING_DATE, STATUS, SECTOR, SERIES.
+            DataFrame with columns SYMBOL, COMPANY_NAME, ISIN, LISTING_DATE,
+            STATUS (synthesized "ACTIVE" when absent), SERIES.
 
         Raises:
-            RuntimeError: if both URLs fail or the file is empty.
+            RuntimeError: if all URLs fail.
             ValueError: if required columns are missing or row count is too low.
         """
-        today = date.today().isoformat()
+        today    = date.today().isoformat()
         out_path = self.output_dir / f"nse_symbols_{today}.csv"
 
-        # Skip network call if today's file already exists (idempotent)
         if out_path.exists() and out_path.stat().st_size > 0:
             logger.info("Using cached file: %s", out_path)
             return pd.read_csv(out_path)
 
-        session = self._get_session()
-        df = self._fetch_equity_master_json(session)
+        # Try archives first — no session needed
+        df = self._fetch_equity_master_archives()
 
         if df is None:
-            logger.warning("JSON API failed, trying legacy CSV URL...")
+            logger.warning("Archives URL failed; trying session-based API...")
+            session = self._get_session()
+            df = self._fetch_equity_master_json(session)
+
+        if df is None:
+            logger.warning("JSON API failed; trying legacy CSV URL...")
+            session = self._get_session()
             df = self._fetch_equity_master_csv(session)
 
         if df is None or df.empty:
             raise RuntimeError(
-                "Failed to fetch NSE equity master from all URLs. "
-                "Check your network connection or NSE site status."
+                "All three NSE equity master URLs failed.\n"
+                f"  1. {NSE_EQUITY_ARCHIVES_CSV}\n"
+                f"  2. {NSE_EQUITY_MASTER_API}\n"
+                f"  3. {NSE_EQUITY_CSV_FALLBACK}\n"
+                "Check network connectivity or NSE site status."
             )
 
         df = self._normalize_symbol_columns(df)
@@ -193,8 +214,33 @@ class RawDataExtractor:
         logger.info("Saved %d symbols → %s", len(df), out_path)
         return df
 
+    def _fetch_equity_master_archives(self) -> pd.DataFrame | None:
+        """
+        Fetch EQUITY_L.csv from nsearchives.nseindia.com.
+
+        This endpoint serves the active EQ-series equity list without
+        requiring Akamai cookie authentication.
+        """
+        try:
+            logger.info("Fetching equity master from NSE archives: %s", NSE_EQUITY_ARCHIVES_CSV)
+            resp = requests.get(
+                NSE_EQUITY_ARCHIVES_CSV,
+                headers={"User-Agent": _BROWSER_HEADERS["User-Agent"]},
+                timeout=20,
+            )
+            resp.raise_for_status()
+            if resp.text.strip().startswith("<"):
+                logger.warning("Archives URL returned HTML — endpoint may have changed")
+                return None
+            df = pd.read_csv(StringIO(resp.text))
+            logger.info("Archives fetch succeeded: %d rows", len(df))
+            return df
+        except Exception as exc:
+            logger.warning("Archives fetch failed: %s", exc)
+            return None
+
     def _fetch_equity_master_json(self, session: requests.Session) -> pd.DataFrame | None:
-        """Try the NSE JSON API endpoint."""
+        """Try the NSE JSON API endpoint (requires session cookie)."""
         try:
             resp = session.get(
                 NSE_EQUITY_MASTER_API,
@@ -203,48 +249,51 @@ class RawDataExtractor:
             )
             resp.raise_for_status()
             data = resp.json()
-
-            # The API returns a list of dicts or a dict with a data key
             if isinstance(data, list):
                 return pd.DataFrame(data)
             if isinstance(data, dict):
-                # Try common wrapper keys
                 for key in ("data", "records", "equities"):
                     if key in data:
                         return pd.DataFrame(data[key])
-                # No known wrapper — return flat dict as single row (unlikely)
                 return pd.DataFrame([data])
-
         except (requests.RequestException, json.JSONDecodeError, ValueError) as exc:
             logger.warning("JSON API call failed: %s", exc)
             return None
 
     def _fetch_equity_master_csv(self, session: requests.Session) -> pd.DataFrame | None:
-        """Try the legacy direct CSV download URL."""
+        """Legacy direct CSV URL — likely 404 but kept as last resort."""
         try:
             resp = session.get(NSE_EQUITY_CSV_FALLBACK, timeout=30)
             resp.raise_for_status()
-            # Detect if response is actually HTML (redirect to login page)
             if resp.text.strip().startswith("<"):
-                logger.warning("CSV URL returned HTML — NSE may have changed the endpoint")
+                logger.warning("Legacy CSV URL returned HTML — endpoint is dead")
                 return None
             return pd.read_csv(StringIO(resp.text))
         except Exception as exc:
-            logger.warning("CSV fallback failed: %s", exc)
+            logger.warning("Legacy CSV fallback failed: %s", exc)
             return None
 
     def _normalize_symbol_columns(self, df: pd.DataFrame) -> pd.DataFrame:
         """
         Standardize column names across different NSE file format versions.
-        Strips whitespace, uppercases, and applies known aliases.
+        Strips whitespace, uppercases, applies known aliases, and synthesizes
+        STATUS when absent (EQUITY_L.csv only lists active securities).
         """
-        # Strip whitespace from column names and uppercase
+        df = df.copy()
+
+        # Strip leading/trailing whitespace from column names and uppercase
         df.columns = [c.strip().upper() for c in df.columns]
 
         # Apply aliases (handles both space-separated and underscore variants)
         rename_map = {k: v for k, v in _COLUMN_ALIASES.items() if k in df.columns}
         if rename_map:
             df.rename(columns=rename_map, inplace=True)
+
+        # EQUITY_L.csv has no STATUS column — every row in it is an active
+        # listed equity, so synthesize STATUS = "ACTIVE" when missing.
+        if "STATUS" not in df.columns:
+            df["STATUS"] = "ACTIVE"
+            logger.info("STATUS column absent — defaulted all rows to 'ACTIVE'")
 
         # Deduplicate on [SYMBOL, LISTING_DATE] — keep last (most recent)
         dedup_cols = [c for c in ["SYMBOL", "LISTING_DATE"] if c in df.columns]
@@ -329,9 +378,13 @@ class RawDataExtractor:
         url = self._bhavcopy_url(trading_date)
         logger.info("Downloading bhavcopy from %s", url)
 
-        session = self._get_session()
+        # archives.nseindia.com does not require cookie authentication
         try:
-            resp = session.get(url, timeout=30)
+            resp = requests.get(
+                url,
+                headers={"User-Agent": _BROWSER_HEADERS["User-Agent"]},
+                timeout=30,
+            )
             resp.raise_for_status()
         except requests.HTTPError as exc:
             if exc.response.status_code == 404:
@@ -406,6 +459,12 @@ class RawDataExtractor:
         rename_map = {k: v for k, v in bhavcopy_aliases.items() if k in df.columns and k != v}
         if rename_map:
             df.rename(columns=rename_map, inplace=True)
+
+        # Drop trailing-comma artefact columns NSE sometimes adds (UNNAMED: N)
+        unnamed = [c for c in df.columns if c.startswith("UNNAMED:")]
+        if unnamed:
+            df.drop(columns=unnamed, inplace=True)
+            logger.info("Dropped %d unnamed column(s) from bhavcopy", len(unnamed))
 
         return df.reset_index(drop=True)
 
