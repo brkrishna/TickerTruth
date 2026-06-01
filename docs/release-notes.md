@@ -1,38 +1,69 @@
 # Release Notes
 
-### v2026.06.01 — 2026-06-01
+<!-- Add new releases at the top of this file, above older entries. -->
+<!-- Each entry must follow the format defined at the bottom of this file. -->
+<!-- Do not publish a release entry until the pipeline run for that month is complete. -->
 
-- 0 securities, 0 corporate actions, 0 lineage events
+<!-- STUB: Replace this entry with actual numbers after the June 2026 pipeline run. -->
+# Release 2026-06 — [Title TBD]
+
+**Released:** 2026-06-30
+**Records Updated:** TBD
+**New Symbols:** TBD
+**Corrections:** TBD
+
+### Highlights
+- TBD
+
+### Data Changes
+- **Dimension updates:** TBD
+- **Corporate actions:** TBD
+- **Adjustments:** TBD
+
+### Quality Improvements
+- TBD
+
+### Known Issues
+- None.
+
+### Next Release
+- TBD
+
+---
+
+<!-- ============================================================ -->
+<!-- REFERENCE: Format and example below — do not publish these.  -->
+<!-- ============================================================ -->
 
 ## Format for Monthly Releases
 
 ```
-# Release [YYYY-MM] — [Release Title]
+# Release YYYY-MM — <Short Title>
 
-**Released:** [Date]  
-**Records Updated:** [Count]  
-**New Symbols:** [Count]  
-**Corrections:** [Count]
+**Released:** YYYY-MM-DD
+**Records Updated:** <count>
+**New Symbols:** <count>
+**Corrections:** <count>
 
 ### Highlights
-- [Key change or addition]
-- [Major fix or enhancement]
-- [Feedback incorporated from subscribers]
+- <Key change or addition>
+- <Major fix or enhancement>
+- <Feedback incorporated from subscribers>
 
 ### Data Changes
-- **Dimension updates:** [e.g., 5 new issuers, 2 renamed companies]
-- **Corporate actions:** [e.g., 12 new dividend records, 3 splits, 1 merger]
-- **Adjustments:** [e.g., refactored split adjustment logic]
+- **Dimension updates:** <e.g., 5 new issuers, 2 renamed companies>
+- **Corporate actions:** <e.g., 12 new dividend records, 3 splits, 1 merger>
+- **Adjustments:** <e.g., refactored split adjustment logic>
 
 ### Quality Improvements
-- [QA check added or fixed]
-- [Data validation enhanced]
+- <QA check added or fixed>
+- <Data validation enhanced>
 
 ### Known Issues
-- [Any outstanding data gaps or limitations]
+- <Any outstanding data gaps or limitations>
 
 ### Next Release
-- [Planned work for next month]
+- <Planned work for next month>
 ```
 
 ## Example Release
