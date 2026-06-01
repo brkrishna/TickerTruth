@@ -295,7 +295,8 @@ def run_release_notes(run_date: date, stats: dict) -> bool:
 
     try:
         path = notifier.generate_release_notes(run_date, stats)
-        notifier.update_changelog(run_date, stats)
+        # docs/release-notes.md is human-curated — do not write to it from the
+        # pipeline. Update it manually after reviewing the versioned release file.
         logger.info("[release-notes] Written: %s", path)
         return True
     except Exception as exc:

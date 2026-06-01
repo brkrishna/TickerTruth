@@ -118,7 +118,12 @@ class ReleaseNotifier:
         Prepend a summary entry to docs/release-notes.md (most recent first).
 
         Reads the existing file, inserts the new entry after the header,
-        and rewrites the file.
+        and rewrites the file. Skips silently if an entry for run_date
+        already exists — prevents duplicate stubs on re-runs.
+
+        Note: docs/release-notes.md is human-curated. This method is
+        intended for manual or one-off invocation only; the pipeline
+        (run.py) does not call it on every run.
         """
         version  = f"v{run_date.strftime('%Y.%m.%d')}"
         new_act  = stats.get("new_actions", 0)
@@ -135,6 +140,12 @@ class ReleaseNotifier:
 
         if self.changelog.exists():
             existing = self.changelog.read_text()
+            if run_date.isoformat() in existing:
+                logger.info(
+                    "Changelog already contains an entry for %s — skipping update",
+                    run_date.isoformat(),
+                )
+                return
             # Insert after the first-level heading block (first blank line after #)
             lines     = existing.splitlines(keepends=True)
             insert_at = 0
