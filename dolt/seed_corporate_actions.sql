@@ -1,4 +1,4 @@
-INSERT INTO dim_corporate_action_type (action_code, action_name, description) VALUES
+INSERT IGNORE INTO dim_corporate_action_type (action_code, action_name, description) VALUES
 ('DIVIDEND', 'Cash Dividend', 'Regular cash dividend distribution to shareholders'),
 ('BONUS', 'Bonus Issue', 'Free additional shares issued to existing shareholders'),
 ('SPLIT', 'Stock Split', 'Division of existing shares into smaller denominations'),

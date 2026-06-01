@@ -169,6 +169,21 @@ class DoltImporter:
         )
         logger.info("Seeded dim_exchange with NSE (exchange_id=1)")
 
+    # ── action type seed ──────────────────────────────────────────────────────
+
+    def ensure_action_types_seeded(self) -> None:
+        """Seed dim_corporate_action_type from seed_corporate_actions.sql if empty."""
+        rows = self._sql_json("SELECT COUNT(*) AS n FROM dim_corporate_action_type")
+        if rows and int(rows[0].get("n", 0)) > 0:
+            return
+        seed_file = DOLT_DIR / "seed_corporate_actions.sql"
+        result = self._run(["sql"], input_text=seed_file.read_text())
+        if result.returncode != 0:
+            raise RuntimeError(
+                f"Failed to seed dim_corporate_action_type: {result.stderr.strip()}"
+            )
+        logger.info("Seeded dim_corporate_action_type from %s", seed_file.name)
+
     # ── action type ID resolution ─────────────────────────────────────────────
 
     def get_action_type_map(self) -> dict[str, int]:
@@ -370,11 +385,16 @@ class DoltImporter:
         run_date = run_date or date.today()
         report: dict = {"run_date": run_date.isoformat(), "tables": {}, "errors": []}
 
-        # Always ensure NSE exchange row exists
+        # Always ensure static lookup tables are seeded before fact imports
         try:
             self.ensure_exchange_seeded()
         except Exception as exc:
             report["errors"].append(f"ensure_exchange_seeded: {exc}")
+
+        try:
+            self.ensure_action_types_seeded()
+        except Exception as exc:
+            report["errors"].append(f"ensure_action_types_seeded: {exc}")
 
         for table in _IMPORT_ORDER:
             csv_path = self.curated_dir / f"{table}.csv"
