@@ -218,7 +218,12 @@ def run_validate(run_date: date) -> bool:
     return summary["all_passed"]
 
 
-def run_load(run_date: date, dry_run: bool, no_dolt_commit: bool) -> bool:
+def run_load(
+    run_date: date,
+    dry_run: bool,
+    no_dolt_commit: bool,
+    validate_passed: bool = True,
+) -> bool:
     """Task 9: load curated data into Dolt, commit, and tag."""
     from pipelines.publish.dolt_importer import DoltImporter
     importer = DoltImporter()
@@ -235,6 +240,13 @@ def run_load(run_date: date, dry_run: bool, no_dolt_commit: bool) -> bool:
     except Exception as exc:
         logger.error("[load] import_all failed: %s", exc)
         return False
+
+    if not validate_passed:
+        logger.warning(
+            "[load] Skipping Dolt commit — validate failed. "
+            "Fix data issues and re-run with --tasks load to commit."
+        )
+        return True
 
     if dry_run or no_dolt_commit:
         logger.info("[load] Skipping Dolt commit (dry-run or --no-dolt-commit)")
@@ -390,7 +402,11 @@ def main(argv: list[str] | None = None) -> int:
         results["validate"] = run_validate(run_date)
 
     if "load" in tasks:
-        results["load"] = run_load(run_date, args.dry_run, args.no_dolt_commit)
+        validate_passed = results.get("validate", True)
+        results["load"] = run_load(
+            run_date, args.dry_run, args.no_dolt_commit,
+            validate_passed=validate_passed,
+        )
 
     if "export" in tasks:
         export_paths = run_export(run_date)
