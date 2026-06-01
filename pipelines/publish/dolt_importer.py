@@ -249,7 +249,7 @@ class DoltImporter:
         })
 
         # 2. Map to ENUM values; drop rows whose event_type has no mapping
-        df["change_reason"] = df["change_reason"].str.upper().map(_LINEAGE_EVENT_TYPE_MAP)
+        df.loc[:, "change_reason"] = df["change_reason"].str.upper().map(_LINEAGE_EVENT_TYPE_MAP)
         n_unmappable = df["change_reason"].isna().sum()
         if n_unmappable:
             logger.warning(
@@ -279,7 +279,7 @@ class DoltImporter:
                         return sid
             return None
 
-        df["security_id"] = df.apply(_resolve, axis=1)
+        df.loc[:, "security_id"] = df.apply(_resolve, axis=1)
         n_unresolved = df["security_id"].isna().sum()
         if n_unresolved:
             logger.warning(
@@ -291,15 +291,15 @@ class DoltImporter:
         if df.empty:
             return df
 
-        df["security_id"] = df["security_id"].astype(int)
+        df.loc[:, "security_id"] = df["security_id"].astype(int)
 
         # 4. merged_with_symbol — for merger events, new_symbol is the absorbing entity
-        df["merged_with_symbol"] = None
+        df.loc[:, "merged_with_symbol"] = None
         merger_mask = df["change_reason"] == "merger"
         df.loc[merger_mask, "merged_with_symbol"] = df.loc[merger_mask, "new_symbol"]
 
         # 5. Source tag
-        df["source"] = "lineage_pipeline"
+        df.loc[:, "source"] = "lineage_pipeline"
 
         # 6. Drop pipeline-internal columns not in the Dolt schema
         drop_cols = [
