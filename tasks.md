@@ -197,6 +197,89 @@ run on stale-but-present data rather than failing the validate check entirely.
 
 ---
 
+### BUG-5 — Bhavcopy consolidation silently uses a stale file with no age warning (medium)
+
+**Symptom:** When today's bhavcopy is unavailable (market holiday, 404), the extractor
+falls through to whatever existing `bhavcopy_*.csv` file is present in `data/raw/`. In
+both runs on 2026-06-01 it loaded `bhavcopy_2024-05-10.csv` — nearly two years stale —
+with no staleness warning:
+
+```
+WARNING   run  [extract] fetch_bhavcopy failed (non-fatal): Bhavcopy not found for 2026-06-01 (HTTP 404)
+INFO      pipelines.extract.extractor  Bhavcopy EOD: loaded 2710 rows from bhavcopy_2024-05-10.csv
+INFO      pipelines.extract.extractor  Bhavcopy EOD: 1 files → 2706 rows (-4 dupes) → bhavcopy_consolidated.csv
+```
+
+**Root cause:** The bhavcopy consolidation step globs all `bhavcopy_*.csv` files without
+checking the date embedded in the filename against the run date. Contrast with the
+corporate-actions stale-cache fallback (BUG-4 fix) which logs an explicit warning when
+using a prior file.
+
+**Fix:** After consolidation, compare the most recent bhavcopy file's date against the
+run date. If the gap exceeds a threshold (e.g. 5 calendar days), log a `WARNING` with the
+file name and age so operators know the EOD data is stale. Do not treat holiday gaps as an
+error, but do make the staleness visible.
+
+**Files to change:** `pipelines/extract/extractor.py` (bhavcopy consolidation logic).
+
+---
+
+### BUG-6 — `release_notifier` overwrites `docs/release-notes.md` on every run (medium)
+
+**Symptom:** Every pipeline run writes a new entry to `docs/release-notes.md`:
+
+```
+INFO      pipelines.publish.release_notifier  Changelog updated → /Users/ramarkrishna/apps/ICASHTL/docs/release-notes.md
+```
+
+Both the 19:46 and 21:27 runs on 2026-06-01 did this, producing three duplicate
+`### v2026.06.01` stubs with `0 securities, 0 corporate actions, 0 lineage events` in
+the file — clobbering human-authored content and violating the CLAUDE.md format rules
+for release notes.
+
+**Root cause:** `release_notifier.py` prepends a new changelog entry to
+`docs/release-notes.md` on every invocation with no guard against same-date duplicates
+and no respect for the required release note format.
+
+**Fix:** Either:
+- Remove the `docs/release-notes.md` write from `release_notifier.py` entirely.
+  `docs/release-notes.md` is a human-curated subscriber-facing document; the pipeline
+  should only write to `releases/monthly/v<date>.md`. **Or**
+- Add a duplicate-date guard: before prepending, check if an entry for the current
+  run date already exists in `docs/release-notes.md` and skip if so.
+
+**Files to change:** `pipelines/publish/release_notifier.py`.
+
+---
+
+### BUG-7 — Dolt commits are created even when `[validate]` fails (high)
+
+**Symptom:** In the second run (21:27), the validate step explicitly fails:
+
+```
+INFO      run  [validate] [FAIL] required_files_exist — 3/5 files present and non-empty
+```
+
+Yet the pipeline still creates a Dolt commit and tag immediately after the load step:
+
+```
+INFO      pipelines.publish.dolt_importer  Dolt commit: fjc7i87cn1uar92t491uqv7oh7veatgf  tag: v2026.06.01
+```
+
+The final summary also shows `✗ validate` alongside `✓ load`.
+
+**Root cause:** The pipeline orchestrator in `run.py` does not gate the Dolt commit on a
+passing validate result. Validate and load run as independent steps; load commits
+regardless of the validate outcome.
+
+**Fix:** In `run.py`, pass the validate result into the load step and abort the Dolt
+commit (but still write curated files) if any validate check returned FAIL. Add a log
+line explaining the skipped commit so operators know why no tag was created.
+
+**Files to change:** `pipelines/run.py`, possibly `pipelines/publish/dolt_importer.py`.
+
+---
+
 ## Progress tracking notes
 
 - Track failures and manual effort per release
