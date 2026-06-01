@@ -1,5 +1,9 @@
 # Release Notes
 
+### v2026.06.01 — 2026-06-01
+
+- 0 securities, 0 corporate actions, 0 lineage events
+
 ## Format for Monthly Releases
 
 ```

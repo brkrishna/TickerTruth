@@ -1,0 +1,62 @@
+# Python environments and caches
+.venv/
+venv/
+__pycache__/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.ipynb_checkpoints/
+*.pyc
+
+# Secrets and local config
+.env
+.env.*
+*.pem
+*.key
+secrets/
+
+# Git and OS noise
+.git/
+.DS_Store
+Thumbs.db
+
+# Build artifacts
+build/
+dist/
+*.egg-info/
+htmlcov/
+.coverage
+coverage.xml
+
+# Data directories - keep Claude away from raw and bulky files
+data/raw/
+data/staging/
+data/tmp/
+data/archive/
+output/
+exports/
+artifacts/
+logs/
+
+# Large data files
+*.parquet
+*.feather
+*.arrow
+*.orc
+*.csv
+*.tsv
+*.xlsx
+*.xls
+*.zip
+*.gz
+*.bz2
+*.7z
+
+# Notebook strategy: ignore all by default, selectively open one when needed
+notebooks/archive/
+*.ipynb
+
+# Frontend or package noise if present
+node_modules/
+.next/
+.cache/
