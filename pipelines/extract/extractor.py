@@ -583,9 +583,12 @@ class RawDataExtractor:
             logger.warning("Falling back to Playwright for corporate actions")
             fallback_df = self._fetch_corp_actions_playwright(from_date, to_date)
             if fallback_df is None or fallback_df.empty:
+                stale_df = self._stale_corp_actions_fallback()
+                if stale_df is not None:
+                    return stale_df
                 raise RuntimeError(
                     f"Failed to fetch corporate actions {from_date} → {to_date} "
-                    "from both JSON API and Playwright."
+                    "from JSON API, Playwright, and stale cache."
                 )
             all_frames = [fallback_df]
 
@@ -599,6 +602,32 @@ class RawDataExtractor:
         df.to_csv(out_path, index=False)
         logger.info("Saved %d corporate action rows → %s", len(df), out_path)
         return df
+
+    def _stale_corp_actions_fallback(self) -> pd.DataFrame | None:
+        """
+        Return the most recently written nse_actions_*.csv from data/raw/ when
+        all live fetch methods have failed.
+
+        Uses filename sort (ISO date prefix) so the newest file is selected.
+        Returns None if no prior file exists or if reading fails.
+        """
+        candidates = sorted(
+            (f for f in self.output_dir.glob("nse_actions_*.csv") if f.stat().st_size > 0),
+            reverse=True,
+        )
+        if not candidates:
+            logger.warning("Stale cache: no prior nse_actions_*.csv found in %s", self.output_dir)
+            return None
+        latest = candidates[0]
+        logger.warning(
+            "All live fetch methods failed — using stale cache: %s "
+            "(data may be outdated)", latest.name
+        )
+        try:
+            return pd.read_csv(latest)
+        except Exception as exc:
+            logger.warning("Stale cache read failed for %s: %s", latest.name, exc)
+            return None
 
     # ── corp actions helpers ─────────────────────────────────────────────────
 
