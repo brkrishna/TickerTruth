@@ -314,9 +314,11 @@ deployed to Cloudflare Pages.
 2. Connect to the GitHub repository.
 3. Set:
    - **Framework preset:** None
-   - **Build command:** *(leave blank — static site)*
+   - **Build command:** *(leave blank — static site — Cloudflare may auto-populate this from `requirements.txt`; delete whatever it suggests)*
    - **Build output directory:** `website/landing-page`
 4. Click **Save and Deploy**.
+
+> **Common failure:** if the build log shows `pip install -r requirements.txt` running, Cloudflare auto-detected the repo's Python dependencies and added them as a build step. Clear the Build command field and redeploy — the site is static HTML and needs no build step.
 
 Subsequent pushes to `main` redeploy automatically.
 
