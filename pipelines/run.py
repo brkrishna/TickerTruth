@@ -42,6 +42,7 @@ ALL_TASKS = [
     "export",
     "manifest",
     "release-notes",
+    "website",
 ]
 
 
@@ -303,6 +304,18 @@ def run_manifest(run_date: date, export_paths: dict) -> bool:
         return False
 
 
+def run_website(run_date: date) -> bool:
+    """Task 13: inject release card into website/landing-page/release-notes.html."""
+    from pipelines.publish.website_updater import WebsiteUpdater
+    updater = WebsiteUpdater()
+    try:
+        updater.update_for_date(run_date)
+        return True
+    except Exception as exc:
+        logger.error("[website] failed: %s", exc)
+        return False
+
+
 def collect_stats(run_date: date) -> dict:
     """Read row counts from curated CSVs and quality report for release notes."""
     import json
@@ -462,6 +475,9 @@ def main(argv: list[str] | None = None) -> int:
     if "release-notes" in tasks:
         stats.update(collect_stats(run_date))
         results["release-notes"] = run_release_notes(run_date, stats)
+
+    if "website" in tasks:
+        results["website"] = run_website(run_date)
 
     # ── summary ───────────────────────────────────────────────────────────────
     logger.info("─" * 60)

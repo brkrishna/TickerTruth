@@ -72,7 +72,7 @@ data/warehouse/
 data/buyers/
 
 # Release and build outputs
-releases/
+# releases/monthly/ is committed — MD files are the source for the website card injector
 build/
 dist/
 
