@@ -120,7 +120,9 @@ def test_main_passes_validate_failure_to_load(monkeypatch):
     """When validate fails in main(), run_load receives validate_passed=False."""
     captured = {}
 
-    def fake_run_load(run_date, dry_run, no_dolt_commit, validate_passed=True, stats=None):
+    def fake_run_load(
+        run_date, dry_run, no_dolt_commit, validate_passed=True, stats=None
+    ):
         captured["validate_passed"] = validate_passed
         return True
 
@@ -143,7 +145,9 @@ def test_main_passes_validate_success_to_load(monkeypatch):
     """When validate passes in main(), run_load receives validate_passed=True."""
     captured = {}
 
-    def fake_run_load(run_date, dry_run, no_dolt_commit, validate_passed=True, stats=None):
+    def fake_run_load(
+        run_date, dry_run, no_dolt_commit, validate_passed=True, stats=None
+    ):
         captured["validate_passed"] = validate_passed
         return True
 
@@ -166,7 +170,9 @@ def test_main_load_without_validate_in_tasks_defaults_to_true(monkeypatch):
     """Running --tasks load without validate defaults validate_passed to True."""
     captured = {}
 
-    def fake_run_load(run_date, dry_run, no_dolt_commit, validate_passed=True, stats=None):
+    def fake_run_load(
+        run_date, dry_run, no_dolt_commit, validate_passed=True, stats=None
+    ):
         captured["validate_passed"] = validate_passed
         return True
 
