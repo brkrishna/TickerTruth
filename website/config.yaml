@@ -1,27 +1,12 @@
 site_name: India Symbol History & Corporate Actions Truth Layer
 site_description: Versioned NSE symbol lineage and corporate action reference data for backtesting.
 site_url: https://icashtl.pages.dev
-docs_dir: landing-page
-site_dir: ../site
 
-theme:
-  name: material
-  palette:
-    primary: indigo
-    accent: blue
-  features:
-    - navigation.tabs
-    - navigation.top
-    - search.highlight
-
-nav:
-  - Home: index.md
-  - Product Overview: product-overview.md
-  - Methodology: methodology.md
-  - Pricing: pricing.md
-  - Sample Queries: sample-queries.md
-  - Release Notes: release-notes.md
-
-# Cloudflare Pages build:
-#   build command: pip install mkdocs mkdocs-material && mkdocs build --config-file website/config.yaml
-#   output directory: site
+# The site is built as plain static HTML — no MkDocs build step required.
+# Source files: website/landing-page/*.html
+#
+# Cloudflare Pages settings:
+#   Build command:        (leave blank)
+#   Build output dir:     website/landing-page
+#
+# This file is retained for site metadata only.

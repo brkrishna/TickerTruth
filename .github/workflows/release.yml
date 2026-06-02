@@ -56,14 +56,14 @@ jobs:
             data/samples/metadata/manifest_*.md
 
       - name: Upload paid-tier artifacts to R2
-        if: ${{ env.R2_BUCKET != '' }}
+        if: ${{ secrets.R2_BUCKET != '' }}
         env:
           R2_BUCKET:            ${{ secrets.R2_BUCKET }}
           R2_ENDPOINT:          ${{ secrets.R2_ENDPOINT }}
           R2_ACCESS_KEY_ID:     ${{ secrets.R2_ACCESS_KEY_ID }}
           R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          RUN_DATE:             ${{ steps.tag.outputs.run_date }}
         run: |
-          pip install boto3
           python - <<'EOF'
           import boto3, os
           from pathlib import Path
@@ -74,7 +74,7 @@ jobs:
               aws_access_key_id=os.environ["R2_ACCESS_KEY_ID"],
               aws_secret_access_key=os.environ["R2_SECRET_ACCESS_KEY"],
           )
-          bucket  = os.environ["R2_BUCKET"]
+          bucket   = os.environ["R2_BUCKET"]
           run_date = os.environ["RUN_DATE"]
 
           for tier in ["paid_tier_1", "paid_tier_2"]:
@@ -83,5 +83,3 @@ jobs:
                   s3.upload_file(str(path), bucket, key)
                   print(f"Uploaded {key}")
           EOF
-        env:
-          RUN_DATE: ${{ steps.tag.outputs.run_date }}

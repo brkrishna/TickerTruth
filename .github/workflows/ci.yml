@@ -56,22 +56,28 @@ jobs:
           path: htmlcov/
           if-no-files-found: ignore
 
-  docs-build:
-    name: Docs Site Build Check
+  site-check:
+    name: Static Site Check
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-          cache: pip
-
-      - name: Install MkDocs
-        run: pip install mkdocs mkdocs-material
-
-      - name: Build docs (strict mode)
-        run: mkdocs build --strict --config-file website/config.yaml
-        continue-on-error: true
-        # continue-on-error: landing pages are stubs; build may warn but should not block CI
+      - name: Verify required HTML pages exist and are non-empty
+        run: |
+          pages=(
+            website/landing-page/index.html
+            website/landing-page/methodology.html
+            website/landing-page/pricing.html
+            website/landing-page/sample-queries.html
+            website/landing-page/release-notes.html
+          )
+          failed=0
+          for f in "${pages[@]}"; do
+            if [ ! -s "$f" ]; then
+              echo "MISSING or EMPTY: $f"
+              failed=1
+            else
+              echo "OK: $f ($(wc -l < "$f") lines)"
+            fi
+          done
+          exit $failed
