@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pricing — ICASHTL</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      font-size: 16px; line-height: 1.6; color: #1a1a1a; background: #fff;
+    }
+    a { color: #0066cc; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    header {
+      border-bottom: 1px solid #e5e7eb; padding: 1.25rem 2rem;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    header .logo { font-weight: 700; font-size: 1rem; letter-spacing: -0.01em; }
+    header nav { display: flex; gap: 1.5rem; font-size: 0.9rem; }
+    .page-header {
+      max-width: 760px; margin: 3rem auto 2rem; padding: 0 2rem;
+      border-bottom: 1px solid #e5e7eb; padding-bottom: 2rem;
+    }
+    .page-header h1 { font-size: 1.75rem; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 0.5rem; }
+    .page-header p { color: #555; }
+    .divider { border: none; border-top: 1px solid #e5e7eb; margin: 0 2rem; }
+    section { max-width: 760px; margin: 2.5rem auto; padding: 0 2rem; }
+    h2 { font-size: 1.15rem; font-weight: 700; margin-bottom: 1.25rem; letter-spacing: -0.01em; }
+
+    /* Tier cards */
+    .tiers { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; }
+    .tier {
+      border: 1px solid #e5e7eb; border-radius: 10px; padding: 1.5rem;
+      display: flex; flex-direction: column; gap: 0.75rem;
+    }
+    .tier.highlighted { border-color: #0066cc; box-shadow: 0 0 0 1px #0066cc; }
+    .tier-label { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: #9ca3af; }
+    .tier.highlighted .tier-label { color: #0066cc; }
+    .tier-name { font-size: 1.1rem; font-weight: 700; }
+    .tier-price { font-size: 0.95rem; font-weight: 600; color: #1a1a1a; }
+    .tier-price span { font-weight: 400; color: #666; font-size: 0.85rem; }
+    .tier-features { list-style: none; padding: 0; display: flex; flex-direction: column; gap: 0.35rem; border-top: 1px solid #e5e7eb; padding-top: 0.75rem; }
+    .tier-features li { font-size: 0.875rem; color: #444; padding-left: 1.1rem; position: relative; }
+    .tier-features li::before { content: "✓"; position: absolute; left: 0; color: #15803d; font-size: 0.8rem; }
+    .tier-usecase { font-size: 0.8rem; color: #888; border-top: 1px solid #f3f4f6; padding-top: 0.6rem; margin-top: auto; }
+
+    /* Value prop */
+    .value-points { display: flex; flex-direction: column; gap: 0.6rem; }
+    .value-point { padding: 0.75rem 1rem; background: #f9fafb; border-radius: 6px; font-size: 0.9rem; color: #444; }
+    .value-point strong { color: #1a1a1a; }
+
+    /* CTA */
+    .contact-cta {
+      background: #f3f7ff; border: 1px solid #c7d9f8; border-radius: 10px;
+      padding: 1.5rem; text-align: center;
+    }
+    .contact-cta p { color: #444; margin-bottom: 1rem; font-size: 0.95rem; }
+    .btn {
+      display: inline-block; padding: 0.6rem 1.5rem; border-radius: 6px;
+      font-size: 0.9rem; font-weight: 500; background: #0066cc; color: #fff;
+    }
+    .btn:hover { background: #0052a3; text-decoration: none; }
+
+    footer {
+      border-top: 1px solid #e5e7eb; padding: 2rem;
+      text-align: center; font-size: 0.85rem; color: #9ca3af; margin-top: 4rem;
+    }
+    @media (max-width: 600px) {
+      header nav { display: none; }
+      .tiers { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <a href="index.html" class="logo">ICASHTL</a>
+  <nav>
+    <a href="methodology.html">Methodology</a>
+    <a href="pricing.html">Pricing</a>
+    <a href="sample-queries.html">Sample Queries</a>
+    <a href="release-notes.html">Release Notes</a>
+  </nav>
+</header>
+
+<main>
+  <div class="page-header">
+    <h1>Pricing</h1>
+    <p>Early bundle tiers — priced as a trust layer, not raw data volume.</p>
+  </div>
+
+  <section>
+    <h2>Bundle Tiers</h2>
+    <div class="tiers">
+
+      <div class="tier">
+        <div class="tier-label">Explorer</div>
+        <div class="tier-name">Explorer</div>
+        <div class="tier-price">Free <span>or INR 5,000 / month</span></div>
+        <ul class="tier-features">
+          <li>Sample tables — 20 symbols</li>
+          <li>Last 2 years of symbol lineage</li>
+          <li>Public corporate action events</li>
+          <li>Updates delayed 2–4 weeks</li>
+        </ul>
+        <div class="tier-usecase">Trial and evaluation</div>
+      </div>
+
+      <div class="tier highlighted">
+        <div class="tier-label">Most Popular</div>
+        <div class="tier-name">Starter</div>
+        <div class="tier-price">INR 15,000–35,000 <span>/ month</span></div>
+        <ul class="tier-features">
+          <li>Full NSE symbol lineage history</li>
+          <li>3+ years of corporate action events</li>
+          <li>Monthly versioned releases</li>
+          <li>Email support</li>
+        </ul>
+        <div class="tier-usecase">Small teams, backtesting, research</div>
+      </div>
+
+      <div class="tier">
+        <div class="tier-label">Professional</div>
+        <div class="tier-name">Professional</div>
+        <div class="tier-price">INR 40,000–1,00,000 <span>/ month</span></div>
+        <ul class="tier-features">
+          <li>Full history including delisting data</li>
+          <li>Adjustment factors and QA confidence scores</li>
+          <li>Custom date ranges and exports</li>
+          <li>Priority email support</li>
+        </ul>
+        <div class="tier-usecase">Production quant systems, broker platforms</div>
+      </div>
+
+      <div class="tier">
+        <div class="tier-label">Enterprise</div>
+        <div class="tier-name">Enterprise</div>
+        <div class="tier-price">INR 1.5 lakh+ <span>/ month</span></div>
+        <ul class="tier-features">
+          <li>Dedicated data refresh schedule</li>
+          <li>BSE add-ons and custom mappings</li>
+          <li>Bespoke exports and integrations</li>
+          <li>Direct support channels</li>
+        </ul>
+        <div class="tier-usecase">Large institutional players, platforms</div>
+      </div>
+
+    </div>
+  </section>
+
+  <hr class="divider">
+
+  <section>
+    <h2>Why This Pricing Works</h2>
+    <div class="value-points">
+      <div class="value-point"><strong>Engineering time saved</strong> — skip months of data cleanup and reconciliation work</div>
+      <div class="value-point"><strong>Risk reduced</strong> — avoid broken analytics pipelines caused by missing corporate actions</div>
+      <div class="value-point"><strong>Trust layer, not raw data</strong> — every record is normalized, scored, and versioned</div>
+    </div>
+  </section>
+
+  <hr class="divider">
+
+  <section>
+    <div class="contact-cta">
+      <p>Questions about tiers or a custom requirement? Reach out directly.</p>
+      <a href="mailto:contact@icashtl.com" class="btn">Contact Us</a>
+    </div>
+  </section>
+</main>
+
+<footer>
+  &copy; 2026 ICASHTL &middot; NSE reference data for quantitative research
+</footer>
+
+</body>
+</html>

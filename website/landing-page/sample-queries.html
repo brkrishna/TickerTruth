@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sample Queries — ICASHTL</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      font-size: 16px; line-height: 1.6; color: #1a1a1a; background: #fff;
+    }
+    a { color: #0066cc; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    header {
+      border-bottom: 1px solid #e5e7eb; padding: 1.25rem 2rem;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    header .logo { font-weight: 700; font-size: 1rem; letter-spacing: -0.01em; }
+    header nav { display: flex; gap: 1.5rem; font-size: 0.9rem; }
+    .page-header {
+      max-width: 720px; margin: 3rem auto 2rem; padding: 0 2rem;
+      border-bottom: 1px solid #e5e7eb; padding-bottom: 2rem;
+    }
+    .page-header h1 { font-size: 1.75rem; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 0.5rem; }
+    .page-header p { color: #555; }
+    .divider { border: none; border-top: 1px solid #e5e7eb; margin: 0 2rem; }
+    section { max-width: 720px; margin: 2.5rem auto; padding: 0 2rem; }
+
+    .query-block { margin-bottom: 0.5rem; }
+    .query-label {
+      display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.75rem;
+    }
+    .query-num {
+      flex-shrink: 0; width: 1.6rem; height: 1.6rem; border-radius: 50%;
+      background: #f3f4f6; color: #555; font-size: 0.75rem; font-weight: 700;
+      display: flex; align-items: center; justify-content: center; border: 1px solid #e5e7eb;
+    }
+    .query-label h2 { font-size: 1rem; font-weight: 600; letter-spacing: -0.01em; margin: 0; }
+    .query-desc { font-size: 0.9rem; color: #555; margin-bottom: 0.75rem; }
+
+    pre {
+      background: #0f172a; color: #e2e8f0; border-radius: 8px;
+      padding: 1.25rem 1.5rem; overflow-x: auto; font-size: 0.82rem;
+      line-height: 1.65; font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    }
+    /* SQL syntax highlighting via spans */
+    .kw  { color: #7dd3fc; } /* keywords */
+    .fn  { color: #a78bfa; } /* functions */
+    .str { color: #86efac; } /* strings */
+    .cm  { color: #64748b; } /* comments */
+    .tbl { color: #fcd34d; } /* table names */
+    .col { color: #e2e8f0; } /* columns */
+
+    footer {
+      border-top: 1px solid #e5e7eb; padding: 2rem;
+      text-align: center; font-size: 0.85rem; color: #9ca3af; margin-top: 4rem;
+    }
+    @media (max-width: 600px) { header nav { display: none; } }
+  </style>
+</head>
+<body>
+
+<header>
+  <a href="index.html" class="logo">ICASHTL</a>
+  <nav>
+    <a href="methodology.html">Methodology</a>
+    <a href="pricing.html">Pricing</a>
+    <a href="sample-queries.html">Sample Queries</a>
+    <a href="release-notes.html">Release Notes</a>
+  </nav>
+</header>
+
+<main>
+  <div class="page-header">
+    <h1>Sample SQL Queries</h1>
+    <p>Ready-to-run queries for Dolt, DuckDB, PostgreSQL, or any standard SQL engine.</p>
+  </div>
+
+  <section>
+    <div class="query-block">
+      <div class="query-label">
+        <div class="query-num">1</div>
+        <h2>Find all splits for a ticker</h2>
+      </div>
+      <p class="query-desc">Returns every recorded stock split for a given symbol, ordered most recent first.</p>
+      <pre><span class="kw">SELECT</span>
+    symbol,
+    event_date,
+    old_shares,
+    new_shares,
+    adjustment_factor
+<span class="kw">FROM</span> <span class="tbl">fact_corporate_action_event</span>
+<span class="kw">JOIN</span> <span class="tbl">dim_symbol_alias</span>
+  <span class="kw">ON</span> fact_corporate_action_event.security_id = dim_symbol_alias.security_id
+<span class="kw">WHERE</span> action_type = <span class="str">'SPLIT'</span>
+  <span class="kw">AND</span> symbol = <span class="str">'RELIANCE'</span>
+<span class="kw">ORDER BY</span> event_date <span class="kw">DESC</span>;</pre>
+    </div>
+  </section>
+
+  <hr class="divider">
+
+  <section>
+    <div class="query-block">
+      <div class="query-label">
+        <div class="query-num">2</div>
+        <h2>Get dividend-adjusted price series</h2>
+      </div>
+      <p class="query-desc">Computes a backward-adjusted close price using cumulative dividend adjustment factors.</p>
+      <pre><span class="kw">SELECT</span>
+    lineage_date,
+    symbol,
+    close_price,
+    close_price / <span class="fn">COALESCE</span>(
+        <span class="fn">SUM</span>(cumulative_dividend_adjustment) <span class="kw">OVER</span> (
+            <span class="kw">PARTITION BY</span> symbol
+            <span class="kw">ORDER BY</span> lineage_date
+        ), <span class="str">1.0</span>
+    ) <span class="kw">AS</span> adjusted_close
+<span class="kw">FROM</span> <span class="tbl">fact_equity_eod</span>
+<span class="kw">JOIN</span> <span class="tbl">dim_symbol_alias</span>
+  <span class="kw">ON</span> fact_equity_eod.security_id = dim_symbol_alias.security_id
+<span class="kw">WHERE</span> symbol = <span class="str">'INFY'</span>
+<span class="kw">ORDER BY</span> lineage_date;</pre>
+    </div>
+  </section>
+
+  <hr class="divider">
+
+  <section>
+    <div class="query-block">
+      <div class="query-label">
+        <div class="query-num">3</div>
+        <h2>Track symbol name changes over time</h2>
+      </div>
+      <p class="query-desc">Lists all renames, mergers, and delistings for securities matching a name pattern.</p>
+      <pre><span class="kw">SELECT</span>
+    security_id,
+    old_symbol,
+    new_symbol,
+    change_date,
+    change_reason
+<span class="kw">FROM</span> <span class="tbl">fact_symbol_lineage_event</span>
+<span class="kw">WHERE</span> security_id <span class="kw">IN</span> (
+    <span class="kw">SELECT</span> security_id
+    <span class="kw">FROM</span> <span class="tbl">dim_security_master</span>
+    <span class="kw">WHERE</span> issuer_name <span class="kw">LIKE</span> <span class="str">'%Tech%'</span>
+)
+<span class="kw">ORDER BY</span> change_date <span class="kw">DESC</span>;</pre>
+    </div>
+  </section>
+
+  <hr class="divider">
+
+  <section>
+    <div class="query-block">
+      <div class="query-label">
+        <div class="query-num">4</div>
+        <h2>Identify broken backtests due to missing adjustments</h2>
+      </div>
+      <p class="query-desc">Finds symbols with corporate action events that have no corresponding adjustment factor — a common source of silent backtest errors.</p>
+      <pre><span class="kw">SELECT</span>
+    symbol,
+    <span class="fn">COUNT</span>(*) <span class="kw">AS</span> missing_adjustments
+<span class="kw">FROM</span> <span class="tbl">fact_corporate_action_event</span>
+<span class="kw">WHERE</span> security_id <span class="kw">NOT IN</span> (
+    <span class="kw">SELECT</span> security_id <span class="kw">FROM</span> <span class="tbl">fact_adjustment_factor</span>
+)
+  <span class="kw">AND</span> action_type <span class="kw">IN</span> (<span class="str">'SPLIT'</span>, <span class="str">'BONUS'</span>, <span class="str">'DIVIDEND'</span>)
+<span class="kw">GROUP BY</span> symbol
+<span class="kw">HAVING</span> <span class="fn">COUNT</span>(*) &gt; 0;</pre>
+    </div>
+  </section>
+</main>
+
+<footer>
+  &copy; 2026 ICASHTL &middot; NSE reference data for quantitative research
+</footer>
+
+</body>
+</html>
