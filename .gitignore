@@ -76,10 +76,8 @@ releases/
 build/
 dist/
 
-# Dolt local state (optional: keep if you want to commit schema, exclude data)
-.dolt/noms/
-.dolt/tmp/
-.dolt/index.json
+# Dolt runtime state — schema SQL is committed; the .dolt dir is generated at runtime
+dolt/.dolt/
 
 # Logs
 *.log
@@ -90,6 +88,4 @@ logs/
 *.temp
 tmp/
 temp/
-dolt/.dolt/noms/vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
-dolt/.dolt/noms/journal.idx
 .claude/settings.json
