@@ -4,45 +4,93 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ICASHTL — India Symbol History & Corporate Actions Truth Layer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   <style>
+    :root {
+      --bg:             #06091a;
+      --surface:        #0c1228;
+      --surface-raised: #101930;
+      --border:         #1a2847;
+      --text:           #dbe8f8;
+      --text-muted:     #6b8db5;
+      --accent:         #3b82f6;
+      --accent-hover:   #2563eb;
+      --accent-glow:    rgba(59,130,246,0.12);
+      --green:          #10b981;
+      --amber:          #f59e0b;
+      --red:            #f87171;
+      --code-bg:        #020712;
+    }
+
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      font-family: 'Inter', system-ui, sans-serif;
       font-size: 16px;
       line-height: 1.6;
-      color: #1a1a1a;
-      background: #fff;
+      color: var(--text);
+      background: var(--bg);
     }
 
-    a { color: #0066cc; text-decoration: none; }
+    a { color: var(--accent); text-decoration: none; }
     a:hover { text-decoration: underline; }
 
     header {
-      border-bottom: 1px solid #e5e7eb;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
       padding: 1.25rem 2rem;
       display: flex;
       align-items: center;
       justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 50;
     }
-    header .logo { font-weight: 700; font-size: 1rem; letter-spacing: -0.01em; }
-    header nav { display: flex; gap: 1.5rem; font-size: 0.9rem; }
+    header .logo {
+      font-weight: 700;
+      font-size: 1rem;
+      letter-spacing: -0.02em;
+      color: var(--accent);
+    }
+    header nav { display: flex; gap: 1.5rem; font-size: 0.875rem; }
+    header nav a { color: var(--text-muted); }
+    header nav a:hover { color: var(--text); text-decoration: none; }
 
+    /* Hero */
+    .hero-wrapper {
+      background: radial-gradient(ellipse 90% 60% at 50% -10%, rgba(59,130,246,0.12), transparent);
+      border-bottom: 1px solid var(--border);
+      padding: 5rem 2rem 4rem;
+    }
     .hero {
-      max-width: 720px;
-      margin: 4rem auto 3rem;
-      padding: 0 2rem;
+      max-width: 760px;
+      margin: 0 auto;
+    }
+    .hero-badge {
+      background: var(--accent-glow);
+      border: 1px solid rgba(59,130,246,0.3);
+      color: var(--accent);
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      padding: 0.3rem 0.9rem;
+      display: inline-block;
+      margin-bottom: 1.5rem;
     }
     .hero h1 {
-      font-size: 2rem;
+      font-size: 2.5rem;
       font-weight: 700;
-      line-height: 1.25;
-      letter-spacing: -0.02em;
+      line-height: 1.2;
+      letter-spacing: -0.03em;
       margin-bottom: 1rem;
+      color: var(--text);
     }
     .hero p {
       font-size: 1.1rem;
-      color: #444;
+      color: var(--text-muted);
       margin-bottom: 1.5rem;
     }
     .hero .cta { display: flex; gap: 1rem; flex-wrap: wrap; }
@@ -53,34 +101,77 @@
       font-size: 0.9rem;
       font-weight: 500;
     }
-    .btn-primary { background: #0066cc; color: #fff; }
-    .btn-primary:hover { background: #0052a3; text-decoration: none; }
-    .btn-secondary { border: 1px solid #d1d5db; color: #1a1a1a; }
-    .btn-secondary:hover { background: #f9fafb; text-decoration: none; }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-primary:hover { background: var(--accent-hover); text-decoration: none; }
+    .btn-secondary {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+    }
+    .btn-secondary:hover { border-color: var(--accent); color: var(--text); text-decoration: none; }
 
-    .divider { border: none; border-top: 1px solid #e5e7eb; margin: 0 2rem; }
+    /* Stats bar */
+    .stats-bar {
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: center;
+      gap: 0;
+    }
+    .stat-item {
+      padding: 1.5rem 3rem;
+      text-align: center;
+      border-right: 1px solid var(--border);
+    }
+    .stat-item:last-child { border-right: none; }
+    .stat-val {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--accent);
+      font-family: 'JetBrains Mono', ui-monospace, monospace;
+    }
+    .stat-label {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+      margin-top: 0.25rem;
+    }
+
+    .divider { border: none; border-top: 1px solid var(--border); margin: 0 2rem; }
 
     section {
       max-width: 720px;
       margin: 3rem auto;
       padding: 0 2rem;
+      background: transparent;
     }
     section h2 {
-      font-size: 1.25rem;
-      font-weight: 700;
+      font-size: 1rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text);
       margin-bottom: 1rem;
-      letter-spacing: -0.01em;
     }
-    section p { color: #444; margin-bottom: 0.75rem; }
+    section p { color: var(--text-muted); margin-bottom: 0.75rem; }
 
     .features { list-style: none; display: flex; flex-direction: column; gap: 0.5rem; }
-    .features li { padding-left: 1.25rem; position: relative; color: #444; }
-    .features li::before { content: "→"; position: absolute; left: 0; color: #0066cc; }
-    .features li strong { color: #1a1a1a; }
+    .features li {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 0.6rem 1rem 0.6rem 2rem;
+      position: relative;
+      color: var(--text-muted);
+    }
+    .features li::before { content: "→"; position: absolute; left: 0.75rem; color: var(--accent); }
+    .features li strong { color: var(--text); }
 
     .audience { list-style: none; display: flex; flex-direction: column; gap: 0.4rem; }
-    .audience li { padding-left: 1.25rem; position: relative; color: #444; font-size: 0.95rem; }
-    .audience li::before { content: "·"; position: absolute; left: 0; color: #9ca3af; }
+    .audience li { padding-left: 1.25rem; position: relative; color: var(--text-muted); font-size: 0.95rem; }
+    .audience li::before { content: "·"; position: absolute; left: 0; color: var(--text-muted); }
 
     .footer-links {
       display: flex;
@@ -89,19 +180,23 @@
       font-size: 0.9rem;
       margin-top: 1rem;
     }
+    .footer-links a { color: var(--accent); }
 
     footer {
-      border-top: 1px solid #e5e7eb;
+      background: var(--surface);
+      border-top: 1px solid var(--border);
       padding: 2rem;
       text-align: center;
-      font-size: 0.85rem;
-      color: #9ca3af;
+      font-size: 0.8rem;
+      color: var(--text-muted);
       margin-top: 4rem;
     }
 
     @media (max-width: 600px) {
       .hero h1 { font-size: 1.5rem; }
       header nav { display: none; }
+      .stats-bar { flex-wrap: wrap; }
+      .stat-item { border-right: none; border-bottom: 1px solid var(--border); width: 50%; }
     }
   </style>
 </head>
@@ -118,17 +213,27 @@
 </header>
 
 <main>
-  <div class="hero">
-    <h1>India Symbol History &amp; Corporate Actions Truth Layer</h1>
-    <p>
-      A versioned, low-cost reference data product for NSE-listed equities —
-      solving the broken-backtest problem caused by incorrect ticker history
-      and missing corporate action adjustments.
-    </p>
-    <div class="cta">
-      <a href="pricing.html" class="btn btn-primary">View Pricing</a>
-      <a href="sample-queries.html" class="btn btn-secondary">Sample Queries</a>
+  <div class="hero-wrapper">
+    <div class="hero">
+      <div class="hero-badge">NSE Reference Data · Monthly Releases</div>
+      <h1>India Symbol History &amp; Corporate Actions Truth Layer</h1>
+      <p>
+        A versioned, low-cost reference data product for NSE-listed equities —
+        solving the broken-backtest problem caused by incorrect ticker history
+        and missing corporate action adjustments.
+      </p>
+      <div class="cta">
+        <a href="pricing.html" class="btn btn-primary">View Pricing</a>
+        <a href="sample-queries.html" class="btn btn-secondary">Sample Queries</a>
+      </div>
     </div>
+  </div>
+
+  <div class="stats-bar">
+    <div class="stat-item"><div class="stat-val">2,388+</div><div class="stat-label">Securities Tracked</div></div>
+    <div class="stat-item"><div class="stat-val">20+ yrs</div><div class="stat-label">History Depth</div></div>
+    <div class="stat-item"><div class="stat-val">Monthly</div><div class="stat-label">Release Cadence</div></div>
+    <div class="stat-item"><div class="stat-val">NSE</div><div class="stat-label">Exchange Coverage</div></div>
   </div>
 
   <hr class="divider">
