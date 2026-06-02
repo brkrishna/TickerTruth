@@ -7,18 +7,23 @@ on:
 
 env:
   PYTHONPATH: .
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
   build-and-publish:
     name: Build Release Artifacts
     runs-on: ubuntu-latest
     timeout-minutes: 60
+    permissions:
+      contents: write   # needed to push website changes back to main
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4.2.2
+        with:
+          fetch-depth: 0   # full history required to push back to main
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v5.6.0
         with:
           python-version: "3.12"
           cache: pip
@@ -40,9 +45,24 @@ jobs:
         run: |
           python pipelines/run.py \
             --date "$RUN_DATE" \
-            --tasks export,manifest,release-notes \
+            --tasks export,manifest,release-notes,website \
             --no-fetch \
             --no-dolt-commit
+
+      - name: Commit website and release notes back to main
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          # Switch to main so the commit lands on the branch, not the tag
+          git checkout -b release-bot/website-update origin/main
+          git add website/landing-page/release-notes.html \
+                  releases/monthly/${TAG}.md
+          # Only commit if there are staged changes (idempotent on re-runs)
+          git diff --cached --quiet || \
+            git commit -m "release(${TAG}): update release notes and website"
+          git push origin release-bot/website-update:main
 
       - name: Generate GitHub Release
         uses: softprops/action-gh-release@v2
