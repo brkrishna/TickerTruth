@@ -12,8 +12,10 @@ from pipelines.lineage.rules import LineageEvent, LineageRulesEngine
 
 # Days within which a corporate action must fall to corroborate a lineage event
 _CORROBORATION_WINDOW_DAYS = 30
-_CORROBORATION_BOOST       = 0.15
-_CORROBORATING_ACTION_CODES = frozenset({"MERGER", "DEMERGER", "DELISTING", "AMALGAMATION"})
+_CORROBORATION_BOOST = 0.15
+_CORROBORATING_ACTION_CODES = frozenset(
+    {"MERGER", "DEMERGER", "DELISTING", "AMALGAMATION"}
+)
 
 
 class SymbolLinker:
@@ -58,8 +60,10 @@ class SymbolLinker:
         elif hasattr(period_date, "date"):
             period_date = period_date.date()
 
-        current_syms    = set(current_symbols["SYMBOL"].dropna().str.strip().str.upper())
-        historical_syms = set(historical_symbols["SYMBOL"].dropna().str.strip().str.upper())
+        current_syms = set(current_symbols["SYMBOL"].dropna().str.strip().str.upper())
+        historical_syms = set(
+            historical_symbols["SYMBOL"].dropna().str.strip().str.upper()
+        )
 
         events: list[dict] = []
 
@@ -84,7 +88,7 @@ class SymbolLinker:
         if "ISIN" in current_symbols.columns:
             for _, row in current_symbols.iterrows():
                 isin = str(row.get("ISIN", "")).strip().upper()
-                sym  = str(row.get("SYMBOL", "")).strip().upper()
+                sym = str(row.get("SYMBOL", "")).strip().upper()
                 if isin and isin != "NAN":
                     isin_to_current[isin] = sym
 
@@ -92,7 +96,7 @@ class SymbolLinker:
         hist_sym_to_isin: dict[str, str] = {}
         if "ISIN" in historical_symbols.columns:
             for _, row in historical_symbols.iterrows():
-                sym  = str(row.get("SYMBOL", "")).strip().upper()
+                sym = str(row.get("SYMBOL", "")).strip().upper()
                 isin = str(row.get("ISIN", "")).strip().upper()
                 if sym and isin and isin != "NAN":
                     hist_sym_to_isin[sym] = isin
@@ -109,7 +113,9 @@ class SymbolLinker:
                     event_date=period_date,
                 )
                 ev.corroborating_evidence.append("isin_matched_across_snapshots")
-                ev.confidence = min(0.98, ev.confidence + 0.10)  # ISIN match boosts confidence
+                ev.confidence = min(
+                    0.98, ev.confidence + 0.10
+                )  # ISIN match boosts confidence
             else:
                 # Symbol gone, ISIN not found in current → inferred delisting
                 ev = self._engine.detect_delisting(
@@ -121,10 +127,17 @@ class SymbolLinker:
             events.append(ev.to_dict())
 
         if not events:
-            return pd.DataFrame(columns=[
-                "symbol_from", "symbol_to", "event_date", "event_type",
-                "confidence", "reason", "corroborating_evidence",
-            ])
+            return pd.DataFrame(
+                columns=[
+                    "symbol_from",
+                    "symbol_to",
+                    "event_date",
+                    "event_type",
+                    "confidence",
+                    "reason",
+                    "corroborating_evidence",
+                ]
+            )
 
         df = pd.DataFrame(events).sort_values("event_date").reset_index(drop=True)
         return df
@@ -159,47 +172,59 @@ class SymbolLinker:
             return lineage_events
 
         events = lineage_events.copy()
-        events["corroborated"]           = False
+        events["corroborated"] = False
         events["manual_review_required"] = False
 
         # Only cross-reference events that benefit from corroboration
-        needs_corroboration = events["event_type"].isin(["DELISTING", "MERGER", "DEMERGER"])
+        needs_corroboration = events["event_type"].isin(
+            ["DELISTING", "MERGER", "DEMERGER"]
+        )
 
         if not needs_corroboration.any() or actions.empty:
             events.loc[needs_corroboration, "manual_review_required"] = True
             return events
 
         # Prepare actions lookup
-        action_sym_col  = self._find_col(actions, ["SYMBOL", "symbol"])
-        action_type_col = self._find_col(actions, ["action_code", "ACTION_CODE", "ACTION_TYPE_RAW"])
-        action_date_col = self._find_col(actions, ["event_date", "EVENT_DATE", "EX_DATE"])
+        action_sym_col = self._find_col(actions, ["SYMBOL", "symbol"])
+        action_type_col = self._find_col(
+            actions, ["action_code", "ACTION_CODE", "ACTION_TYPE_RAW"]
+        )
+        action_date_col = self._find_col(
+            actions, ["event_date", "EVENT_DATE", "EX_DATE"]
+        )
 
         if not all([action_sym_col, action_type_col, action_date_col]):
             events.loc[needs_corroboration, "manual_review_required"] = True
             return events
 
         # Convert dates for comparison
-        events["_event_date_parsed"] = pd.to_datetime(events["event_date"], errors="coerce")
-        actions["_action_date"]      = pd.to_datetime(actions[action_date_col], errors="coerce")
+        events["_event_date_parsed"] = pd.to_datetime(
+            events["event_date"], errors="coerce"
+        )
+        actions["_action_date"] = pd.to_datetime(
+            actions[action_date_col], errors="coerce"
+        )
 
         window = timedelta(days=_CORROBORATION_WINDOW_DAYS)
 
         for idx in events[needs_corroboration].index:
-            row        = events.loc[idx]
-            ev_sym     = row.get("symbol_from") or row.get("symbol_to")
-            ev_date    = row["_event_date_parsed"]
+            row = events.loc[idx]
+            ev_sym = row.get("symbol_from") or row.get("symbol_to")
+            ev_date = row["_event_date_parsed"]
 
             if pd.isna(ev_date) or not ev_sym:
                 events.loc[idx, "manual_review_required"] = True
                 continue
 
             matching = actions[
-                (actions[action_sym_col].str.upper() == str(ev_sym).upper()) &
-                (actions[action_type_col].str.upper().isin(
-                    {c.upper() for c in _CORROBORATING_ACTION_CODES}
-                )) &
-                (actions["_action_date"] >= ev_date - window) &
-                (actions["_action_date"] <= ev_date + window)
+                (actions[action_sym_col].str.upper() == str(ev_sym).upper())
+                & (
+                    actions[action_type_col]
+                    .str.upper()
+                    .isin({c.upper() for c in _CORROBORATING_ACTION_CODES})
+                )
+                & (actions["_action_date"] >= ev_date - window)
+                & (actions["_action_date"] <= ev_date + window)
             ]
 
             if not matching.empty:
@@ -209,7 +234,9 @@ class SymbolLinker:
                 ca_code = matching.iloc[0][action_type_col]
                 ev_corr = row.get("corroborating_evidence", "")
                 events.loc[idx, "corroborating_evidence"] = (
-                    f"{ev_corr}; corp_action={ca_code}" if ev_corr else f"corp_action={ca_code}"
+                    f"{ev_corr}; corp_action={ca_code}"
+                    if ev_corr
+                    else f"corp_action={ca_code}"
                 )
             else:
                 events.loc[idx, "manual_review_required"] = True

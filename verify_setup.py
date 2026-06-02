@@ -16,6 +16,7 @@ from pathlib import Path
 
 # ── helpers ──────────────────────────────────────────────────────────────────
 
+
 def _run(cmd, cwd=None):
     return subprocess.run(cmd, cwd=cwd, capture_output=True, timeout=10)
 
@@ -51,10 +52,13 @@ def _check_dirs(paths):
 
 # ── checks ───────────────────────────────────────────────────────────────────
 
+
 def check_venv_and_requirements():
     """Verify .venv and requirements.txt exist."""
     print("Checking Python environment...")
-    ok, _ = _check_files("environment", [".venv/bin/activate", "requirements.txt"], require_nonempty=True)
+    ok, _ = _check_files(
+        "environment", [".venv/bin/activate", "requirements.txt"], require_nonempty=True
+    )
     if ok:
         print("  ✓ PASS: venv and requirements.txt present")
     return ok
@@ -115,14 +119,22 @@ def check_dolt_repo():
     if r.returncode != 0:
         print(f"  ✗ FAIL: dolt ls failed: {r.stderr.decode().strip()}")
         return False
-    tables = [l.strip() for l in r.stdout.decode().splitlines() if l.strip() and "Tables" not in l]
-    print(f"  ✓ {len(tables)} tables in working set: {', '.join(tables[:5])}{'...' if len(tables) > 5 else ''}")
+    tables = [
+        line.strip()
+        for line in r.stdout.decode().splitlines()
+        if line.strip() and "Tables" not in line
+    ]
+    print(
+        f"  ✓ {len(tables)} tables in working set: {', '.join(tables[:5])}{'...' if len(tables) > 5 else ''}"
+    )
 
     # Verify schema has been committed (not just initialized)
     r = _run(["dolt", "log", "--oneline"], cwd="dolt")
-    commits = [l for l in r.stdout.decode().splitlines() if l.strip()]
+    commits = [line for line in r.stdout.decode().splitlines() if line.strip()]
     if len(commits) < 2:
-        print("  ✗ FAIL: Schema not committed. Run: cd dolt && dolt add -A && dolt commit -m 'schema: initial'")
+        print(
+            "  ✗ FAIL: Schema not committed. Run: cd dolt && dolt add -A && dolt commit -m 'schema: initial'"
+        )
         return False
     print(f"  ✓ {len(commits)} commits in Dolt history (versioned baseline exists)")
 
@@ -232,7 +244,9 @@ def check_docs_and_website():
         else:
             print(f"  ✓ {p} ({path.stat().st_size:,} bytes)")
     if empty:
-        print(f"  ⚠ WARN: {len(empty)} landing-page file(s) are empty. Copy content from docs/ before deploying.")
+        print(
+            f"  ⚠ WARN: {len(empty)} landing-page file(s) are empty. Copy content from docs/ before deploying."
+        )
 
     if passed:
         print("  ✓ PASS: Docs and website scaffold in place")
@@ -241,19 +255,20 @@ def check_docs_and_website():
 
 # ── main ─────────────────────────────────────────────────────────────────────
 
+
 def main():
     print("\n" + "=" * 60)
     print("TickerTruth Phase 1 Setup Verification")
     print("=" * 60 + "\n")
 
     checks = [
-        ("Python environment",    check_venv_and_requirements),
-        ("Python dependencies",   check_python_dependencies),
-        ("Dolt repo",             check_dolt_repo),
-        ("Directory structure",   check_directory_structure),
-        ("Schema & seed files",   check_schema_and_seed_files),
-        ("Pipeline configs",      check_pipeline_configs),
-        ("Docs & website",        check_docs_and_website),
+        ("Python environment", check_venv_and_requirements),
+        ("Python dependencies", check_python_dependencies),
+        ("Dolt repo", check_dolt_repo),
+        ("Directory structure", check_directory_structure),
+        ("Schema & seed files", check_schema_and_seed_files),
+        ("Pipeline configs", check_pipeline_configs),
+        ("Docs & website", check_docs_and_website),
     ]
 
     results = []

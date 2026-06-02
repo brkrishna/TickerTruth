@@ -23,18 +23,26 @@ import yaml
 logger = logging.getLogger(__name__)
 
 PROJECT_ROOT = Path(__file__).parent.parent.parent
-CONFIG_PATH  = Path(__file__).parent / "config.yaml"
-SAMPLES_DIR  = PROJECT_ROOT / "data" / "samples"
-BUNDLES_DIR  = PROJECT_ROOT / "releases" / "bundles"
+CONFIG_PATH = Path(__file__).parent / "config.yaml"
+SAMPLES_DIR = PROJECT_ROOT / "data" / "samples"
+BUNDLES_DIR = PROJECT_ROOT / "releases" / "bundles"
 
 # Files that belong in each tier bundle (matched by glob against SAMPLES_DIR)
 _TIER_FILE_PATTERNS: dict[str, list[str]] = {
-    "explorer":     ["public/*.csv"],
-    "starter":      ["public/*.csv", "paid_tier_1/*.parquet", "paid_tier_1/*.csv"],
-    "professional": ["public/*.csv", "paid_tier_1/*.parquet", "paid_tier_1/*.csv",
-                     "paid_tier_2/*.parquet"],
-    "enterprise":   ["public/*.csv", "paid_tier_1/*.parquet", "paid_tier_1/*.csv",
-                     "paid_tier_2/*.parquet"],
+    "explorer": ["public/*.csv"],
+    "starter": ["public/*.csv", "paid_tier_1/*.parquet", "paid_tier_1/*.csv"],
+    "professional": [
+        "public/*.csv",
+        "paid_tier_1/*.parquet",
+        "paid_tier_1/*.csv",
+        "paid_tier_2/*.parquet",
+    ],
+    "enterprise": [
+        "public/*.csv",
+        "paid_tier_1/*.parquet",
+        "paid_tier_1/*.csv",
+        "paid_tier_2/*.parquet",
+    ],
 }
 
 _LICENSE_TEMPLATES: dict[str, str] = {
@@ -116,7 +124,7 @@ class BundlePackager:
     ):
         self.samples_dir = Path(samples_dir)
         self.bundles_dir = Path(bundles_dir)
-        self.config      = self._load_config(config_path)
+        self.config = self._load_config(config_path)
 
     @staticmethod
     def _load_config(path: Path) -> dict:
@@ -146,8 +154,8 @@ class BundlePackager:
             )
 
         self.bundles_dir.mkdir(parents=True, exist_ok=True)
-        date_str  = run_date.strftime("%Y%m%d")
-        zip_path  = self.bundles_dir / f"tickertruth_{tier}_{date_str}.zip"
+        date_str = run_date.strftime("%Y%m%d")
+        zip_path = self.bundles_dir / f"tickertruth_{tier}_{date_str}.zip"
 
         data_files = self._collect_data_files(tier, run_date)
         if not data_files:
@@ -224,19 +232,21 @@ class BundlePackager:
         files_meta = []
         for path in data_files:
             checksum = self._sha256(path)
-            files_meta.append({
-                "filename":  path.name,
-                "size_bytes": path.stat().st_size,
-                "sha256":    checksum,
-            })
+            files_meta.append(
+                {
+                    "filename": path.name,
+                    "size_bytes": path.stat().st_size,
+                    "sha256": checksum,
+                }
+            )
         tier_cfg = self.config.get("tiers", {}).get(tier, {})
         return {
-            "product":    "TickerTruth NSE Symbol History & Corporate Actions",
-            "tier":       tier,
+            "product": "TickerTruth NSE Symbol History & Corporate Actions",
+            "tier": tier,
             "tier_label": tier_cfg.get("label", tier),
-            "run_date":   run_date.isoformat(),
-            "files":      files_meta,
-            "contact":    "contact@tickertruth.com",
+            "run_date": run_date.isoformat(),
+            "files": files_meta,
+            "contact": "contact@tickertruth.com",
         }
 
     @staticmethod

@@ -14,6 +14,7 @@ from pipelines.publish.dolt_importer import DoltImporter, _LINEAGE_EVENT_TYPE_MA
 
 # ── fixtures ──────────────────────────────────────────────────────────────────
 
+
 @pytest.fixture()
 def importer(monkeypatch):
     """DoltImporter with _get_symbol_id_map patched to a static lookup."""
@@ -48,8 +49,11 @@ def _lineage_row(
 
 # ── happy-path tests ──────────────────────────────────────────────────────────
 
+
 def test_rename_event_columns_mapped(importer):
-    df = pd.DataFrame([_lineage_row(symbol_from="OLDNAME", symbol_to="INFY", event_type="RENAME")])
+    df = pd.DataFrame(
+        [_lineage_row(symbol_from="OLDNAME", symbol_to="INFY", event_type="RENAME")]
+    )
     out = importer.transform_lineage_events(df)
 
     assert "old_symbol" in out.columns
@@ -61,7 +65,9 @@ def test_rename_event_columns_mapped(importer):
 
 
 def test_rename_values_correct(importer):
-    df = pd.DataFrame([_lineage_row(symbol_from="OLDNAME", symbol_to="INFY", event_type="RENAME")])
+    df = pd.DataFrame(
+        [_lineage_row(symbol_from="OLDNAME", symbol_to="INFY", event_type="RENAME")]
+    )
     out = importer.transform_lineage_events(df)
 
     assert len(out) == 1
@@ -70,12 +76,14 @@ def test_rename_values_correct(importer):
     assert row["new_symbol"] == "INFY"
     assert row["change_date"] == "2026-01-15"
     assert row["change_reason"] == "rename"
-    assert row["security_id"] == 4          # OLDNAME resolves first
+    assert row["security_id"] == 4  # OLDNAME resolves first
     assert row["source"] == "lineage_pipeline"
 
 
 def test_merger_populates_merged_with_symbol(importer):
-    df = pd.DataFrame([_lineage_row(symbol_from="TCS", symbol_to="INFY", event_type="MERGER")])
+    df = pd.DataFrame(
+        [_lineage_row(symbol_from="TCS", symbol_to="INFY", event_type="MERGER")]
+    )
     out = importer.transform_lineage_events(df)
 
     assert len(out) == 1
@@ -85,53 +93,80 @@ def test_merger_populates_merged_with_symbol(importer):
 
 
 def test_non_merger_merged_with_symbol_is_none(importer):
-    df = pd.DataFrame([_lineage_row(symbol_from="OLDNAME", symbol_to="INFY", event_type="RENAME")])
+    df = pd.DataFrame(
+        [_lineage_row(symbol_from="OLDNAME", symbol_to="INFY", event_type="RENAME")]
+    )
     out = importer.transform_lineage_events(df)
     assert out.iloc[0]["merged_with_symbol"] is None
 
 
 def test_demerger_maps_to_merger_enum(importer):
-    df = pd.DataFrame([_lineage_row(symbol_from="TCS", symbol_to="WIPRO", event_type="DEMERGER")])
+    df = pd.DataFrame(
+        [_lineage_row(symbol_from="TCS", symbol_to="WIPRO", event_type="DEMERGER")]
+    )
     out = importer.transform_lineage_events(df)
     assert out.iloc[0]["change_reason"] == "merger"
 
 
 def test_delisting_resolves_security_id_from_old_symbol(importer):
-    df = pd.DataFrame([_lineage_row(symbol_from="WIPRO", symbol_to=None, event_type="DELISTING")])
+    df = pd.DataFrame(
+        [_lineage_row(symbol_from="WIPRO", symbol_to=None, event_type="DELISTING")]
+    )
     out = importer.transform_lineage_events(df)
     assert len(out) == 1
     assert out.iloc[0]["security_id"] == 3  # WIPRO → 3
 
 
 def test_relisting_resolves_security_id_from_new_symbol_when_old_is_none(importer):
-    df = pd.DataFrame([_lineage_row(symbol_from=None, symbol_to="TCS", event_type="RELISTING")])
+    df = pd.DataFrame(
+        [_lineage_row(symbol_from=None, symbol_to="TCS", event_type="RELISTING")]
+    )
     out = importer.transform_lineage_events(df)
     assert len(out) == 1
     assert out.iloc[0]["security_id"] == 2  # TCS → 2
 
 
 def test_reactivation_maps_to_relisting_enum(importer):
-    df = pd.DataFrame([_lineage_row(symbol_from=None, symbol_to="TCS", event_type="REACTIVATION")])
+    df = pd.DataFrame(
+        [_lineage_row(symbol_from=None, symbol_to="TCS", event_type="REACTIVATION")]
+    )
     out = importer.transform_lineage_events(df)
     assert out.iloc[0]["change_reason"] == "relisting"
 
 
 def test_pipeline_extra_columns_dropped(importer):
     """confidence, reason, corroborating_evidence must not appear in output."""
-    df = pd.DataFrame([_lineage_row(symbol_from="INFY", symbol_to="TCS", event_type="MERGER")])
+    df = pd.DataFrame(
+        [_lineage_row(symbol_from="INFY", symbol_to="TCS", event_type="MERGER")]
+    )
     out = importer.transform_lineage_events(df)
-    for col in ("confidence", "reason", "corroborating_evidence",
-                "symbol_from", "symbol_to", "event_type", "event_date"):
+    for col in (
+        "confidence",
+        "reason",
+        "corroborating_evidence",
+        "symbol_from",
+        "symbol_to",
+        "event_type",
+        "event_date",
+    ):
         assert col not in out.columns, f"unexpected column in output: {col}"
 
 
 # ── edge cases ────────────────────────────────────────────────────────────────
 
+
 def test_empty_dataframe_returns_empty(importer):
-    df = pd.DataFrame(columns=[
-        "symbol_from", "symbol_to", "event_date", "event_type",
-        "confidence", "reason", "corroborating_evidence",
-    ])
+    df = pd.DataFrame(
+        columns=[
+            "symbol_from",
+            "symbol_to",
+            "event_date",
+            "event_type",
+            "confidence",
+            "reason",
+            "corroborating_evidence",
+        ]
+    )
     out = importer.transform_lineage_events(df)
     assert out.empty
 
@@ -149,7 +184,9 @@ def test_listing_rows_dropped(importer):
 
 def test_suspension_rows_dropped(importer):
     """SUSPENSION has no ENUM equivalent and must be silently dropped."""
-    df = pd.DataFrame([_lineage_row(symbol_from="INFY", symbol_to=None, event_type="SUSPENSION")])
+    df = pd.DataFrame(
+        [_lineage_row(symbol_from="INFY", symbol_to=None, event_type="SUSPENSION")]
+    )
     out = importer.transform_lineage_events(df)
     assert out.empty
 
@@ -174,10 +211,14 @@ def test_multiple_rows_all_event_types(importer):
     ]
     out = importer.transform_lineage_events(pd.DataFrame(rows))
     assert not out.empty
-    assert out["change_reason"].isin(["rename", "merger", "delisting", "relisting"]).all()
+    assert (
+        out["change_reason"].isin(["rename", "merger", "delisting", "relisting"]).all()
+    )
 
 
 def test_security_id_is_integer(importer):
-    df = pd.DataFrame([_lineage_row(symbol_from="TCS", symbol_to="INFY", event_type="RENAME")])
+    df = pd.DataFrame(
+        [_lineage_row(symbol_from="TCS", symbol_to="INFY", event_type="RENAME")]
+    )
     out = importer.transform_lineage_events(df)
     assert out["security_id"].dtype in (int, "int64", "Int64")

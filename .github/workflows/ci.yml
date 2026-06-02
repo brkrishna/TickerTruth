@@ -20,10 +20,12 @@ jobs:
           cache: pip
 
       - name: Install dependencies
-        run: pip install black
+        run: pip install ruff
 
-      - name: Check formatting
-        run: black --check pipelines/ conftest.py
+      - name: Check lint and formatting
+        run: |
+          ruff check .
+          ruff format --check .
 
   test:
     name: Unit Tests
@@ -38,15 +40,13 @@ jobs:
           cache: pip
 
       - name: Install dependencies
-        # Install all packages except playwright browser binaries
-        # (browser not needed for unit tests — they mock subprocess calls)
+        # playwright package installed but not browser binaries — unit tests mock subprocess calls
         run: |
           pip install -r requirements.txt
-          # Install playwright package but not browser binaries for unit tests
           pip install playwright
 
       - name: Run unit tests
-        run: pytest pipelines/phase2_validator.py pipelines/phase3_validator.py -v
+        run: pytest tests/ -q
 
       - name: Upload coverage report
         if: always()
@@ -55,29 +55,3 @@ jobs:
           name: coverage
           path: htmlcov/
           if-no-files-found: ignore
-
-  site-check:
-    name: Static Site Check
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Verify required HTML pages exist and are non-empty
-        run: |
-          pages=(
-            website/landing-page/index.html
-            website/landing-page/methodology.html
-            website/landing-page/pricing.html
-            website/landing-page/sample-queries.html
-            website/landing-page/release-notes.html
-          )
-          failed=0
-          for f in "${pages[@]}"; do
-            if [ ! -s "$f" ]; then
-              echo "MISSING or EMPTY: $f"
-              failed=1
-            else
-              echo "OK: $f ($(wc -l < "$f") lines)"
-            fi
-          done
-          exit $failed

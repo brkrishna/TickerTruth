@@ -48,9 +48,11 @@ ALL_TASKS = [
 
 # ── task runners ──────────────────────────────────────────────────────────────
 
+
 def run_extract(run_date: date, dry_run: bool) -> bool:
     """Task 5: fetch NSE symbols, bhavcopy, corporate actions → data/raw/."""
     from pipelines.extract.extractor import RawDataExtractor
+
     extractor = RawDataExtractor()
     ok = True
 
@@ -78,7 +80,9 @@ def run_extract(run_date: date, dry_run: bool) -> bool:
     except NotImplementedError:
         logger.warning("[extract] fetch_nse_corporate_actions is a stub — skipping")
     except Exception as exc:
-        logger.warning("[extract] fetch_nse_corporate_actions failed (non-fatal): %s", exc)
+        logger.warning(
+            "[extract] fetch_nse_corporate_actions failed (non-fatal): %s", exc
+        )
 
     logger.info("[extract] Consolidating to staging...")
     try:
@@ -110,7 +114,7 @@ def run_normalize(run_date: date) -> bool:
 
     logger.info("[normalize] Mapping to canonical schema...")
     try:
-        mapper   = RawToCanonicalMapper(source_file=symbols_path.name)
+        mapper = RawToCanonicalMapper(source_file=symbols_path.name)
         raw_syms = pd.read_csv(symbols_path)
 
         dim_issuer = mapper.map_to_dim_issuer(raw_syms)
@@ -123,11 +127,17 @@ def run_normalize(run_date: date) -> bool:
 
         if actions_path.exists():
             raw_actions = pd.read_csv(actions_path)
-            fact_ca = mapper.map_to_fact_corporate_action_event(raw_actions, dim_security)
+            fact_ca = mapper.map_to_fact_corporate_action_event(
+                raw_actions, dim_security
+            )
             fact_ca.to_csv(curated_dir / "fact_corporate_action_event.csv", index=False)
-            logger.info("[normalize] fact_corporate_action_event: %d rows", len(fact_ca))
+            logger.info(
+                "[normalize] fact_corporate_action_event: %d rows", len(fact_ca)
+            )
         else:
-            logger.warning("[normalize] nse_actions_consolidated.csv not found — skipping actions")
+            logger.warning(
+                "[normalize] nse_actions_consolidated.csv not found — skipping actions"
+            )
 
         return True
     except Exception as exc:
@@ -141,7 +151,7 @@ def run_lineage(run_date: date) -> bool:
     from pipelines.lineage.linker import SymbolLinker
 
     curated_dir = PROJECT_ROOT / "data" / "curated"
-    sec_path    = curated_dir / "dim_security_master.csv"
+    sec_path = curated_dir / "dim_security_master.csv"
     actions_path = curated_dir / "fact_corporate_action_event.csv"
 
     if not sec_path.exists():
@@ -149,22 +159,28 @@ def run_lineage(run_date: date) -> bool:
         return True
 
     try:
-        linker   = SymbolLinker()
+        linker = SymbolLinker()
         security = pd.read_csv(sec_path)
 
         # Use active vs. all securities as the two snapshots
-        current    = security[security.get("active_flag", pd.Series([True] * len(security))) == True]  # noqa: E712
+        current = security[
+            security.get("active_flag", pd.Series([True] * len(security)))
+        ]
         historical = security
 
         events = linker.link_across_periods(
-            current_symbols=current.rename(columns={"nse_symbol": "SYMBOL", "isin": "ISIN"}),
-            historical_symbols=historical.rename(columns={"nse_symbol": "SYMBOL", "isin": "ISIN"}),
+            current_symbols=current.rename(
+                columns={"nse_symbol": "SYMBOL", "isin": "ISIN"}
+            ),
+            historical_symbols=historical.rename(
+                columns={"nse_symbol": "SYMBOL", "isin": "ISIN"}
+            ),
             period_date=run_date,
         )
 
         if actions_path.exists():
             actions = pd.read_csv(actions_path)
-            events  = linker.cross_reference_with_actions(events, actions)
+            events = linker.cross_reference_with_actions(events, actions)
 
         out = curated_dir / "fact_symbol_lineage_event.csv"
         events.to_csv(out, index=False)
@@ -181,19 +197,19 @@ def run_adjust(run_date: date) -> bool:
     from pipelines.adjustments.adjuster import AdjustmentFactorBuilder
 
     curated_dir = PROJECT_ROOT / "data" / "curated"
-    ca_path     = curated_dir / "fact_corporate_action_event.csv"
-    sec_path    = curated_dir / "dim_security_master.csv"
+    ca_path = curated_dir / "fact_corporate_action_event.csv"
+    sec_path = curated_dir / "dim_security_master.csv"
 
     if not ca_path.exists():
         logger.warning("[adjust] fact_corporate_action_event.csv not found — skipping")
         return True
 
     try:
-        actions  = pd.read_csv(ca_path)
-        symbols  = pd.read_csv(sec_path) if sec_path.exists() else pd.DataFrame()
-        builder  = AdjustmentFactorBuilder()
-        factors  = builder.build_from_corporate_actions(actions, symbols)
-        out      = curated_dir / "fact_adjustment_factor.csv"
+        actions = pd.read_csv(ca_path)
+        symbols = pd.read_csv(sec_path) if sec_path.exists() else pd.DataFrame()
+        builder = AdjustmentFactorBuilder()
+        factors = builder.build_from_corporate_actions(actions, symbols)
+        out = curated_dir / "fact_adjustment_factor.csv"
         factors.to_csv(out, index=False)
         logger.info("[adjust] fact_adjustment_factor: %d rows", len(factors))
         return True
@@ -205,17 +221,16 @@ def run_adjust(run_date: date) -> bool:
 def run_validate(run_date: date) -> bool:
     """Task 10: run QA checks against curated files."""
     from pipelines.publish.data_validator import DataValidator
+
     validator = DataValidator()
-    results   = validator.run_curated_checks()
-    summary   = DataValidator.summarize(results)
+    results = validator.run_curated_checks()
+    summary = DataValidator.summarize(results)
     for r in results:
         status = "PASS" if r.passed else "FAIL"
         logger.info("[validate] [%s] %s — %s", status, r.name, r.details)
         for err in r.errors:
             logger.warning("[validate]        %s", err)
-    logger.info(
-        "[validate] %d/%d checks passed", summary["passed"], summary["total"]
-    )
+    logger.info("[validate] %d/%d checks passed", summary["passed"], summary["total"])
     return summary["all_passed"]
 
 
@@ -228,13 +243,16 @@ def run_load(
 ) -> bool:
     """Task 9: load curated data into Dolt, commit, and tag."""
     from pipelines.publish.dolt_importer import DoltImporter
+
     importer = DoltImporter()
 
     logger.info("[load] Importing curated files into Dolt...")
     try:
         report = importer.import_all(run_date=run_date)
         for table, tbl_stats in report["tables"].items():
-            logger.info("[load] %s: %s (%d rows)", table, tbl_stats["status"], tbl_stats["rows"])
+            logger.info(
+                "[load] %s: %s (%d rows)", table, tbl_stats["status"], tbl_stats["rows"]
+            )
         if report["errors"]:
             for err in report["errors"]:
                 logger.error("[load] %s", err)
@@ -256,9 +274,7 @@ def run_load(
 
     tag = f"v{run_date.strftime('%Y.%m.%d')}"
     try:
-        commit_hash = importer.commit(
-            f"ETL import: {run_date.isoformat()}", tag=tag
-        )
+        commit_hash = importer.commit(f"ETL import: {run_date.isoformat()}", tag=tag)
         logger.info("[load] Dolt commit: %s  tag: %s", commit_hash, tag)
         if stats is not None:
             stats["dolt_commit"] = commit_hash
@@ -272,7 +288,8 @@ def run_load(
 def run_export(run_date: date) -> dict:
     """Task 11: generate public and paid-tier export files."""
     from pipelines.publish.sample_generator import SampleGenerator
-    gen   = SampleGenerator()
+
+    gen = SampleGenerator()
     paths = {}
 
     logger.info("[export] Generating public samples...")
@@ -291,11 +308,12 @@ def run_export(run_date: date) -> dict:
 def run_manifest(run_date: date, export_paths: dict) -> bool:
     """Task 11: build manifest and update exports log."""
     from pipelines.publish.manifest_builder import ManifestBuilder
+
     builder = ManifestBuilder()
 
     try:
         manifest = builder.build_manifest(export_paths, run_date)
-        log      = builder.log_exports(export_paths, run_date)
+        log = builder.log_exports(export_paths, run_date)
         logger.info("[manifest] Written: %s", manifest)
         logger.info("[manifest] Log:     %s", log)
         return True
@@ -307,6 +325,7 @@ def run_manifest(run_date: date, export_paths: dict) -> bool:
 def run_website(run_date: date) -> bool:
     """Task 13: inject release card into website/landing-page/release-notes.html."""
     from pipelines.publish.website_updater import WebsiteUpdater
+
     updater = WebsiteUpdater()
     try:
         updater.update_for_date(run_date)
@@ -331,9 +350,9 @@ def collect_stats(run_date: date) -> dict:
             return 0
 
     stats = {
-        "new_securities":  csv_rows(curated / "dim_security_master.csv"),
-        "new_actions":     csv_rows(curated / "fact_corporate_action_event.csv"),
-        "lineage_events":  csv_rows(curated / "fact_symbol_lineage_event.csv"),
+        "new_securities": csv_rows(curated / "dim_security_master.csv"),
+        "new_actions": csv_rows(curated / "fact_corporate_action_event.csv"),
+        "lineage_events": csv_rows(curated / "fact_symbol_lineage_event.csv"),
         "adjustment_rows": csv_rows(curated / "fact_adjustment_factor.csv"),
     }
 
@@ -359,6 +378,7 @@ def collect_stats(run_date: date) -> dict:
 def run_release_notes(run_date: date, stats: dict) -> bool:
     """Task 12: generate versioned release notes and update changelog."""
     from pipelines.publish.release_notifier import ReleaseNotifier
+
     notifier = ReleaseNotifier()
 
     try:
@@ -373,6 +393,7 @@ def run_release_notes(run_date: date, stats: dict) -> bool:
 
 
 # ── argument parsing ──────────────────────────────────────────────────────────
+
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
@@ -389,8 +410,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         metavar="TASK[,TASK...]",
         default=",".join(ALL_TASKS),
         help=(
-            "Comma-separated list of tasks to run. "
-            f"All tasks: {', '.join(ALL_TASKS)}"
+            f"Comma-separated list of tasks to run. All tasks: {', '.join(ALL_TASKS)}"
         ),
     )
     parser.add_argument(
@@ -423,10 +443,11 @@ def resolve_date(date_str: str | None) -> date:
 
 # ── main ──────────────────────────────────────────────────────────────────────
 
+
 def main(argv: list[str] | None = None) -> int:
-    args     = parse_args(argv)
+    args = parse_args(argv)
     run_date = resolve_date(args.date)
-    tasks    = {t.strip() for t in args.tasks.split(",") if t.strip()}
+    tasks = {t.strip() for t in args.tasks.split(",") if t.strip()}
 
     unknown = tasks - set(ALL_TASKS)
     if unknown:
@@ -435,12 +456,14 @@ def main(argv: list[str] | None = None) -> int:
 
     logger.info(
         "Pipeline run: date=%s  tasks=%s  dry_run=%s",
-        run_date, sorted(tasks), args.dry_run,
+        run_date,
+        sorted(tasks),
+        args.dry_run,
     )
 
     results: dict[str, bool] = {}
-    export_paths: dict       = {}
-    stats: dict              = {}
+    export_paths: dict = {}
+    stats: dict = {}
 
     if "extract" in tasks and not args.no_fetch:
         results["extract"] = run_extract(run_date, args.dry_run)
@@ -460,7 +483,9 @@ def main(argv: list[str] | None = None) -> int:
     if "load" in tasks:
         validate_passed = results.get("validate", True)
         results["load"] = run_load(
-            run_date, args.dry_run, args.no_dolt_commit,
+            run_date,
+            args.dry_run,
+            args.no_dolt_commit,
             validate_passed=validate_passed,
             stats=stats,
         )

@@ -22,14 +22,16 @@ logger = logging.getLogger(__name__)
 # ── constants ────────────────────────────────────────────────────────────────
 
 PROJECT_ROOT = Path(__file__).parent.parent.parent
-DATA_RAW     = PROJECT_ROOT / "data" / "raw"
+DATA_RAW = PROJECT_ROOT / "data" / "raw"
 DATA_STAGING = PROJECT_ROOT / "data" / "staging"
 
 NSE_BASE = "https://www.nseindia.com"
 
 # Primary: NSE archives mirror — serves EQUITY_L.csv directly, no Akamai
 # bot challenge, no cookie handshake required.
-NSE_EQUITY_ARCHIVES_CSV = "https://nsearchives.nseindia.com/content/equities/EQUITY_L.csv"
+NSE_EQUITY_ARCHIVES_CSV = (
+    "https://nsearchives.nseindia.com/content/equities/EQUITY_L.csv"
+)
 
 # Secondary: NSE JSON API — requires a valid session cookie
 # (Akamai blocks plain requests to www.nseindia.com)
@@ -48,9 +50,7 @@ MIN_SYMBOL_ROWS = 2000
 REQUIRED_SYMBOL_COLUMNS = ["SYMBOL", "ISIN", "LISTING_DATE"]
 
 # Corporate actions JSON API — requires a valid NSE session cookie
-NSE_CORP_ACTIONS_API = (
-    "https://www.nseindia.com/api/corporates-corporateActions"
-)
+NSE_CORP_ACTIONS_API = "https://www.nseindia.com/api/corporates-corporateActions"
 
 # Corporate actions page for Playwright fallback
 NSE_CORP_ACTIONS_PAGE = (
@@ -65,16 +65,16 @@ CORP_ACTIONS_DEFAULT_LOOKBACK_DAYS = 90
 
 # Map NSE API field names → our canonical column names
 _CORP_ACTION_API_COLUMNS = {
-    "symbol":   "SYMBOL",
-    "series":   "SERIES",
-    "subject":  "ACTION_TYPE_RAW",
-    "exDate":   "EX_DATE",
-    "recDate":  "RECORD_DATE",
-    "payDate":  "PAYMENT_DATE",
-    "comp":     "COMPANY_NAME",
-    "faceVal":  "FACE_VALUE",
+    "symbol": "SYMBOL",
+    "series": "SERIES",
+    "subject": "ACTION_TYPE_RAW",
+    "exDate": "EX_DATE",
+    "recDate": "RECORD_DATE",
+    "payDate": "PAYMENT_DATE",
+    "comp": "COMPANY_NAME",
+    "faceVal": "FACE_VALUE",
     "bcStDate": "BC_START_DATE",
-    "bcEndDate":"BC_END_DATE",
+    "bcEndDate": "BC_END_DATE",
 }
 
 # Browser-like headers — NSE rejects requests without these
@@ -110,6 +110,7 @@ _COLUMN_ALIASES = {
 
 
 # ── extractor ────────────────────────────────────────────────────────────────
+
 
 class RawDataExtractor:
     """
@@ -178,7 +179,7 @@ class RawDataExtractor:
             RuntimeError: if all URLs fail.
             ValueError: if required columns are missing or row count is too low.
         """
-        today    = date.today().isoformat()
+        today = date.today().isoformat()
         out_path = self.output_dir / f"nse_symbols_{today}.csv"
 
         if out_path.exists() and out_path.stat().st_size > 0:
@@ -222,7 +223,9 @@ class RawDataExtractor:
         requiring Akamai cookie authentication.
         """
         try:
-            logger.info("Fetching equity master from NSE archives: %s", NSE_EQUITY_ARCHIVES_CSV)
+            logger.info(
+                "Fetching equity master from NSE archives: %s", NSE_EQUITY_ARCHIVES_CSV
+            )
             resp = requests.get(
                 NSE_EQUITY_ARCHIVES_CSV,
                 headers={"User-Agent": _BROWSER_HEADERS["User-Agent"]},
@@ -239,7 +242,9 @@ class RawDataExtractor:
             logger.warning("Archives fetch failed: %s", exc)
             return None
 
-    def _fetch_equity_master_json(self, session: requests.Session) -> pd.DataFrame | None:
+    def _fetch_equity_master_json(
+        self, session: requests.Session
+    ) -> pd.DataFrame | None:
         """Try the NSE JSON API endpoint (requires session cookie)."""
         try:
             resp = session.get(
@@ -260,7 +265,9 @@ class RawDataExtractor:
             logger.warning("JSON API call failed: %s", exc)
             return None
 
-    def _fetch_equity_master_csv(self, session: requests.Session) -> pd.DataFrame | None:
+    def _fetch_equity_master_csv(
+        self, session: requests.Session
+    ) -> pd.DataFrame | None:
         """Legacy direct CSV URL — likely 404 but kept as last resort."""
         try:
             resp = session.get(NSE_EQUITY_CSV_FALLBACK, timeout=30)
@@ -302,7 +309,9 @@ class RawDataExtractor:
             df.drop_duplicates(subset=dedup_cols, keep="last", inplace=True)
             dropped = before - len(df)
             if dropped:
-                logger.warning("Dropped %d duplicate (SYMBOL, LISTING_DATE) rows", dropped)
+                logger.warning(
+                    "Dropped %d duplicate (SYMBOL, LISTING_DATE) rows", dropped
+                )
 
         return df.reset_index(drop=True)
 
@@ -337,7 +346,9 @@ class RawDataExtractor:
 
         logger.info(
             "Validation passed: %d symbols, %d missing ISIN, %d missing LISTING_DATE",
-            len(df), null_isin, null_listing,
+            len(df),
+            null_isin,
+            null_listing,
         )
 
     # ── step 5b stub ─────────────────────────────────────────────────────────
@@ -392,9 +403,13 @@ class RawDataExtractor:
                     f"Bhavcopy not found for {trading_date} (HTTP 404). "
                     "Likely a market holiday, weekend, or the file is not yet published."
                 ) from exc
-            raise RuntimeError(f"Failed to download bhavcopy for {trading_date}: {exc}") from exc
+            raise RuntimeError(
+                f"Failed to download bhavcopy for {trading_date}: {exc}"
+            ) from exc
         except requests.RequestException as exc:
-            raise RuntimeError(f"Failed to download bhavcopy for {trading_date}: {exc}") from exc
+            raise RuntimeError(
+                f"Failed to download bhavcopy for {trading_date}: {exc}"
+            ) from exc
 
         df = self._extract_bhavcopy_zip(resp.content, trading_date)
         df = self._normalize_bhavcopy_columns(df)
@@ -407,8 +422,8 @@ class RawDataExtractor:
     def _bhavcopy_url(self, trading_date: date) -> str:
         """Build the NSE archives URL for a given trading date."""
         yyyy = trading_date.strftime("%Y")
-        mmm = trading_date.strftime("%b").upper()   # e.g. MAY, JAN
-        dd = trading_date.strftime("%d")             # zero-padded day
+        mmm = trading_date.strftime("%b").upper()  # e.g. MAY, JAN
+        dd = trading_date.strftime("%d")  # zero-padded day
         filename = f"cm{dd}{mmm}{yyyy}bhav.csv.zip"
         return (
             f"https://archives.nseindia.com/content/historical/"
@@ -449,14 +464,16 @@ class RawDataExtractor:
 
         # Handle older bhavcopy formats that used different column names
         bhavcopy_aliases = {
-            "TOTTRDQTY": "TOTTRDQTY",   # already standard
+            "TOTTRDQTY": "TOTTRDQTY",  # already standard
             "VOLUME": "TOTTRDQTY",
             "TOTTRDVAL": "TOTTRDVAL",
             "VALUE": "TOTTRDVAL",
             "TOTALTRADES": "TOTALTRADES",
             "NO_OF_TRADES": "TOTALTRADES",
         }
-        rename_map = {k: v for k, v in bhavcopy_aliases.items() if k in df.columns and k != v}
+        rename_map = {
+            k: v for k, v in bhavcopy_aliases.items() if k in df.columns and k != v
+        }
         if rename_map:
             df.rename(columns=rename_map, inplace=True)
 
@@ -490,16 +507,18 @@ class RawDataExtractor:
             )
 
         # OHLC sanity: LOW <= CLOSE <= HIGH (allow tiny float drift)
-        eq = df[df.get("SERIES", pd.Series(["EQ"] * len(df))) == "EQ"] if "SERIES" in df.columns else df
-        ohlc_ok = (
-            (eq["LOW"] <= eq["CLOSE"] + 0.01) &
-            (eq["CLOSE"] <= eq["HIGH"] + 0.01)
+        eq = (
+            df[df.get("SERIES", pd.Series(["EQ"] * len(df))) == "EQ"]
+            if "SERIES" in df.columns
+            else df
         )
+        ohlc_ok = (eq["LOW"] <= eq["CLOSE"] + 0.01) & (eq["CLOSE"] <= eq["HIGH"] + 0.01)
         bad_ohlc = (~ohlc_ok).sum()
         if bad_ohlc > 0:
             logger.warning(
                 "%d rows in bhavcopy for %s fail OHLC sanity (LOW > CLOSE or CLOSE > HIGH)",
-                bad_ohlc, trading_date,
+                bad_ohlc,
+                trading_date,
             )
 
         # Warn on zero-volume rows (suspended/delisted securities)
@@ -509,12 +528,14 @@ class RawDataExtractor:
                 logger.warning(
                     "%d rows have zero volume in bhavcopy for %s "
                     "(may indicate suspended or delisted securities)",
-                    zero_vol, trading_date,
+                    zero_vol,
+                    trading_date,
                 )
 
         logger.info(
             "Bhavcopy validation passed: %d rows, date=%s",
-            len(df), trading_date,
+            len(df),
+            trading_date,
         )
 
     # ── step 5c: NSE corporate actions ──────────────────────────────────────
@@ -546,7 +567,9 @@ class RawDataExtractor:
             RuntimeError: if both the API and Playwright fallback fail.
         """
         to_date = to_date or date.today()
-        from_date = from_date or (to_date - timedelta(days=CORP_ACTIONS_DEFAULT_LOOKBACK_DAYS))
+        from_date = from_date or (
+            to_date - timedelta(days=CORP_ACTIONS_DEFAULT_LOOKBACK_DAYS)
+        )
 
         out_path = self.output_dir / (
             f"nse_actions_{from_date.isoformat()}_{to_date.isoformat()}.csv"
@@ -561,7 +584,9 @@ class RawDataExtractor:
         chunks = list(self._date_chunks(from_date, to_date, CORP_ACTIONS_CHUNK_DAYS))
         logger.info(
             "Fetching corporate actions %s → %s in %d chunk(s)",
-            from_date, to_date, len(chunks),
+            from_date,
+            to_date,
+            len(chunks),
         )
 
         all_frames: list[pd.DataFrame] = []
@@ -577,7 +602,7 @@ class RawDataExtractor:
                 break
             if not df.empty:
                 all_frames.append(df)
-            time.sleep(1.5)   # rate limit between chunk calls
+            time.sleep(1.5)  # rate limit between chunk calls
 
         if api_failed or not all_frames:
             logger.warning("Falling back to Playwright for corporate actions")
@@ -612,16 +637,23 @@ class RawDataExtractor:
         Returns None if no prior file exists or if reading fails.
         """
         candidates = sorted(
-            (f for f in self.output_dir.glob("nse_actions_*.csv") if f.stat().st_size > 0),
+            (
+                f
+                for f in self.output_dir.glob("nse_actions_*.csv")
+                if f.stat().st_size > 0
+            ),
             reverse=True,
         )
         if not candidates:
-            logger.warning("Stale cache: no prior nse_actions_*.csv found in %s", self.output_dir)
+            logger.warning(
+                "Stale cache: no prior nse_actions_*.csv found in %s", self.output_dir
+            )
             return None
         latest = candidates[0]
         logger.warning(
             "All live fetch methods failed — using stale cache: %s "
-            "(data may be outdated)", latest.name
+            "(data may be outdated)",
+            latest.name,
         )
         try:
             return pd.read_csv(latest)
@@ -632,9 +664,7 @@ class RawDataExtractor:
     # ── corp actions helpers ─────────────────────────────────────────────────
 
     @staticmethod
-    def _date_chunks(
-        from_date: date, to_date: date, chunk_days: int
-    ):
+    def _date_chunks(from_date: date, to_date: date, chunk_days: int):
         """Yield (chunk_from, chunk_to) pairs covering [from_date, to_date]."""
         cursor = from_date
         while cursor <= to_date:
@@ -656,7 +686,7 @@ class RawDataExtractor:
         params = {
             "index": "equities",
             "from_date": from_date.strftime("%d-%m-%Y"),
-            "to_date":   to_date.strftime("%d-%m-%Y"),
+            "to_date": to_date.strftime("%d-%m-%Y"),
         }
         try:
             resp = session.get(
@@ -681,7 +711,9 @@ class RawDataExtractor:
             return None
 
         if not records:
-            logger.info("Corp actions API returned 0 records for %s → %s", from_date, to_date)
+            logger.info(
+                "Corp actions API returned 0 records for %s → %s", from_date, to_date
+            )
             return pd.DataFrame()
 
         return pd.DataFrame(records)
@@ -722,7 +754,9 @@ class RawDataExtractor:
                 # Fill date range filters
                 # NSE uses DD-MM-YYYY in its date inputs
                 fmt = "%d-%m-%Y"
-                self._pw_fill_date_filter(page, from_date.strftime(fmt), to_date.strftime(fmt))
+                self._pw_fill_date_filter(
+                    page, from_date.strftime(fmt), to_date.strftime(fmt)
+                )
 
                 # Wait for the data table to appear
                 try:
@@ -780,7 +814,11 @@ class RawDataExtractor:
                     page.fill(from_sel, from_date_str)
                     page.fill(to_sel, to_date_str)
                     # Click search/filter button
-                    for btn_sel in ("button[type='submit']", "#search", "button:has-text('Search')"):
+                    for btn_sel in (
+                        "button[type='submit']",
+                        "#search",
+                        "button:has-text('Search')",
+                    ):
                         btn = page.query_selector(btn_sel)
                         if btn:
                             btn.click()
@@ -789,7 +827,9 @@ class RawDataExtractor:
                     return
             except Exception:
                 continue
-        logger.warning("Playwright: could not locate date filter inputs — using page defaults")
+        logger.warning(
+            "Playwright: could not locate date filter inputs — using page defaults"
+        )
 
     @staticmethod
     def _pw_extract_table_rows(page) -> list[dict]:
@@ -817,7 +857,9 @@ class RawDataExtractor:
         Handles both JSON API responses and Playwright-scraped table headers.
         """
         # Rename API fields using the constant mapping
-        rename_map = {k: v for k, v in _CORP_ACTION_API_COLUMNS.items() if k in df.columns}
+        rename_map = {
+            k: v for k, v in _CORP_ACTION_API_COLUMNS.items() if k in df.columns
+        }
         if rename_map:
             df.rename(columns=rename_map, inplace=True)
 
@@ -838,7 +880,9 @@ class RawDataExtractor:
             "COMPANY NAME": "COMPANY_NAME",
             "COMPANY": "COMPANY_NAME",
         }
-        scrape_rename = {k: v for k, v in scrape_aliases.items() if k in df.columns and k != v}
+        scrape_rename = {
+            k: v for k, v in scrape_aliases.items() if k in df.columns and k != v
+        }
         if scrape_rename:
             df.rename(columns=scrape_rename, inplace=True)
 
@@ -859,16 +903,22 @@ class RawDataExtractor:
 
         null_symbol = df["SYMBOL"].isna().sum()
         if null_symbol:
-            logger.warning("%d corporate action rows have a missing SYMBOL", null_symbol)
+            logger.warning(
+                "%d corporate action rows have a missing SYMBOL", null_symbol
+            )
 
         null_exdate = df["EX_DATE"].isna().sum()
         if null_exdate:
-            logger.warning("%d corporate action rows have a missing EX_DATE", null_exdate)
+            logger.warning(
+                "%d corporate action rows have a missing EX_DATE", null_exdate
+            )
 
         logger.info(
             "Corporate actions validation passed: %d rows, %d missing symbol, "
             "%d missing ex_date",
-            len(df), null_symbol, null_exdate,
+            len(df),
+            null_symbol,
+            null_exdate,
         )
 
     # ── step 5d: consolidate to staging ─────────────────────────────────────
@@ -1074,8 +1124,8 @@ class RawDataExtractor:
                 continue
 
             before = stats["rows_before_dedup"]
-            after  = stats["rows_after_dedup"]
-            dupes  = before - after
+            after = stats["rows_after_dedup"]
+            dupes = before - after
             if before > 0 and dupes / before > 0.05:
                 warnings.append(
                     f"{source}: {dupes} duplicate rows removed "
@@ -1083,6 +1133,8 @@ class RawDataExtractor:
                 )
 
             if after == 0:
-                warnings.append(f"{source}: 0 rows after dedup — consolidated file is empty")
+                warnings.append(
+                    f"{source}: 0 rows after dedup — consolidated file is empty"
+                )
 
         return warnings

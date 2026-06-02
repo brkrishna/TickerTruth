@@ -22,16 +22,22 @@ import yaml
 
 logger = logging.getLogger(__name__)
 
-PROJECT_ROOT  = Path(__file__).parent.parent.parent
-CONFIG_PATH   = Path(__file__).parent / "config.yaml"
-BUYERS_DIR    = PROJECT_ROOT / "data" / "buyers"
-BUYERS_CSV    = BUYERS_DIR / "buyers.csv"
-DOWNLOAD_LOG  = BUYERS_DIR / "download_log.csv"
+PROJECT_ROOT = Path(__file__).parent.parent.parent
+CONFIG_PATH = Path(__file__).parent / "config.yaml"
+BUYERS_DIR = PROJECT_ROOT / "data" / "buyers"
+BUYERS_CSV = BUYERS_DIR / "buyers.csv"
+DOWNLOAD_LOG = BUYERS_DIR / "download_log.csv"
 
-_BUYER_FIELDS   = ["buyer_id", "name", "email", "tier", "created_date",
-                   "status", "notes"]
-_DOWNLOAD_FIELDS = ["log_id", "buyer_id", "tier", "s3_key", "signed_url",
-                    "generated_at", "expires_at"]
+_BUYER_FIELDS = ["buyer_id", "name", "email", "tier", "created_date", "status", "notes"]
+_DOWNLOAD_FIELDS = [
+    "log_id",
+    "buyer_id",
+    "tier",
+    "s3_key",
+    "signed_url",
+    "generated_at",
+    "expires_at",
+]
 
 
 class AccessManager:
@@ -47,13 +53,13 @@ class AccessManager:
 
     def __init__(
         self,
-        buyers_csv: Path  = BUYERS_CSV,
+        buyers_csv: Path = BUYERS_CSV,
         download_log: Path = DOWNLOAD_LOG,
-        config_path: Path  = CONFIG_PATH,
+        config_path: Path = CONFIG_PATH,
     ):
-        self.buyers_csv   = Path(buyers_csv)
+        self.buyers_csv = Path(buyers_csv)
         self.download_log = Path(download_log)
-        self._cfg         = self._load_config(config_path)
+        self._cfg = self._load_config(config_path)
         self.buyers_csv.parent.mkdir(parents=True, exist_ok=True)
 
     @staticmethod
@@ -93,19 +99,21 @@ class AccessManager:
             raise ValueError(f"Buyer with email {email!r} already exists.")
 
         record = {
-            "buyer_id":    str(uuid.uuid4())[:8].upper(),
-            "name":        name,
-            "email":       email,
-            "tier":        tier,
+            "buyer_id": str(uuid.uuid4())[:8].upper(),
+            "name": name,
+            "email": email,
+            "tier": tier,
             "created_date": date.today().isoformat(),
-            "status":      "active",
-            "notes":       notes,
+            "status": "active",
+            "notes": notes,
         }
         self._append_csv(self.buyers_csv, _BUYER_FIELDS, record)
         logger.info("Created buyer %s (%s) — tier: %s", record["buyer_id"], email, tier)
         return record
 
-    def list_buyers(self, tier: str | None = None, status: str = "active") -> list[dict]:
+    def list_buyers(
+        self, tier: str | None = None, status: str = "active"
+    ) -> list[dict]:
         """
         Return buyer records, optionally filtered by tier and/or status.
 
@@ -183,12 +191,16 @@ class AccessManager:
         if buyer.get("status") != "active":
             raise ValueError(f"Buyer {buyer_id} is not active")
 
-        r2_cfg       = self._cfg.get("r2", {})
+        r2_cfg = self._cfg.get("r2", {})
         expires_hours = expires_hours or r2_cfg.get("signed_url_expires_hours", 168)
-        endpoint     = os.environ.get(r2_cfg.get("endpoint_env", "R2_ENDPOINT"), "")
-        bucket       = os.environ.get(r2_cfg.get("bucket_env",   "R2_BUCKET"),   "")
-        access_key   = os.environ.get(r2_cfg.get("access_key_env", "R2_ACCESS_KEY_ID"), "")
-        secret_key   = os.environ.get(r2_cfg.get("secret_key_env", "R2_SECRET_ACCESS_KEY"), "")
+        endpoint = os.environ.get(r2_cfg.get("endpoint_env", "R2_ENDPOINT"), "")
+        bucket = os.environ.get(r2_cfg.get("bucket_env", "R2_BUCKET"), "")
+        access_key = os.environ.get(
+            r2_cfg.get("access_key_env", "R2_ACCESS_KEY_ID"), ""
+        )
+        secret_key = os.environ.get(
+            r2_cfg.get("secret_key_env", "R2_SECRET_ACCESS_KEY"), ""
+        )
 
         if not all([endpoint, bucket, access_key, secret_key]):
             raise RuntimeError(
@@ -196,12 +208,16 @@ class AccessManager:
                 "R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY in environment."
             )
 
-        signed_url = self._presign(endpoint, bucket, s3_key, access_key, secret_key, expires_hours)
+        signed_url = self._presign(
+            endpoint, bucket, s3_key, access_key, secret_key, expires_hours
+        )
 
         self.log_download(buyer_id, buyer["tier"], s3_key, signed_url, expires_hours)
         logger.info(
             "Generated signed URL for buyer %s (tier=%s, expires=%dh)",
-            buyer_id, buyer["tier"], expires_hours,
+            buyer_id,
+            buyer["tier"],
+            expires_hours,
         )
         return signed_url
 
@@ -216,6 +232,7 @@ class AccessManager:
     ) -> str:
         """Generate a pre-signed URL via boto3."""
         import boto3
+
         client = boto3.client(
             "s3",
             endpoint_url=endpoint,
@@ -243,16 +260,16 @@ class AccessManager:
 
         Returns the log record dict.
         """
-        now      = datetime.now(timezone.utc)
-        expires  = now + timedelta(hours=expires_hours)
-        record   = {
-            "log_id":       str(uuid.uuid4())[:8].upper(),
-            "buyer_id":     buyer_id,
-            "tier":         tier,
-            "s3_key":       s3_key,
-            "signed_url":   signed_url,
+        now = datetime.now(timezone.utc)
+        expires = now + timedelta(hours=expires_hours)
+        record = {
+            "log_id": str(uuid.uuid4())[:8].upper(),
+            "buyer_id": buyer_id,
+            "tier": tier,
+            "s3_key": s3_key,
+            "signed_url": signed_url,
             "generated_at": now.strftime("%Y-%m-%dT%H:%M:%SZ"),
-            "expires_at":   expires.strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "expires_at": expires.strftime("%Y-%m-%dT%H:%M:%SZ"),
         }
         self._append_csv(self.download_log, _DOWNLOAD_FIELDS, record)
         return record

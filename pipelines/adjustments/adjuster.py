@@ -11,8 +11,8 @@ from pipelines.adjustments.calculator import AdjustmentCalculator
 _ADJUSTABLE_CODES = frozenset({"SPLIT", "BONUS", "REVERSE_SPLIT"})
 
 # Sanity bounds for individual event factors
-_MIN_FACTOR = 1e-6   # anything smaller is almost certainly bad data
-_MAX_FACTOR = 1e6    # anything larger is almost certainly bad data
+_MIN_FACTOR = 1e-6  # anything smaller is almost certainly bad data
+_MAX_FACTOR = 1e6  # anything larger is almost certainly bad data
 
 
 class AdjustmentFactorBuilder:
@@ -56,7 +56,7 @@ class AdjustmentFactorBuilder:
             (security_id, as_of_date) where a split or bonus occurred.
         """
         required = ["security_id", "action_code", "event_date"]
-        missing  = [c for c in required if c not in actions.columns]
+        missing = [c for c in required if c not in actions.columns]
         if missing:
             raise ValueError(
                 f"actions DataFrame missing required columns: {missing}. "
@@ -69,11 +69,16 @@ class AdjustmentFactorBuilder:
         ].copy()
 
         if adjustable.empty:
-            return pd.DataFrame(columns=[
-                "security_id", "as_of_date",
-                "cumulative_split_adjustment", "cumulative_bonus_adjustment",
-                "cumulative_dividend_adjustment", "total_adjustment_factor",
-            ])
+            return pd.DataFrame(
+                columns=[
+                    "security_id",
+                    "as_of_date",
+                    "cumulative_split_adjustment",
+                    "cumulative_bonus_adjustment",
+                    "cumulative_dividend_adjustment",
+                    "total_adjustment_factor",
+                ]
+            )
 
         # Parse dates and sort
         adjustable["event_date"] = pd.to_datetime(
@@ -87,12 +92,9 @@ class AdjustmentFactorBuilder:
         for security_id, group in adjustable.groupby("security_id"):
             split_acc = 1.0
             bonus_acc = 1.0
-            warnings:  list[str] = []
+            warnings: list[str] = []
 
             for _, row in group.iterrows():
-                code  = str(row["action_code"]).upper()
-                value = row.get("old_value")
-
                 try:
                     factors = AdjustmentCalculator.calculate_cumulative_adjustment(
                         pd.DataFrame([row])
@@ -113,24 +115,31 @@ class AdjustmentFactorBuilder:
 
                 split_acc *= event_split
                 bonus_acc *= event_bonus
-                total      = round(split_acc * bonus_acc, 8)
+                total = round(split_acc * bonus_acc, 8)
 
-                output_rows.append({
-                    "security_id":                  security_id,
-                    "as_of_date":                   row["event_date"].date().isoformat(),
-                    "cumulative_split_adjustment":   round(split_acc, 8),
-                    "cumulative_bonus_adjustment":   round(bonus_acc, 8),
-                    "cumulative_dividend_adjustment": 1.0,   # dividends not adjusted by default
-                    "total_adjustment_factor":        total,
-                    "_warnings":                     "; ".join(warnings) if warnings else "",
-                })
+                output_rows.append(
+                    {
+                        "security_id": security_id,
+                        "as_of_date": row["event_date"].date().isoformat(),
+                        "cumulative_split_adjustment": round(split_acc, 8),
+                        "cumulative_bonus_adjustment": round(bonus_acc, 8),
+                        "cumulative_dividend_adjustment": 1.0,  # dividends not adjusted by default
+                        "total_adjustment_factor": total,
+                        "_warnings": "; ".join(warnings) if warnings else "",
+                    }
+                )
 
         if not output_rows:
-            return pd.DataFrame(columns=[
-                "security_id", "as_of_date",
-                "cumulative_split_adjustment", "cumulative_bonus_adjustment",
-                "cumulative_dividend_adjustment", "total_adjustment_factor",
-            ])
+            return pd.DataFrame(
+                columns=[
+                    "security_id",
+                    "as_of_date",
+                    "cumulative_split_adjustment",
+                    "cumulative_bonus_adjustment",
+                    "cumulative_dividend_adjustment",
+                    "total_adjustment_factor",
+                ]
+            )
 
         df = pd.DataFrame(output_rows)
         self._validate_factors(df)
@@ -165,12 +174,16 @@ class AdjustmentFactorBuilder:
                 )
 
         # total should equal split × bonus within floating-point tolerance
-        if all(c in df.columns for c in ["cumulative_split_adjustment",
-                                          "cumulative_bonus_adjustment",
-                                          "total_adjustment_factor"]):
+        if all(
+            c in df.columns
+            for c in [
+                "cumulative_split_adjustment",
+                "cumulative_bonus_adjustment",
+                "total_adjustment_factor",
+            ]
+        ):
             computed = (
-                df["cumulative_split_adjustment"] *
-                df["cumulative_bonus_adjustment"]
+                df["cumulative_split_adjustment"] * df["cumulative_bonus_adjustment"]
             ).round(6)
             actual = df["total_adjustment_factor"].round(6)
             mismatched = (abs(computed - actual) > 1e-5).sum()

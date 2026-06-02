@@ -12,24 +12,24 @@ import pandas as pd
 
 # Columns whose presence and null rate are checked automatically
 _CRITICAL_COLUMNS: dict[str, str] = {
-    "SYMBOL":          "MISSING_SYMBOL",
-    "ISIN":            "MISSING_ISIN",
-    "LISTING_DATE":    "MISSING_LISTING_DATE",
-    "EX_DATE":         "MISSING_EX_DATE",
+    "SYMBOL": "MISSING_SYMBOL",
+    "ISIN": "MISSING_ISIN",
+    "LISTING_DATE": "MISSING_LISTING_DATE",
+    "EX_DATE": "MISSING_EX_DATE",
     "ACTION_TYPE_RAW": "MISSING_ACTION_TYPE",
 }
 
 # Confidence penalty per quality issue (deducted from 1.0)
 _ISSUE_PENALTY: dict[str, float] = {
-    "MISSING_SYMBOL":       0.4,   # hard — symbol is the primary key
-    "MISSING_ISIN":         0.15,
+    "MISSING_SYMBOL": 0.4,  # hard — symbol is the primary key
+    "MISSING_ISIN": 0.15,
     "MISSING_LISTING_DATE": 0.1,
-    "MISSING_EX_DATE":      0.2,   # hard for corporate actions
-    "MISSING_ACTION_TYPE":  0.2,
-    "UNKNOWN_ACTION_TYPE":  0.15,
-    "INVALID_DATE":         0.1,
-    "UNRESOLVED_SYMBOL":    0.3,   # symbol not in security master
-    "DUPLICATE_KEY":        0.1,
+    "MISSING_EX_DATE": 0.2,  # hard for corporate actions
+    "MISSING_ACTION_TYPE": 0.2,
+    "UNKNOWN_ACTION_TYPE": 0.15,
+    "INVALID_DATE": 0.1,
+    "UNRESOLVED_SYMBOL": 0.3,  # symbol not in security master
+    "DUPLICATE_KEY": 0.1,
 }
 
 # Score below this threshold triggers manual_review_required = True
@@ -48,7 +48,7 @@ class QualityMetadata:
     """
 
     def __init__(self, source_file: str = "", extracted_date: date | None = None):
-        self.source_file    = source_file
+        self.source_file = source_file
         self.extracted_date = (extracted_date or date.today()).isoformat()
 
     def add_quality_flags(self, df: pd.DataFrame) -> pd.DataFrame:
@@ -66,7 +66,7 @@ class QualityMetadata:
         """
         df = df.copy()
 
-        df["_source_file"]   = self.source_file
+        df["_source_file"] = self.source_file
         df["_extracted_date"] = self.extracted_date
 
         issues_series = df.apply(self._detect_issues, axis=1)
@@ -74,7 +74,9 @@ class QualityMetadata:
             lambda codes: ",".join(codes) if codes else ""
         )
         df["_confidence_score"] = issues_series.apply(self._score)
-        df["_manual_review_required"] = df["_confidence_score"] < _MANUAL_REVIEW_THRESHOLD
+        df["_manual_review_required"] = (
+            df["_confidence_score"] < _MANUAL_REVIEW_THRESHOLD
+        )
 
         return df
 
@@ -114,7 +116,9 @@ class QualityMetadata:
         return round(max(0.0, score), 4)
 
     @classmethod
-    def flag_unresolved_symbols(cls, df: pd.DataFrame, unresolved_mask: pd.Series) -> pd.DataFrame:
+    def flag_unresolved_symbols(
+        cls, df: pd.DataFrame, unresolved_mask: pd.Series
+    ) -> pd.DataFrame:
         """
         Mark rows where the symbol could not be resolved to a security_id.
 

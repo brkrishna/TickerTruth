@@ -8,15 +8,15 @@ _sql_json() and _run() are monkeypatched; seed file reads are patched via tmp_pa
 """
 
 import subprocess
-from pathlib import Path
 from unittest.mock import MagicMock
 
 import pytest
 
-from pipelines.publish.dolt_importer import DOLT_DIR, DoltImporter
+from pipelines.publish.dolt_importer import DoltImporter
 
 
 # ── fixture ───────────────────────────────────────────────────────────────────
+
 
 @pytest.fixture()
 def imp():
@@ -24,6 +24,7 @@ def imp():
 
 
 # ── ensure_exchange_seeded ────────────────────────────────────────────────────
+
 
 def test_exchange_already_present_does_not_insert(imp, monkeypatch):
     monkeypatch.setattr(imp, "_sql_json", lambda q: [{"exchange_id": 1}])
@@ -43,10 +44,13 @@ def test_exchange_missing_inserts_nse_row(imp, monkeypatch):
 
 # ── ensure_action_types_seeded ────────────────────────────────────────────────
 
+
 def test_action_types_already_seeded_skips_run(imp, monkeypatch):
     monkeypatch.setattr(imp, "_sql_json", lambda q: [{"n": 16}])
     run_calls = []
-    monkeypatch.setattr(imp, "_run", lambda *a, **kw: run_calls.append(a) or MagicMock(returncode=0))
+    monkeypatch.setattr(
+        imp, "_run", lambda *a, **kw: run_calls.append(a) or MagicMock(returncode=0)
+    )
     imp.ensure_action_types_seeded()
     assert run_calls == [], "should not call _run when table is already populated"
 
@@ -54,16 +58,22 @@ def test_action_types_already_seeded_skips_run(imp, monkeypatch):
 def test_action_types_empty_executes_seed_sql(imp, monkeypatch, tmp_path):
     monkeypatch.setattr(imp, "_sql_json", lambda q: [{"n": 0}])
 
-    seed_content = "INSERT IGNORE INTO dim_corporate_action_type (action_code) VALUES ('X');"
+    seed_content = (
+        "INSERT IGNORE INTO dim_corporate_action_type (action_code) VALUES ('X');"
+    )
     seed_file = tmp_path / "seed_corporate_actions.sql"
     seed_file.write_text(seed_content)
-    monkeypatch.setattr(
-        "pipelines.publish.dolt_importer.DOLT_DIR", tmp_path
-    )
+    monkeypatch.setattr("pipelines.publish.dolt_importer.DOLT_DIR", tmp_path)
 
     received = {}
     ok = subprocess.CompletedProcess(args=[], returncode=0, stdout="", stderr="")
-    monkeypatch.setattr(imp, "_run", lambda args, input_text=None: received.update({"args": args, "sql": input_text}) or ok)
+    monkeypatch.setattr(
+        imp,
+        "_run",
+        lambda args, input_text=None: (
+            received.update({"args": args, "sql": input_text}) or ok
+        ),
+    )
 
     imp.ensure_action_types_seeded()
 
@@ -78,7 +88,9 @@ def test_action_types_seed_failure_raises(imp, monkeypatch, tmp_path):
     seed_file.write_text("bad sql;")
     monkeypatch.setattr("pipelines.publish.dolt_importer.DOLT_DIR", tmp_path)
 
-    fail = subprocess.CompletedProcess(args=[], returncode=1, stdout="", stderr="syntax error")
+    fail = subprocess.CompletedProcess(
+        args=[], returncode=1, stdout="", stderr="syntax error"
+    )
     monkeypatch.setattr(imp, "_run", lambda *a, **kw: fail)
 
     with pytest.raises(RuntimeError, match="Failed to seed dim_corporate_action_type"):

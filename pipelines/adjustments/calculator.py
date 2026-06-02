@@ -25,7 +25,9 @@ class AdjustmentCalculator:
     """
 
     @staticmethod
-    def calculate_split_adjustment(old_numerator: int | float, new_denominator: int | float) -> float:
+    def calculate_split_adjustment(
+        old_numerator: int | float, new_denominator: int | float
+    ) -> float:
         """
         Compute the price adjustment factor for a stock split.
 
@@ -50,7 +52,9 @@ class AdjustmentCalculator:
         return float(old_numerator) / float(new_denominator)
 
     @staticmethod
-    def calculate_bonus_adjustment(existing_shares: int | float, bonus_shares: int | float) -> float:
+    def calculate_bonus_adjustment(
+        existing_shares: int | float, bonus_shares: int | float
+    ) -> float:
         """
         Compute the price adjustment factor for a bonus (stock dividend) issue.
 
@@ -74,7 +78,9 @@ class AdjustmentCalculator:
         return float(existing_shares) / float(existing_shares + bonus_shares)
 
     @staticmethod
-    def calculate_cumulative_adjustment(action_events: pd.DataFrame) -> dict[str, float]:
+    def calculate_cumulative_adjustment(
+        action_events: pd.DataFrame,
+    ) -> dict[str, float]:
         """
         Compute cumulative split, bonus, and total adjustment factors from a
         sequence of corporate action events for a single security.
@@ -101,7 +107,7 @@ class AdjustmentCalculator:
         bonus_factor = 1.0
 
         for _, row in action_events.iterrows():
-            code  = str(row.get("action_code", "")).upper().strip()
+            code = str(row.get("action_code", "")).upper().strip()
             value = row.get("old_value")
 
             if code == "SPLIT":
@@ -139,5 +145,5 @@ class AdjustmentCalculator:
         return {
             "cumulative_split_adjustment": round(split_factor, 8),
             "cumulative_bonus_adjustment": round(bonus_factor, 8),
-            "total_adjustment_factor":     total,
+            "total_adjustment_factor": total,
         }

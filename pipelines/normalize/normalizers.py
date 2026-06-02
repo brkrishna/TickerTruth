@@ -16,68 +16,68 @@ from datetime import date, datetime
 
 _ACTION_TYPE_MAP: dict[str, str] = {
     # Dividends
-    "dividend":                      "DIVIDEND",
-    "cash dividend":                  "DIVIDEND",
-    "interim dividend":               "DIVIDEND",
-    "final dividend":                 "DIVIDEND",
-    "special dividend":               "SPECIAL_DIVIDEND",
-    "preference dividend":            "PREFERENCE_DIVIDEND",
-    "dividend reinvestment":          "DIVIDEND_REINVESTMENT",
+    "dividend": "DIVIDEND",
+    "cash dividend": "DIVIDEND",
+    "interim dividend": "DIVIDEND",
+    "final dividend": "DIVIDEND",
+    "special dividend": "SPECIAL_DIVIDEND",
+    "preference dividend": "PREFERENCE_DIVIDEND",
+    "dividend reinvestment": "DIVIDEND_REINVESTMENT",
     # Bonus
-    "bonus":                          "BONUS",
-    "bonus issue":                    "BONUS",
-    "bonus shares":                   "BONUS",
+    "bonus": "BONUS",
+    "bonus issue": "BONUS",
+    "bonus shares": "BONUS",
     # Splits
-    "split":                          "SPLIT",
-    "stock split":                    "SPLIT",
-    "sub-division":                   "SPLIT",
-    "subdivision":                    "SPLIT",
-    "face value split":               "SPLIT",
-    "reverse split":                  "REVERSE_SPLIT",
-    "consolidation":                  "REVERSE_SPLIT",
-    "reverse stock split":            "REVERSE_SPLIT",
+    "split": "SPLIT",
+    "stock split": "SPLIT",
+    "sub-division": "SPLIT",
+    "subdivision": "SPLIT",
+    "face value split": "SPLIT",
+    "reverse split": "REVERSE_SPLIT",
+    "consolidation": "REVERSE_SPLIT",
+    "reverse stock split": "REVERSE_SPLIT",
     # Rights
-    "rights":                         "RIGHTS",
-    "rights issue":                   "RIGHTS",
-    "rights offering":                "RIGHTS",
+    "rights": "RIGHTS",
+    "rights issue": "RIGHTS",
+    "rights offering": "RIGHTS",
     # Mergers / demergers
-    "merger":                         "MERGER",
-    "amalgamation":                   "MERGER",
-    "merger/amalgamation":            "MERGER",
-    "acquisition":                    "MERGER",
-    "demerger":                       "DEMERGER",
-    "spin-off":                       "DEMERGER",
-    "spinoff":                        "DEMERGER",
-    "demerger/spinoff":               "DEMERGER",
+    "merger": "MERGER",
+    "amalgamation": "MERGER",
+    "merger/amalgamation": "MERGER",
+    "acquisition": "MERGER",
+    "demerger": "DEMERGER",
+    "spin-off": "DEMERGER",
+    "spinoff": "DEMERGER",
+    "demerger/spinoff": "DEMERGER",
     # Listing events
-    "ipo":                            "LISTING",
-    "listing":                        "LISTING",
-    "relisting":                      "RELISTING",
-    "delisting":                      "DELISTING",
-    "voluntary delisting":            "DELISTING",
-    "compulsory delisting":           "DELISTING",
+    "ipo": "LISTING",
+    "listing": "LISTING",
+    "relisting": "RELISTING",
+    "delisting": "DELISTING",
+    "voluntary delisting": "DELISTING",
+    "compulsory delisting": "DELISTING",
     # Capital events
-    "capital reduction":              "CAPITAL_REDUCTION",
-    "buyback":                        "CAPITAL_REDUCTION",
-    "buy back":                       "CAPITAL_REDUCTION",
-    "capital increase":               "CAPITAL_INCREASE",
-    "further public offer":           "CAPITAL_INCREASE",
-    "fpo":                            "CAPITAL_INCREASE",
+    "capital reduction": "CAPITAL_REDUCTION",
+    "buyback": "CAPITAL_REDUCTION",
+    "buy back": "CAPITAL_REDUCTION",
+    "capital increase": "CAPITAL_INCREASE",
+    "further public offer": "CAPITAL_INCREASE",
+    "fpo": "CAPITAL_INCREASE",
     # Name / symbol changes
-    "name change":                    "NAME_CHANGE",
-    "symbol change":                  "NAME_CHANGE",
-    "namechange":                     "NAME_CHANGE",
+    "name change": "NAME_CHANGE",
+    "symbol change": "NAME_CHANGE",
+    "namechange": "NAME_CHANGE",
 }
 
 # Date formats NSE uses across different data sources
 _DATE_FORMATS: list[str] = [
-    "%d-%m-%Y",    # 28-05-2024  (most NSE CSVs)
-    "%d/%m/%Y",    # 28/05/2024
-    "%Y-%m-%d",    # 2024-05-28  (ISO, used in some API responses)
-    "%d-%b-%Y",    # 28-May-2024 (bhavcopy TIMESTAMP)
-    "%d-%B-%Y",    # 28-May-2024 full month name
-    "%b %d, %Y",   # May 28, 2024
-    "%d %b %Y",    # 28 May 2024
+    "%d-%m-%Y",  # 28-05-2024  (most NSE CSVs)
+    "%d/%m/%Y",  # 28/05/2024
+    "%Y-%m-%d",  # 2024-05-28  (ISO, used in some API responses)
+    "%d-%b-%Y",  # 28-May-2024 (bhavcopy TIMESTAMP)
+    "%d-%B-%Y",  # 28-May-2024 full month name
+    "%b %d, %Y",  # May 28, 2024
+    "%d %b %Y",  # 28 May 2024
 ]
 
 # Suffixes NSE appends to equity symbols — stripped during normalization
@@ -89,18 +89,18 @@ _SYMBOL_SUFFIX_RE = re.compile(
 # Company name variants to normalise
 _COMPANY_NAME_SUBS: list[tuple[re.Pattern, str]] = [
     # Punctuation and spacing
-    (re.compile(r"\s+"),                       " "),             # collapse whitespace
-    (re.compile(r"[&]"),                       "AND"),           # & → AND
+    (re.compile(r"\s+"), " "),  # collapse whitespace
+    (re.compile(r"[&]"), "AND"),  # & → AND
     # Legal suffix variants — use lookahead (?=\s|,|$) instead of \b
     # because \b does not match after a period at end-of-string
-    (re.compile(r"\bLTD\.?(?=\s|,|$)",  re.I), "LIMITED"),
-    (re.compile(r"\bPVT\.?(?=\s|,|$)",  re.I), "PRIVATE"),
-    (re.compile(r"\bCO\.?(?=\s|,|$)",   re.I), "COMPANY"),
+    (re.compile(r"\bLTD\.?(?=\s|,|$)", re.I), "LIMITED"),
+    (re.compile(r"\bPVT\.?(?=\s|,|$)", re.I), "PRIVATE"),
+    (re.compile(r"\bCO\.?(?=\s|,|$)", re.I), "COMPANY"),
     (re.compile(r"\bCORP\.?(?=\s|,|$)", re.I), "CORPORATION"),
-    (re.compile(r"\bINC\.?(?=\s|,|$)",  re.I), "INCORPORATED"),
+    (re.compile(r"\bINC\.?(?=\s|,|$)", re.I), "INCORPORATED"),
     (re.compile(r"\bINTL\.?(?=\s|,|$)", re.I), "INTERNATIONAL"),
     (re.compile(r"\bINDS\.?(?=\s|,|$)", re.I), "INDUSTRIES"),
-    (re.compile(r"\bMFG\.?(?=\s|,|$)",  re.I), "MANUFACTURING"),
+    (re.compile(r"\bMFG\.?(?=\s|,|$)", re.I), "MANUFACTURING"),
 ]
 
 # Currency / unit symbols to strip when normalising numerics
@@ -108,6 +108,7 @@ _CURRENCY_RE = re.compile(r"[₹$€£¥]|Rs\.?\s*|INR\s*|USD\s*", re.IGNORECASE
 
 
 # ── normalizer class ──────────────────────────────────────────────────────────
+
 
 class FieldNormalizer:
     """
@@ -246,7 +247,7 @@ class FieldNormalizer:
         if ":" in cleaned:
             parts = cleaned.split(":")
             try:
-                numerator   = float(parts[0].replace(",", ""))
+                numerator = float(parts[0].replace(",", ""))
                 denominator = float(parts[1].replace(",", ""))
                 return numerator / denominator if denominator else None
             except (ValueError, IndexError):

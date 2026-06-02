@@ -13,6 +13,7 @@ from rapidfuzz import fuzz
 
 # ── LineageEvent ──────────────────────────────────────────────────────────────
 
+
 class LineageEvent:
     """
     Represents a significant event in a security's symbol or name history.
@@ -28,10 +29,18 @@ class LineageEvent:
         corroborating_evidence (list[str]): Supporting data points
     """
 
-    VALID_TYPES = frozenset({
-        "RENAME", "MERGER", "DEMERGER", "DELISTING",
-        "RELISTING", "LISTING", "SUSPENSION", "REACTIVATION",
-    })
+    VALID_TYPES = frozenset(
+        {
+            "RENAME",
+            "MERGER",
+            "DEMERGER",
+            "DELISTING",
+            "RELISTING",
+            "LISTING",
+            "SUSPENSION",
+            "REACTIVATION",
+        }
+    )
 
     def __init__(
         self,
@@ -39,21 +48,23 @@ class LineageEvent:
         event_date: date,
         confidence: float,
         symbol_from: Optional[str] = None,
-        symbol_to:   Optional[str] = None,
+        symbol_to: Optional[str] = None,
         reason: str = "",
         corroborating_evidence: Optional[list] = None,
     ):
         if event_type not in self.VALID_TYPES:
-            raise ValueError(f"Unknown event_type '{event_type}'. Valid: {self.VALID_TYPES}")
+            raise ValueError(
+                f"Unknown event_type '{event_type}'. Valid: {self.VALID_TYPES}"
+            )
         if not (0.0 <= confidence <= 1.0):
             raise ValueError(f"confidence must be in [0.0, 1.0], got {confidence}")
 
-        self.event_type  = event_type
-        self.event_date  = event_date
-        self.confidence  = round(confidence, 4)
+        self.event_type = event_type
+        self.event_date = event_date
+        self.confidence = round(confidence, 4)
         self.symbol_from = symbol_from
-        self.symbol_to   = symbol_to
-        self.reason      = reason
+        self.symbol_to = symbol_to
+        self.reason = reason
         self.corroborating_evidence = corroborating_evidence or []
 
     def __repr__(self) -> str:
@@ -65,17 +76,18 @@ class LineageEvent:
     def to_dict(self) -> dict:
         """Serialize to a flat dict suitable for CSV / DataFrame row."""
         return {
-            "symbol_from":            self.symbol_from,
-            "symbol_to":              self.symbol_to,
-            "event_date":             self.event_date.isoformat(),
-            "event_type":             self.event_type,
-            "confidence":             self.confidence,
-            "reason":                 self.reason,
+            "symbol_from": self.symbol_from,
+            "symbol_to": self.symbol_to,
+            "event_date": self.event_date.isoformat(),
+            "event_type": self.event_type,
+            "confidence": self.confidence,
+            "reason": self.reason,
             "corroborating_evidence": "; ".join(self.corroborating_evidence),
         }
 
 
 # ── LineageRulesEngine ────────────────────────────────────────────────────────
+
 
 class LineageRulesEngine:
     """

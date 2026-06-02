@@ -18,8 +18,8 @@ from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
-PROJECT_ROOT       = Path(__file__).parent.parent.parent
-RELEASES_DIR       = PROJECT_ROOT / "releases" / "monthly"
+PROJECT_ROOT = Path(__file__).parent.parent.parent
+RELEASES_DIR = PROJECT_ROOT / "releases" / "monthly"
 RELEASE_NOTES_HTML = PROJECT_ROOT / "website" / "landing-page" / "release-notes.html"
 
 # Exact string in the HTML after which new cards are prepended.
@@ -31,13 +31,14 @@ _CARD_TAG = "<!-- release:{version} -->"
 
 # ── public API ────────────────────────────────────────────────────────────────
 
+
 class WebsiteUpdater:
     def __init__(
         self,
         html_path: Path = RELEASE_NOTES_HTML,
         releases_dir: Path = RELEASES_DIR,
     ):
-        self.html_path    = Path(html_path)
+        self.html_path = Path(html_path)
         self.releases_dir = Path(releases_dir)
 
     def update_for_date(self, run_date: date) -> bool:
@@ -58,9 +59,9 @@ class WebsiteUpdater:
         Returns True if the HTML was modified.
         Raises ValueError if the HTML injection marker is missing.
         """
-        data    = _parse_release_md(md_path)
+        data = _parse_release_md(md_path)
         version = data["version"]
-        tag     = _CARD_TAG.format(version=version)
+        tag = _CARD_TAG.format(version=version)
 
         html = self.html_path.read_text(encoding="utf-8")
         if tag in html:
@@ -75,6 +76,7 @@ class WebsiteUpdater:
 
 
 # ── MD parser ─────────────────────────────────────────────────────────────────
+
 
 def _parse_release_md(path: Path) -> dict:
     """
@@ -100,15 +102,15 @@ def _parse_release_md(path: Path) -> dict:
             },
         }
     """
-    text  = path.read_text(encoding="utf-8")
+    text = path.read_text(encoding="utf-8")
     lines = text.splitlines()
 
     data: dict = {
-        "version":     "",
-        "released":    "",
+        "version": "",
+        "released": "",
         "dolt_commit": "",
-        "stats":       {},
-        "sections":    {},
+        "stats": {},
+        "sections": {},
     }
 
     # Title: "# Release v2026.06.02"
@@ -138,11 +140,11 @@ def _parse_release_md(path: Path) -> dict:
 
     # Parse Summary bullets into integer stats
     _STAT_KEYS = {
-        "New securities":             "new_securities",
-        "Updated securities":         "updated_securities",
+        "New securities": "new_securities",
+        "Updated securities": "updated_securities",
         "Corporate actions ingested": "new_actions",
-        "Lineage events detected":    "lineage_events",
-        "Adjustment factor rows":     "adjustment_rows",
+        "Lineage events detected": "lineage_events",
+        "Adjustment factor rows": "adjustment_rows",
     }
     for bullet in data["sections"].get("Summary", []):
         m = re.match(r"\*\*(.+?):\*\*\s*([\d,]+)", bullet)
@@ -159,20 +161,21 @@ def _parse_release_md(path: Path) -> dict:
 
 # ── HTML card builder ─────────────────────────────────────────────────────────
 
+
 def _build_card_html(data: dict) -> str:
     """Render parsed MD data as an HTML release card (8-space indented, matches page)."""
 
-    version  = data["version"]
+    version = data["version"]
     released = data["released"]
-    stats    = data["stats"]
+    stats = data["stats"]
     sections = data["sections"]
 
     def fmt(n: int) -> str:
         return f"{n:,}" if n else "0"
 
-    new_sec  = stats.get("new_securities",  0)
-    new_act  = stats.get("new_actions",     0)
-    lin_ev   = stats.get("lineage_events",  0)
+    new_sec = stats.get("new_securities", 0)
+    new_act = stats.get("new_actions", 0)
+    lin_ev = stats.get("lineage_events", 0)
     adj_rows = stats.get("adjustment_rows", 0)
 
     def _li(text: str) -> str:
@@ -183,22 +186,26 @@ def _build_card_html(data: dict) -> str:
     def _section(title: str, bullets: list[str], extra_class: str = "") -> str:
         if not bullets:
             return ""
-        css = f'class="release-section {extra_class}"' if extra_class else 'class="release-section"'
+        css = (
+            f'class="release-section {extra_class}"'
+            if extra_class
+            else 'class="release-section"'
+        )
         items = "\n".join(_li(b) for b in bullets)
         return (
-            f'        <div {css}>\n'
-            f'          <h3>{title}</h3>\n'
-            f'          <ul>\n'
-            f'{items}\n'
-            f'          </ul>\n'
-            f'        </div>'
+            f"        <div {css}>\n"
+            f"          <h3>{title}</h3>\n"
+            f"          <ul>\n"
+            f"{items}\n"
+            f"          </ul>\n"
+            f"        </div>"
         )
 
     body_parts = [
-        _section("Data Changes",     sections.get("Data Changes",     [])),
+        _section("Data Changes", sections.get("Data Changes", [])),
         _section("Quality Warnings", sections.get("Quality Warnings", [])),
-        _section("Known Issues",     sections.get("Known Issues",     []), "known-issues"),
-        _section("Next Release",     sections.get("Next Release",     []), "next-release"),
+        _section("Known Issues", sections.get("Known Issues", []), "known-issues"),
+        _section("Next Release", sections.get("Next Release", []), "next-release"),
     ]
     body_html = "\n".join(p for p in body_parts if p)
 
@@ -211,37 +218,38 @@ def _build_card_html(data: dict) -> str:
         f"    {tag}\n"
         f'    <div class="release">\n'
         f'      <div class="release-header">\n'
-        f'        <div>\n'
-        f'          <h2>Release {display_version}</h2>\n'
+        f"        <div>\n"
+        f"          <h2>Release {display_version}</h2>\n"
         f'          <div class="release-date">Released {released}</div>\n'
-        f'        </div>\n'
-        f'      </div>\n'
+        f"        </div>\n"
+        f"      </div>\n"
         f'      <div class="release-stats">\n'
         f'        <div class="stat">\n'
         f'          <div class="stat-val">{fmt(new_sec)}</div>\n'
         f'          <div class="stat-label">Securities</div>\n'
-        f'        </div>\n'
+        f"        </div>\n"
         f'        <div class="stat">\n'
         f'          <div class="stat-val">{fmt(new_act)}</div>\n'
         f'          <div class="stat-label">Corp. Actions</div>\n'
-        f'        </div>\n'
+        f"        </div>\n"
         f'        <div class="stat">\n'
         f'          <div class="stat-val">{fmt(lin_ev)}</div>\n'
         f'          <div class="stat-label">Lineage Events</div>\n'
-        f'        </div>\n'
+        f"        </div>\n"
         f'        <div class="stat">\n'
         f'          <div class="stat-val">{fmt(adj_rows)}</div>\n'
         f'          <div class="stat-label">Adj. Factors</div>\n'
-        f'        </div>\n'
-        f'      </div>\n'
+        f"        </div>\n"
+        f"      </div>\n"
         f'      <div class="release-body">\n'
-        f'{body_html}\n'
-        f'      </div>\n'
-        f'    </div>\n'
+        f"{body_html}\n"
+        f"      </div>\n"
+        f"    </div>\n"
     )
 
 
 # ── injector ──────────────────────────────────────────────────────────────────
+
 
 def _inject_card(html: str, card: str) -> str:
     """
@@ -262,6 +270,7 @@ def _inject_card(html: str, card: str) -> str:
 
 
 # ── CLI ───────────────────────────────────────────────────────────────────────
+
 
 def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     p = argparse.ArgumentParser(
@@ -288,13 +297,13 @@ def main(argv: list[str] | None = None) -> int:
         format="%(asctime)s  %(levelname)-8s  %(name)s  %(message)s",
         datefmt="%Y-%m-%d %H:%M:%S",
     )
-    args    = _parse_args(argv)
+    args = _parse_args(argv)
     updater = WebsiteUpdater()
 
     try:
         if args.date:
             run_date = datetime.strptime(args.date, "%Y-%m-%d").date()
-            changed  = updater.update_for_date(run_date)
+            changed = updater.update_for_date(run_date)
         else:
             changed = updater.update_from_md(Path(args.md))
     except (ValueError, FileNotFoundError) as exc:

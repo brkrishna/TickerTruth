@@ -26,68 +26,112 @@ import pandas as pd
 logger = logging.getLogger(__name__)
 
 PROJECT_ROOT = Path(__file__).parent.parent.parent
-DOLT_DIR     = PROJECT_ROOT / "dolt"
-CURATED_DIR  = PROJECT_ROOT / "data" / "curated"
+DOLT_DIR = PROJECT_ROOT / "dolt"
+CURATED_DIR = PROJECT_ROOT / "data" / "curated"
 
 # NSE exchange seed row (inserted if dim_exchange is empty)
 _NSE_EXCHANGE_ROW = {
-    "exchange_id":   1,
+    "exchange_id": 1,
     "exchange_code": "NSE",
     "exchange_name": "National Stock Exchange of India",
-    "country":       "India",
+    "country": "India",
 }
 
 # Tables and the subset of CSV columns each Dolt table accepts.
 # Columns not listed here are quality/provenance metadata and must be dropped.
 _TABLE_COLUMNS: dict[str, list[str]] = {
     "dim_exchange": [
-        "exchange_id", "exchange_code", "exchange_name", "country",
+        "exchange_id",
+        "exchange_code",
+        "exchange_name",
+        "country",
     ],
     "dim_corporate_action_type": [
-        "action_type_id", "action_code", "action_name", "description",
+        "action_type_id",
+        "action_code",
+        "action_name",
+        "description",
     ],
     "dim_issuer": [
-        "issuer_id", "issuer_name", "sector", "market_cap_category", "country",
+        "issuer_id",
+        "issuer_name",
+        "sector",
+        "market_cap_category",
+        "country",
     ],
     "dim_security_master": [
-        "security_id", "nse_symbol", "isin", "company_name",
-        "issuer_id", "exchange_id", "listing_date", "active_flag",
+        "security_id",
+        "nse_symbol",
+        "isin",
+        "company_name",
+        "issuer_id",
+        "exchange_id",
+        "listing_date",
+        "active_flag",
     ],
     "dim_symbol_alias": [
-        "alias_id", "security_id", "symbol", "alias_type",
-        "effective_from", "effective_to",
+        "alias_id",
+        "security_id",
+        "symbol",
+        "alias_type",
+        "effective_from",
+        "effective_to",
     ],
     "fact_corporate_action_event": [
-        "security_id", "action_type_id", "event_date", "record_date",
-        "payment_date", "old_value", "new_value", "adjustment_factor",
-        "description", "source", "confidence_score",
+        "security_id",
+        "action_type_id",
+        "event_date",
+        "record_date",
+        "payment_date",
+        "old_value",
+        "new_value",
+        "adjustment_factor",
+        "description",
+        "source",
+        "confidence_score",
     ],
     "fact_adjustment_factor": [
-        "security_id", "as_of_date",
-        "cumulative_split_adjustment", "cumulative_bonus_adjustment",
-        "cumulative_dividend_adjustment", "total_adjustment_factor",
+        "security_id",
+        "as_of_date",
+        "cumulative_split_adjustment",
+        "cumulative_bonus_adjustment",
+        "cumulative_dividend_adjustment",
+        "total_adjustment_factor",
     ],
     "fact_symbol_lineage_event": [
-        "security_id", "old_symbol", "new_symbol",
-        "change_date", "change_reason", "merged_with_symbol", "source",
+        "security_id",
+        "old_symbol",
+        "new_symbol",
+        "change_date",
+        "change_reason",
+        "merged_with_symbol",
+        "source",
     ],
     "fact_listing_status_history": [
-        "security_id", "status", "effective_date", "reason",
+        "security_id",
+        "status",
+        "effective_date",
+        "reason",
     ],
     "fact_equity_eod": [
-        "security_id", "trading_date",
-        "open_price", "high_price", "low_price", "close_price", "volume",
+        "security_id",
+        "trading_date",
+        "open_price",
+        "high_price",
+        "low_price",
+        "close_price",
+        "volume",
     ],
 }
 
 # Maps lineage pipeline event_type values → fact_symbol_lineage_event.change_reason ENUM.
 # LISTING and SUSPENSION have no ENUM equivalent and are skipped at import time.
 _LINEAGE_EVENT_TYPE_MAP: dict[str, str] = {
-    "RENAME":       "rename",
-    "MERGER":       "merger",
-    "DEMERGER":     "merger",   # no demerger variant in current ENUM
-    "DELISTING":    "delisting",
-    "RELISTING":    "relisting",
+    "RENAME": "rename",
+    "MERGER": "merger",
+    "DEMERGER": "merger",  # no demerger variant in current ENUM
+    "DELISTING": "delisting",
+    "RELISTING": "relisting",
     "REACTIVATION": "relisting",
     # LISTING and SUSPENSION intentionally absent — rows are dropped with a warning
 }
@@ -122,12 +166,14 @@ class DoltImporter:
         dolt_dir: Path = DOLT_DIR,
         curated_dir: Path = CURATED_DIR,
     ):
-        self.dolt_dir    = Path(dolt_dir)
+        self.dolt_dir = Path(dolt_dir)
         self.curated_dir = Path(curated_dir)
 
     # ── subprocess helpers ────────────────────────────────────────────────────
 
-    def _run(self, args: list[str], input_text: str | None = None) -> subprocess.CompletedProcess:
+    def _run(
+        self, args: list[str], input_text: str | None = None
+    ) -> subprocess.CompletedProcess:
         return subprocess.run(
             ["dolt"] + args,
             cwd=self.dolt_dir,
@@ -141,14 +187,18 @@ class DoltImporter:
         """Run a SQL query and return stdout (table-formatted)."""
         result = self._run(["sql", "-q", query])
         if result.returncode != 0:
-            raise RuntimeError(f"Dolt SQL failed: {result.stderr.strip()}\nQuery: {query}")
+            raise RuntimeError(
+                f"Dolt SQL failed: {result.stderr.strip()}\nQuery: {query}"
+            )
         return result.stdout
 
     def _sql_json(self, query: str) -> list[dict]:
         """Run a SQL query and return results as a list of dicts (JSON format)."""
         result = self._run(["sql", "-r", "json", "-q", query])
         if result.returncode != 0:
-            raise RuntimeError(f"Dolt SQL failed: {result.stderr.strip()}\nQuery: {query}")
+            raise RuntimeError(
+                f"Dolt SQL failed: {result.stderr.strip()}\nQuery: {query}"
+            )
         try:
             parsed = json.loads(result.stdout)
             return parsed.get("rows", [])
@@ -159,7 +209,9 @@ class DoltImporter:
 
     def ensure_exchange_seeded(self) -> None:
         """Insert NSE into dim_exchange if not already present."""
-        rows = self._sql_json("SELECT exchange_id FROM dim_exchange WHERE exchange_id = 1")
+        rows = self._sql_json(
+            "SELECT exchange_id FROM dim_exchange WHERE exchange_id = 1"
+        )
         if rows:
             return
         self._sql(
@@ -213,7 +265,8 @@ class DoltImporter:
         unresolved = df["action_type_id"].isna().sum()
         if unresolved:
             logger.warning(
-                "%d rows have unresolvable action_code — dropping before import", unresolved
+                "%d rows have unresolvable action_code — dropping before import",
+                unresolved,
             )
             df = df.dropna(subset=["action_type_id"])
         df["action_type_id"] = df["action_type_id"].astype(int)
@@ -223,9 +276,7 @@ class DoltImporter:
 
     def _get_symbol_id_map(self) -> dict[str, int]:
         """Query Dolt for uppercase(nse_symbol) → security_id mapping."""
-        rows = self._sql_json(
-            "SELECT security_id, nse_symbol FROM dim_security_master"
-        )
+        rows = self._sql_json("SELECT security_id, nse_symbol FROM dim_security_master")
         return {r["nse_symbol"].upper(): int(r["security_id"]) for r in rows}
 
     def transform_lineage_events(self, df: pd.DataFrame) -> pd.DataFrame:
@@ -256,20 +307,25 @@ class DoltImporter:
         df = df.copy()
 
         # 1. Rename
-        df = df.rename(columns={
-            "symbol_from": "old_symbol",
-            "symbol_to":   "new_symbol",
-            "event_date":  "change_date",
-            "event_type":  "change_reason",
-        })
+        df = df.rename(
+            columns={
+                "symbol_from": "old_symbol",
+                "symbol_to": "new_symbol",
+                "event_date": "change_date",
+                "event_type": "change_reason",
+            }
+        )
 
         # 2. Map to ENUM values; drop rows whose event_type has no mapping
-        df.loc[:, "change_reason"] = df["change_reason"].str.upper().map(_LINEAGE_EVENT_TYPE_MAP)
+        df.loc[:, "change_reason"] = (
+            df["change_reason"].str.upper().map(_LINEAGE_EVENT_TYPE_MAP)
+        )
         n_unmappable = df["change_reason"].isna().sum()
         if n_unmappable:
             logger.warning(
                 "%d lineage rows have event_type not in Dolt ENUM "
-                "(LISTING / SUSPENSION) — skipping", n_unmappable
+                "(LISTING / SUSPENSION) — skipping",
+                n_unmappable,
             )
             df = df[df["change_reason"].notna()].copy()
 
@@ -282,7 +338,8 @@ class DoltImporter:
         except Exception as exc:
             logger.warning(
                 "Could not query dim_security_master for security_id resolution: %s "
-                "— lineage import skipped", exc
+                "— lineage import skipped",
+                exc,
             )
             return df.iloc[0:0]  # empty with same columns
 
@@ -299,7 +356,8 @@ class DoltImporter:
         if n_unresolved:
             logger.warning(
                 "%d lineage rows could not resolve security_id "
-                "(symbol not in dim_security_master) — skipping", n_unresolved
+                "(symbol not in dim_security_master) — skipping",
+                n_unresolved,
             )
             df = df[df["security_id"].notna()].copy()
 
@@ -318,8 +376,14 @@ class DoltImporter:
 
         # 6. Drop pipeline-internal columns not in the Dolt schema
         drop_cols = [
-            c for c in ("confidence", "reason", "corroborating_evidence",
-                        "corroborated", "manual_review_required")
+            c
+            for c in (
+                "confidence",
+                "reason",
+                "corroborating_evidence",
+                "corroborated",
+                "manual_review_required",
+            )
             if c in df.columns
         ]
         if drop_cols:
@@ -343,7 +407,7 @@ class DoltImporter:
             RuntimeError if dolt table import fails.
         """
         declared_cols = _TABLE_COLUMNS.get(table_name, [])
-        present_cols  = [c for c in declared_cols if c in df.columns]
+        present_cols = [c for c in declared_cols if c in df.columns]
         if not present_cols:
             raise ValueError(
                 f"No declared columns found in df for table '{table_name}'. "
@@ -407,7 +471,10 @@ class DoltImporter:
                 df = pd.read_csv(csv_path)
 
                 # Special handling: resolve action_type_id FK for fact table
-                if table == "fact_corporate_action_event" and "action_code" in df.columns:
+                if (
+                    table == "fact_corporate_action_event"
+                    and "action_code" in df.columns
+                ):
                     df = self.resolve_action_type_ids(df)
 
                 # Special handling: map lineage pipeline column names to Dolt schema
@@ -426,7 +493,11 @@ class DoltImporter:
 
             except Exception as exc:
                 logger.error("Failed to import %s: %s", table, exc)
-                report["tables"][table] = {"status": "error", "rows": 0, "error": str(exc)}
+                report["tables"][table] = {
+                    "status": "error",
+                    "rows": 0,
+                    "error": str(exc),
+                }
                 report["errors"].append(f"{table}: {exc}")
 
         return report
@@ -443,7 +514,10 @@ class DoltImporter:
         result = self._run(["commit", "-m", message])
         if result.returncode != 0:
             combined = result.stdout.lower() + result.stderr.lower()
-            if "nothing to commit" in combined or "no changes added to commit" in combined:
+            if (
+                "nothing to commit" in combined
+                or "no changes added to commit" in combined
+            ):
                 logger.info("Dolt: nothing to commit")
                 return ""
             raise RuntimeError(f"dolt commit failed: {result.stderr}")
@@ -451,11 +525,15 @@ class DoltImporter:
         if tag:
             tag_result = self._run(["tag", tag])
             if tag_result.returncode != 0:
-                logger.warning("dolt tag failed (may already exist): %s", tag_result.stderr)
+                logger.warning(
+                    "dolt tag failed (may already exist): %s", tag_result.stderr
+                )
 
         # Return new commit hash
         log_result = self._run(["log", "--oneline", "-n", "1"])
-        commit_hash = log_result.stdout.strip().split()[0] if log_result.stdout.strip() else ""
+        commit_hash = (
+            log_result.stdout.strip().split()[0] if log_result.stdout.strip() else ""
+        )
         logger.info("Dolt commit: %s  tag: %s", commit_hash, tag or "none")
         return commit_hash
 
@@ -467,7 +545,7 @@ class DoltImporter:
                 rows = self._sql_json(f"SELECT COUNT(*) as n FROM {table}")
                 counts[table] = int(rows[0]["n"]) if rows else 0
             except Exception:
-                counts[table] = -1   # -1 = query failed
+                counts[table] = -1  # -1 = query failed
         return counts
 
     def rollback(self, commit_hash: str) -> None:
@@ -484,5 +562,5 @@ class DoltImporter:
         Useful for testing column selection logic without a live Dolt instance.
         """
         declared = _TABLE_COLUMNS.get(table_name, [])
-        present  = [c for c in declared if c in df.columns]
+        present = [c for c in declared if c in df.columns]
         return df[present].copy()

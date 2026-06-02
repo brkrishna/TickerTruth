@@ -24,10 +24,22 @@ NSE_EXCHANGE_ID = 1
 # Canonical action codes that map to dim_corporate_action_type.action_code
 # Used to look up action_type_id during fact table mapping
 _KNOWN_ACTION_CODES = {
-    "DIVIDEND", "BONUS", "SPLIT", "REVERSE_SPLIT", "RIGHTS",
-    "PREFERENCE_DIVIDEND", "DIVIDEND_REINVESTMENT", "DELISTING",
-    "RELISTING", "MERGER", "DEMERGER", "NAME_CHANGE",
-    "CAPITAL_REDUCTION", "CAPITAL_INCREASE", "LISTING", "SPECIAL_DIVIDEND",
+    "DIVIDEND",
+    "BONUS",
+    "SPLIT",
+    "REVERSE_SPLIT",
+    "RIGHTS",
+    "PREFERENCE_DIVIDEND",
+    "DIVIDEND_REINVESTMENT",
+    "DELISTING",
+    "RELISTING",
+    "MERGER",
+    "DEMERGER",
+    "NAME_CHANGE",
+    "CAPITAL_REDUCTION",
+    "CAPITAL_INCREASE",
+    "LISTING",
+    "SPECIAL_DIVIDEND",
 }
 
 
@@ -64,8 +76,10 @@ class RawToCanonicalMapper:
         Returns:
             dim_issuer DataFrame, one row per unique issuer.
         """
-        name_col   = self._find_col(raw_symbols, ["COMPANY_NAME", "NAME", "COMP"])
-        sector_col = self._find_col(raw_symbols, ["SECTOR", "INDUSTRY", "INDUSTRY_NAME"])
+        name_col = self._find_col(raw_symbols, ["COMPANY_NAME", "NAME", "COMP"])
+        sector_col = self._find_col(
+            raw_symbols, ["SECTOR", "INDUSTRY", "INDUSTRY_NAME"]
+        )
 
         if name_col is None:
             raise ValueError(
@@ -90,7 +104,9 @@ class RawToCanonicalMapper:
             sector_map = (
                 raw_symbols[[name_col, sector_col]]
                 .dropna(subset=[name_col])
-                .assign(**{name_col: raw_symbols[name_col].apply(FN.normalize_company_name)})
+                .assign(
+                    **{name_col: raw_symbols[name_col].apply(FN.normalize_company_name)}
+                )
                 .drop_duplicates(subset=[name_col])
                 .set_index(name_col)[sector_col]
             )
@@ -104,7 +120,9 @@ class RawToCanonicalMapper:
         # Drop the working column
         df.drop(columns=["_raw_name"], inplace=True)
 
-        return df[["issuer_id", "issuer_name", "sector", "market_cap_category", "country"]]
+        return df[
+            ["issuer_id", "issuer_name", "sector", "market_cap_category", "country"]
+        ]
 
     # ── dim_security_master ───────────────────────────────────────────────────
 
@@ -133,11 +151,13 @@ class RawToCanonicalMapper:
         """
         df = raw_symbols.copy()
 
-        symbol_col  = self._find_col(df, ["SYMBOL"])
-        name_col    = self._find_col(df, ["COMPANY_NAME", "NAME", "COMP"])
-        isin_col    = self._find_col(df, ["ISIN", "ISIN_NUMBER", "ISIN NUMBER"])
-        date_col    = self._find_col(df, ["LISTING_DATE", "DATE OF LISTING", "DATE_OF_LISTING"])
-        status_col  = self._find_col(df, ["STATUS", "TRADING_STATUS", "TRADING STATUS"])
+        symbol_col = self._find_col(df, ["SYMBOL"])
+        name_col = self._find_col(df, ["COMPANY_NAME", "NAME", "COMP"])
+        isin_col = self._find_col(df, ["ISIN", "ISIN_NUMBER", "ISIN NUMBER"])
+        date_col = self._find_col(
+            df, ["LISTING_DATE", "DATE OF LISTING", "DATE_OF_LISTING"]
+        )
+        status_col = self._find_col(df, ["STATUS", "TRADING_STATUS", "TRADING STATUS"])
 
         if symbol_col is None:
             raise ValueError("raw_symbols missing SYMBOL column")
@@ -166,17 +186,20 @@ class RawToCanonicalMapper:
 
         # Normalise listing_date
         df["listing_date"] = (
-            df[date_col].apply(FN.normalize_date).apply(
-                lambda d: d.isoformat() if d else None
-            )
-            if date_col else None
+            df[date_col]
+            .apply(FN.normalize_date)
+            .apply(lambda d: d.isoformat() if d else None)
+            if date_col
+            else None
         )
 
         # Derive active_flag from STATUS column
         df["active_flag"] = True
         if status_col:
-            inactive = df[status_col].str.upper().isin(
-                ["DELISTED", "SUSPENDED", "INACTIVE", "UNLISTED"]
+            inactive = (
+                df[status_col]
+                .str.upper()
+                .isin(["DELISTED", "SUSPENDED", "INACTIVE", "UNLISTED"])
             )
             df.loc[inactive, "active_flag"] = False
 
@@ -195,10 +218,19 @@ class RawToCanonicalMapper:
         df.drop(columns=["_unresolved_symbol"], errors="ignore", inplace=True)
 
         out_cols = [
-            "security_id", "nse_symbol", "isin", "company_name",
-            "issuer_id", "exchange_id", "listing_date", "active_flag",
-            "_source_file", "_extracted_date", "_quality_issues",
-            "_confidence_score", "_manual_review_required",
+            "security_id",
+            "nse_symbol",
+            "isin",
+            "company_name",
+            "issuer_id",
+            "exchange_id",
+            "listing_date",
+            "active_flag",
+            "_source_file",
+            "_extracted_date",
+            "_quality_issues",
+            "_confidence_score",
+            "_manual_review_required",
         ]
         return df[[c for c in out_cols if c in df.columns]]
 
@@ -232,12 +264,14 @@ class RawToCanonicalMapper:
         """
         df = raw_actions.copy()
 
-        symbol_col  = self._find_col(df, ["SYMBOL"])
-        action_col  = self._find_col(df, ["ACTION_TYPE_RAW", "SUBJECT", "PURPOSE"])
-        exdate_col  = self._find_col(df, ["EX_DATE", "EX DATE", "EXDATE"])
+        symbol_col = self._find_col(df, ["SYMBOL"])
+        action_col = self._find_col(df, ["ACTION_TYPE_RAW", "SUBJECT", "PURPOSE"])
+        exdate_col = self._find_col(df, ["EX_DATE", "EX DATE", "EXDATE"])
         recdate_col = self._find_col(df, ["RECORD_DATE", "RECORD DATE", "RECDATE"])
         paydate_col = self._find_col(df, ["PAYMENT_DATE", "PAYMENT DATE", "PAYDATE"])
-        value_col   = self._find_col(df, ["VALUE_OR_RATIO", "VALUE", "FACEVALUE", "FACE_VALUE"])
+        value_col = self._find_col(
+            df, ["VALUE_OR_RATIO", "VALUE", "FACEVALUE", "FACE_VALUE"]
+        )
 
         if symbol_col is None or action_col is None or exdate_col is None:
             raise ValueError(
@@ -258,23 +292,31 @@ class RawToCanonicalMapper:
         df["action_code"] = df[action_col].apply(FN.normalize_action_type)
 
         # Normalise dates
-        df["event_date"]   = df[exdate_col].apply(FN.normalize_date).apply(
-            lambda d: d.isoformat() if d else None
+        df["event_date"] = (
+            df[exdate_col]
+            .apply(FN.normalize_date)
+            .apply(lambda d: d.isoformat() if d else None)
         )
-        df["record_date"]  = (
-            df[recdate_col].apply(FN.normalize_date).apply(
-                lambda d: d.isoformat() if d else None
-            ) if recdate_col else None
+        df["record_date"] = (
+            df[recdate_col]
+            .apply(FN.normalize_date)
+            .apply(lambda d: d.isoformat() if d else None)
+            if recdate_col
+            else None
         )
         df["payment_date"] = (
-            df[paydate_col].apply(FN.normalize_date).apply(
-                lambda d: d.isoformat() if d else None
-            ) if paydate_col else None
+            df[paydate_col]
+            .apply(FN.normalize_date)
+            .apply(lambda d: d.isoformat() if d else None)
+            if paydate_col
+            else None
         )
 
         # Normalise value/ratio
-        df["old_value"] = df[value_col].apply(FN.normalize_numeric) if value_col else None
-        df["new_value"] = None        # populated by adjustment pipeline (Task 8)
+        df["old_value"] = (
+            df[value_col].apply(FN.normalize_numeric) if value_col else None
+        )
+        df["new_value"] = None  # populated by adjustment pipeline (Task 8)
         df["adjustment_factor"] = None  # populated by adjustment pipeline (Task 8)
 
         # Confidence score comes from QualityMetadata
@@ -286,14 +328,24 @@ class RawToCanonicalMapper:
         # Drop working columns
         df.drop(
             columns=["_norm_symbol", "_unresolved_symbol"],
-            errors="ignore", inplace=True,
+            errors="ignore",
+            inplace=True,
         )
 
         out_cols = [
-            "security_id", "action_code", "event_date", "record_date",
-            "payment_date", "old_value", "new_value", "adjustment_factor",
-            "confidence_score", "_source_file", "_extracted_date",
-            "_quality_issues", "_manual_review_required",
+            "security_id",
+            "action_code",
+            "event_date",
+            "record_date",
+            "payment_date",
+            "old_value",
+            "new_value",
+            "adjustment_factor",
+            "confidence_score",
+            "_source_file",
+            "_extracted_date",
+            "_quality_issues",
+            "_manual_review_required",
         ]
         return df[[c for c in out_cols if c in df.columns]]
 

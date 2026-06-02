@@ -24,15 +24,17 @@ DATA_CURATED = PROJECT_ROOT / "data" / "curated"
 # TASK 5 — Extraction
 # ═══════════════════════════════════════════════════════════════════════════════
 
-class TestTask5Extraction:
 
+class TestTask5Extraction:
     def test_extractor_imports(self):
         from pipelines.extract.extractor import RawDataExtractor
+
         e = RawDataExtractor()
         assert e.output_dir.name == "raw"
 
     def test_bhavcopy_url_format(self):
         from pipelines.extract.extractor import RawDataExtractor
+
         e = RawDataExtractor()
         url = e._bhavcopy_url(date(2024, 5, 28))
         assert "2024" in url
@@ -42,34 +44,44 @@ class TestTask5Extraction:
 
     def test_bhavcopy_url_zero_padded_day(self):
         from pipelines.extract.extractor import RawDataExtractor
+
         e = RawDataExtractor()
         url = e._bhavcopy_url(date(2024, 1, 3))
         assert "cm03JAN2024bhav.csv.zip" in url
 
     def test_date_chunks_single(self):
         from pipelines.extract.extractor import RawDataExtractor
-        chunks = list(RawDataExtractor._date_chunks(date(2024, 1, 1), date(2024, 1, 15), 30))
+
+        chunks = list(
+            RawDataExtractor._date_chunks(date(2024, 1, 1), date(2024, 1, 15), 30)
+        )
         assert len(chunks) == 1
         assert chunks[0] == (date(2024, 1, 1), date(2024, 1, 15))
 
     def test_date_chunks_multiple(self):
         from pipelines.extract.extractor import RawDataExtractor
-        chunks = list(RawDataExtractor._date_chunks(date(2024, 1, 1), date(2024, 3, 31), 30))
+
+        chunks = list(
+            RawDataExtractor._date_chunks(date(2024, 1, 1), date(2024, 3, 31), 30)
+        )
         assert len(chunks) == 4
         # No gaps: each chunk_to + 1 day = next chunk_from
         for i in range(len(chunks) - 1):
             from datetime import timedelta
+
             assert chunks[i][1] + timedelta(days=1) == chunks[i + 1][0]
 
     def test_date_chunks_covers_full_range(self):
         from pipelines.extract.extractor import RawDataExtractor
+
         from_d, to_d = date(2024, 1, 1), date(2024, 12, 31)
         chunks = list(RawDataExtractor._date_chunks(from_d, to_d, 30))
-        assert chunks[0][0]  == from_d
+        assert chunks[0][0] == from_d
         assert chunks[-1][1] == to_d
 
     def test_consolidate_staging_empty(self, tmp_path):
         from pipelines.extract.extractor import RawDataExtractor
+
         e = RawDataExtractor(output_dir=tmp_path / "raw")
         report = e.consolidate_to_staging(staging_dir=tmp_path / "staging")
         assert report["symbols"]["files_found"] == 0
@@ -82,10 +94,16 @@ class TestTask5Extraction:
         raw_dir.mkdir()
         # Write two symbol files with one overlapping row
         for fname in ["nse_symbols_2024-01-01.csv", "nse_symbols_2024-01-02.csv"]:
-            pd.DataFrame([
-                {"SYMBOL": "INFY", "LISTING_DATE": "1993-06-03", "STATUS": "ACTIVE"},
-                {"SYMBOL": "TCS",  "LISTING_DATE": "2004-08-25", "STATUS": "ACTIVE"},
-            ]).to_csv(raw_dir / fname, index=False)
+            pd.DataFrame(
+                [
+                    {
+                        "SYMBOL": "INFY",
+                        "LISTING_DATE": "1993-06-03",
+                        "STATUS": "ACTIVE",
+                    },
+                    {"SYMBOL": "TCS", "LISTING_DATE": "2004-08-25", "STATUS": "ACTIVE"},
+                ]
+            ).to_csv(raw_dir / fname, index=False)
 
         e = RawDataExtractor(output_dir=raw_dir)
         report = e.consolidate_to_staging(staging_dir=tmp_path / "staging")
@@ -98,10 +116,11 @@ class TestTask5Extraction:
 # TASK 6 — Normalization
 # ═══════════════════════════════════════════════════════════════════════════════
 
-class TestTask6FieldNormalizer:
 
+class TestTask6FieldNormalizer:
     def setup_method(self):
         from pipelines.normalize.normalizers import FieldNormalizer
+
         self.fn = FieldNormalizer
 
     def test_ticker_strips_eq_suffix(self):
@@ -176,121 +195,173 @@ class TestTask6FieldNormalizer:
 
 
 class TestTask6QualityMetadata:
-
     def _make_df(self):
-        return pd.DataFrame([
-            {"SYMBOL": "INFY", "ISIN": "INE009A01021", "LISTING_DATE": "1993-06-03"},
-            {"SYMBOL": None,   "ISIN": None,             "LISTING_DATE": None},
-        ])
+        return pd.DataFrame(
+            [
+                {
+                    "SYMBOL": "INFY",
+                    "ISIN": "INE009A01021",
+                    "LISTING_DATE": "1993-06-03",
+                },
+                {"SYMBOL": None, "ISIN": None, "LISTING_DATE": None},
+            ]
+        )
 
     def test_adds_five_quality_columns(self):
         from pipelines.normalize.quality import QualityMetadata
-        qm  = QualityMetadata(source_file="test.csv")
+
+        qm = QualityMetadata(source_file="test.csv")
         out = qm.add_quality_flags(self._make_df())
-        for col in ["_source_file", "_extracted_date", "_quality_issues",
-                    "_confidence_score", "_manual_review_required"]:
+        for col in [
+            "_source_file",
+            "_extracted_date",
+            "_quality_issues",
+            "_confidence_score",
+            "_manual_review_required",
+        ]:
             assert col in out.columns, f"Missing column: {col}"
 
     def test_clean_row_has_full_score(self):
         from pipelines.normalize.quality import QualityMetadata
-        qm  = QualityMetadata(source_file="test.csv")
+
+        qm = QualityMetadata(source_file="test.csv")
         out = qm.add_quality_flags(self._make_df())
         assert out.loc[0, "_confidence_score"] == 1.0
 
     def test_null_row_has_reduced_score(self):
         from pipelines.normalize.quality import QualityMetadata
-        qm  = QualityMetadata(source_file="test.csv")
+
+        qm = QualityMetadata(source_file="test.csv")
         out = qm.add_quality_flags(self._make_df())
         assert out.loc[1, "_confidence_score"] < 1.0
 
     def test_null_row_requires_review(self):
         from pipelines.normalize.quality import QualityMetadata
-        qm  = QualityMetadata(source_file="test.csv")
+
+        qm = QualityMetadata(source_file="test.csv")
         out = qm.add_quality_flags(self._make_df())
-        assert out.loc[1, "_manual_review_required"] == True
+        assert out.loc[1, "_manual_review_required"]
 
     def test_source_file_propagated(self):
         from pipelines.normalize.quality import QualityMetadata
-        qm  = QualityMetadata(source_file="my_file.csv")
+
+        qm = QualityMetadata(source_file="my_file.csv")
         out = qm.add_quality_flags(self._make_df())
         assert (out["_source_file"] == "my_file.csv").all()
 
 
 class TestTask6Mapper:
-
     def _raw_symbols(self):
-        return pd.DataFrame([
-            {"SYMBOL": "INFY-EQ", "COMPANY_NAME": "Infosys Ltd.",
-             "ISIN": "INE009A01021", "LISTING_DATE": "03-06-1993",
-             "STATUS": "ACTIVE", "SECTOR": "IT"},
-            {"SYMBOL": "TCS", "COMPANY_NAME": "Tata Consultancy Services Ltd.",
-             "ISIN": "INE467B01029", "LISTING_DATE": "25-08-2004",
-             "STATUS": "ACTIVE", "SECTOR": "IT"},
-            {"SYMBOL": "DEFUNCT", "COMPANY_NAME": "Old Corp Ltd.",
-             "ISIN": "INE000X00000", "LISTING_DATE": "01-01-2000",
-             "STATUS": "DELISTED", "SECTOR": "OTHER"},
-        ])
+        return pd.DataFrame(
+            [
+                {
+                    "SYMBOL": "INFY-EQ",
+                    "COMPANY_NAME": "Infosys Ltd.",
+                    "ISIN": "INE009A01021",
+                    "LISTING_DATE": "03-06-1993",
+                    "STATUS": "ACTIVE",
+                    "SECTOR": "IT",
+                },
+                {
+                    "SYMBOL": "TCS",
+                    "COMPANY_NAME": "Tata Consultancy Services Ltd.",
+                    "ISIN": "INE467B01029",
+                    "LISTING_DATE": "25-08-2004",
+                    "STATUS": "ACTIVE",
+                    "SECTOR": "IT",
+                },
+                {
+                    "SYMBOL": "DEFUNCT",
+                    "COMPANY_NAME": "Old Corp Ltd.",
+                    "ISIN": "INE000X00000",
+                    "LISTING_DATE": "01-01-2000",
+                    "STATUS": "DELISTED",
+                    "SECTOR": "OTHER",
+                },
+            ]
+        )
 
     def test_dim_issuer_row_count(self):
         from pipelines.normalize.normalizer import RawToCanonicalMapper
-        m  = RawToCanonicalMapper()
+
+        m = RawToCanonicalMapper()
         df = m.map_to_dim_issuer(self._raw_symbols())
         assert len(df) == 3
 
     def test_dim_issuer_has_required_cols(self):
         from pipelines.normalize.normalizer import RawToCanonicalMapper
-        m   = RawToCanonicalMapper()
-        df  = m.map_to_dim_issuer(self._raw_symbols())
+
+        m = RawToCanonicalMapper()
+        df = m.map_to_dim_issuer(self._raw_symbols())
         for col in ["issuer_id", "issuer_name", "sector", "country"]:
             assert col in df.columns
 
     def test_dim_issuer_ids_unique(self):
         from pipelines.normalize.normalizer import RawToCanonicalMapper
-        m  = RawToCanonicalMapper()
+
+        m = RawToCanonicalMapper()
         df = m.map_to_dim_issuer(self._raw_symbols())
         assert df["issuer_id"].nunique() == len(df)
 
     def test_dim_security_ticker_normalised(self):
         from pipelines.normalize.normalizer import RawToCanonicalMapper
-        m       = RawToCanonicalMapper()
+
+        m = RawToCanonicalMapper()
         issuers = m.map_to_dim_issuer(self._raw_symbols())
-        sec     = m.map_to_dim_security_master(self._raw_symbols(), issuers)
+        sec = m.map_to_dim_security_master(self._raw_symbols(), issuers)
         assert "INFY" in sec["nse_symbol"].values
         assert "INFY-EQ" not in sec["nse_symbol"].values
 
     def test_dim_security_active_flag(self):
         from pipelines.normalize.normalizer import RawToCanonicalMapper
-        m       = RawToCanonicalMapper()
+
+        m = RawToCanonicalMapper()
         issuers = m.map_to_dim_issuer(self._raw_symbols())
-        sec     = m.map_to_dim_security_master(self._raw_symbols(), issuers)
+        sec = m.map_to_dim_security_master(self._raw_symbols(), issuers)
         delisted = sec[sec["nse_symbol"] == "DEFUNCT"]
         assert len(delisted) == 1
-        assert delisted.iloc[0]["active_flag"] == False
+        assert not delisted.iloc[0]["active_flag"]
 
     def test_fact_corp_actions_normalises_codes(self):
         from pipelines.normalize.normalizer import RawToCanonicalMapper
-        m       = RawToCanonicalMapper()
+
+        m = RawToCanonicalMapper()
         issuers = m.map_to_dim_issuer(self._raw_symbols())
-        sec     = m.map_to_dim_security_master(self._raw_symbols(), issuers)
-        actions = pd.DataFrame([
-            {"SYMBOL": "INFY", "ACTION_TYPE_RAW": "Bonus Issue",
-             "EX_DATE": "12-01-2024", "RECORD_DATE": "13-01-2024",
-             "PAYMENT_DATE": None, "VALUE_OR_RATIO": "1:1"},
-        ])
+        sec = m.map_to_dim_security_master(self._raw_symbols(), issuers)
+        actions = pd.DataFrame(
+            [
+                {
+                    "SYMBOL": "INFY",
+                    "ACTION_TYPE_RAW": "Bonus Issue",
+                    "EX_DATE": "12-01-2024",
+                    "RECORD_DATE": "13-01-2024",
+                    "PAYMENT_DATE": None,
+                    "VALUE_OR_RATIO": "1:1",
+                },
+            ]
+        )
         facts = m.map_to_fact_corporate_action_event(actions, sec)
         assert facts.iloc[0]["action_code"] == "BONUS"
-        assert facts.iloc[0]["old_value"]   == 1.0
+        assert facts.iloc[0]["old_value"] == 1.0
 
     def test_fact_corp_actions_unresolved_symbol_flagged(self):
         from pipelines.normalize.normalizer import RawToCanonicalMapper
-        m       = RawToCanonicalMapper()
+
+        m = RawToCanonicalMapper()
         issuers = m.map_to_dim_issuer(self._raw_symbols())
-        sec     = m.map_to_dim_security_master(self._raw_symbols(), issuers)
-        actions = pd.DataFrame([
-            {"SYMBOL": "UNKNOWN_SYM", "ACTION_TYPE_RAW": "Bonus Issue",
-             "EX_DATE": "12-01-2024", "RECORD_DATE": None,
-             "PAYMENT_DATE": None, "VALUE_OR_RATIO": "1:1"},
-        ])
+        sec = m.map_to_dim_security_master(self._raw_symbols(), issuers)
+        actions = pd.DataFrame(
+            [
+                {
+                    "SYMBOL": "UNKNOWN_SYM",
+                    "ACTION_TYPE_RAW": "Bonus Issue",
+                    "EX_DATE": "12-01-2024",
+                    "RECORD_DATE": None,
+                    "PAYMENT_DATE": None,
+                    "VALUE_OR_RATIO": "1:1",
+                },
+            ]
+        )
         facts = m.map_to_fact_corporate_action_event(actions, sec)
         # security_id should be NaN (unresolved), confidence should be < 1
         assert pd.isna(facts.iloc[0]["security_id"])
@@ -301,52 +372,66 @@ class TestTask6Mapper:
 # TASK 7 — Lineage
 # ═══════════════════════════════════════════════════════════════════════════════
 
-class TestTask7LineageEvent:
 
+class TestTask7LineageEvent:
     def test_valid_event_type(self):
         from pipelines.lineage.rules import LineageEvent
+
         ev = LineageEvent("RENAME", date(2024, 1, 1), 0.9, "OLD", "NEW")
         assert ev.event_type == "RENAME"
 
     def test_invalid_event_type_raises(self):
         from pipelines.lineage.rules import LineageEvent
+
         with pytest.raises(ValueError, match="Unknown event_type"):
             LineageEvent("BOGUS", date(2024, 1, 1), 0.9)
 
     def test_invalid_confidence_raises(self):
         from pipelines.lineage.rules import LineageEvent
+
         with pytest.raises(ValueError, match="confidence"):
             LineageEvent("RENAME", date(2024, 1, 1), 1.5, "A", "B")
 
     def test_to_dict_has_all_keys(self):
         from pipelines.lineage.rules import LineageEvent
+
         ev = LineageEvent("DELISTING", date(2024, 1, 1), 0.8, "SYM", None, "gone")
-        d  = ev.to_dict()
-        for key in ["symbol_from", "symbol_to", "event_date", "event_type",
-                    "confidence", "reason", "corroborating_evidence"]:
+        d = ev.to_dict()
+        for key in [
+            "symbol_from",
+            "symbol_to",
+            "event_date",
+            "event_type",
+            "confidence",
+            "reason",
+            "corroborating_evidence",
+        ]:
             assert key in d
 
     def test_to_dict_event_date_is_iso_string(self):
         from pipelines.lineage.rules import LineageEvent
+
         ev = LineageEvent("LISTING", date(2024, 5, 28), 0.95)
         assert ev.to_dict()["event_date"] == "2024-05-28"
 
 
 class TestTask7RulesEngine:
-
     def setup_method(self):
         from pipelines.lineage.rules import LineageRulesEngine
+
         self.engine = LineageRulesEngine()
 
     def test_detect_symbol_rename_basic(self):
         ev = self.engine.detect_symbol_rename("OLD", "NEW", date(2024, 1, 1))
         assert ev.event_type == "RENAME"
         assert ev.symbol_from == "OLD"
-        assert ev.symbol_to   == "NEW"
+        assert ev.symbol_to == "NEW"
 
     def test_detect_symbol_rename_same_name_high_confidence(self):
         ev = self.engine.detect_symbol_rename(
-            "OLD", "NEW", date(2024, 1, 1),
+            "OLD",
+            "NEW",
+            date(2024, 1, 1),
             company_name="Infosys Limited",
             new_company_name="Infosys Limited",
         )
@@ -378,8 +463,10 @@ class TestTask7RulesEngine:
 
     def test_detect_merger_with_action(self):
         ev = self.engine.detect_merger_demerger(
-            symbol_disappears=True, new_symbol_appears=True,
-            old_symbol="ACME", new_symbol="BIGCO",
+            symbol_disappears=True,
+            new_symbol_appears=True,
+            old_symbol="ACME",
+            new_symbol="BIGCO",
             event_date=date(2024, 1, 1),
             corporate_action={"action_code": "MERGER"},
         )
@@ -388,8 +475,10 @@ class TestTask7RulesEngine:
 
     def test_detect_merger_without_action_lower_confidence(self):
         ev = self.engine.detect_merger_demerger(
-            symbol_disappears=True, new_symbol_appears=False,
-            old_symbol="ACME", new_symbol="ACME",
+            symbol_disappears=True,
+            new_symbol_appears=False,
+            old_symbol="ACME",
+            new_symbol="ACME",
             event_date=date(2024, 1, 1),
         )
         assert ev.event_type == "MERGER"
@@ -397,8 +486,10 @@ class TestTask7RulesEngine:
 
     def test_detect_demerger_type(self):
         ev = self.engine.detect_merger_demerger(
-            symbol_disappears=False, new_symbol_appears=True,
-            old_symbol="PARENT", new_symbol="CHILD",
+            symbol_disappears=False,
+            new_symbol_appears=True,
+            old_symbol="PARENT",
+            new_symbol="CHILD",
             event_date=date(2024, 1, 1),
             corporate_action={"action_code": "DEMERGER"},
         )
@@ -406,10 +497,10 @@ class TestTask7RulesEngine:
 
     def test_detect_delisting_explicit(self):
         ev = self.engine.detect_delisting("GONE", date(2024, 1, 1), is_explicit=True)
-        assert ev.event_type   == "DELISTING"
-        assert ev.symbol_from  == "GONE"
-        assert ev.symbol_to    is None
-        assert ev.confidence   >= 0.90
+        assert ev.event_type == "DELISTING"
+        assert ev.symbol_from == "GONE"
+        assert ev.symbol_to is None
+        assert ev.confidence >= 0.90
 
     def test_detect_delisting_inferred_lower_confidence(self):
         ev = self.engine.detect_delisting("GONE", date(2024, 1, 1), is_explicit=False)
@@ -417,36 +508,40 @@ class TestTask7RulesEngine:
 
     def test_detect_relisting(self):
         ev = self.engine.detect_relisting("BACK", date(2024, 6, 1))
-        assert ev.event_type  == "RELISTING"
-        assert ev.symbol_to   == "BACK"
+        assert ev.event_type == "RELISTING"
+        assert ev.symbol_to == "BACK"
         assert ev.symbol_from is None
 
     def test_detect_suspension(self):
         ev = self.engine.detect_suspension("SUSP", date(2024, 3, 1), "regulatory")
-        assert ev.event_type  == "SUSPENSION"
+        assert ev.event_type == "SUSPENSION"
         assert ev.symbol_from == "SUSP"
-        assert ev.confidence  >= 0.85
+        assert ev.confidence >= 0.85
 
 
 class TestTask7SymbolLinker:
-
     def setup_method(self):
         from pipelines.lineage.linker import SymbolLinker
+
         self.linker = SymbolLinker()
 
     def _make_snapshots(self):
-        historical = pd.DataFrame([
-            {"SYMBOL": "INFY",  "ISIN": "INE009A01021"},
-            {"SYMBOL": "TCS",   "ISIN": "INE467B01029"},
-            {"SYMBOL": "OLD",   "ISIN": "INE111X00000"},  # will be renamed
-            {"SYMBOL": "GONE",  "ISIN": "INE222X00000"},  # will be delisted
-        ])
-        current = pd.DataFrame([
-            {"SYMBOL": "INFY",  "ISIN": "INE009A01021"},
-            {"SYMBOL": "TCS",   "ISIN": "INE467B01029"},
-            {"SYMBOL": "NEW",   "ISIN": "INE111X00000"},  # same ISIN, new symbol
-            {"SYMBOL": "FRESH", "ISIN": "INE333X00000"},  # new listing
-        ])
+        historical = pd.DataFrame(
+            [
+                {"SYMBOL": "INFY", "ISIN": "INE009A01021"},
+                {"SYMBOL": "TCS", "ISIN": "INE467B01029"},
+                {"SYMBOL": "OLD", "ISIN": "INE111X00000"},  # will be renamed
+                {"SYMBOL": "GONE", "ISIN": "INE222X00000"},  # will be delisted
+            ]
+        )
+        current = pd.DataFrame(
+            [
+                {"SYMBOL": "INFY", "ISIN": "INE009A01021"},
+                {"SYMBOL": "TCS", "ISIN": "INE467B01029"},
+                {"SYMBOL": "NEW", "ISIN": "INE111X00000"},  # same ISIN, new symbol
+                {"SYMBOL": "FRESH", "ISIN": "INE333X00000"},  # new listing
+            ]
+        )
         return historical, current
 
     def test_link_returns_dataframe(self):
@@ -484,18 +579,24 @@ class TestTask7SymbolLinker:
     def test_cross_reference_boosts_confidence_on_match(self):
         hist, curr = self._make_snapshots()
         events = self.linker.link_across_periods(curr, hist, date(2024, 6, 1))
-        actions = pd.DataFrame([
-            {"SYMBOL": "GONE", "action_code": "DELISTING", "event_date": "2024-06-01"},
-        ])
+        actions = pd.DataFrame(
+            [
+                {
+                    "SYMBOL": "GONE",
+                    "action_code": "DELISTING",
+                    "event_date": "2024-06-01",
+                },
+            ]
+        )
         original_conf = events[events["symbol_from"] == "GONE"]["confidence"].values[0]
         updated = self.linker.cross_reference_with_actions(events, actions)
         new_conf = updated[updated["symbol_from"] == "GONE"]["confidence"].values[0]
         assert new_conf >= original_conf
-        assert updated[updated["symbol_from"] == "GONE"]["corroborated"].values[0] == True
+        assert updated[updated["symbol_from"] == "GONE"]["corroborated"].values[0]
 
     def test_cross_reference_flags_manual_review_without_action(self):
         hist, curr = self._make_snapshots()
-        events  = self.linker.link_across_periods(curr, hist, date(2024, 6, 1))
+        events = self.linker.link_across_periods(curr, hist, date(2024, 6, 1))
         updated = self.linker.cross_reference_with_actions(events, pd.DataFrame())
         delistings = updated[updated["event_type"] == "DELISTING"]
         assert delistings["manual_review_required"].all()
@@ -505,54 +606,67 @@ class TestTask7SymbolLinker:
 # TASK 8 — Adjustments
 # ═══════════════════════════════════════════════════════════════════════════════
 
-class TestTask8Calculator:
 
+class TestTask8Calculator:
     def test_split_1_for_2(self):
         from pipelines.adjustments.calculator import AdjustmentCalculator
+
         assert AdjustmentCalculator.calculate_split_adjustment(1, 2) == 0.5
 
     def test_split_1_for_5(self):
         from pipelines.adjustments.calculator import AdjustmentCalculator
+
         assert AdjustmentCalculator.calculate_split_adjustment(1, 5) == 0.2
 
     def test_reverse_split_greater_than_1(self):
         from pipelines.adjustments.calculator import AdjustmentCalculator
+
         assert AdjustmentCalculator.calculate_split_adjustment(2, 1) == 2.0
 
     def test_split_zero_raises(self):
         from pipelines.adjustments.calculator import AdjustmentCalculator
+
         with pytest.raises(ValueError):
             AdjustmentCalculator.calculate_split_adjustment(0, 2)
 
     def test_bonus_1_for_1(self):
         from pipelines.adjustments.calculator import AdjustmentCalculator
+
         assert AdjustmentCalculator.calculate_bonus_adjustment(1, 1) == 0.5
 
     def test_bonus_1_for_2(self):
         from pipelines.adjustments.calculator import AdjustmentCalculator
+
         result = AdjustmentCalculator.calculate_bonus_adjustment(2, 1)
         assert abs(result - (2 / 3)) < 1e-9
 
     def test_bonus_zero_raises(self):
         from pipelines.adjustments.calculator import AdjustmentCalculator
+
         with pytest.raises(ValueError):
             AdjustmentCalculator.calculate_bonus_adjustment(0, 1)
 
     def test_cumulative_single_split(self):
         from pipelines.adjustments.calculator import AdjustmentCalculator
-        events = pd.DataFrame([
-            {"action_code": "SPLIT", "old_value": 0.5, "event_date": "2024-01-01"},
-        ])
+
+        events = pd.DataFrame(
+            [
+                {"action_code": "SPLIT", "old_value": 0.5, "event_date": "2024-01-01"},
+            ]
+        )
         result = AdjustmentCalculator.calculate_cumulative_adjustment(events)
         assert result["cumulative_split_adjustment"] == 0.5
-        assert result["total_adjustment_factor"]     == 0.5
+        assert result["total_adjustment_factor"] == 0.5
 
     def test_cumulative_split_then_bonus(self):
         from pipelines.adjustments.calculator import AdjustmentCalculator
-        events = pd.DataFrame([
-            {"action_code": "SPLIT", "old_value": 0.5,  "event_date": "2023-01-01"},
-            {"action_code": "BONUS", "old_value": 0.5,  "event_date": "2024-01-01"},
-        ])
+
+        events = pd.DataFrame(
+            [
+                {"action_code": "SPLIT", "old_value": 0.5, "event_date": "2023-01-01"},
+                {"action_code": "BONUS", "old_value": 0.5, "event_date": "2024-01-01"},
+            ]
+        )
         result = AdjustmentCalculator.calculate_cumulative_adjustment(events)
         assert result["cumulative_split_adjustment"] == 0.5
         assert result["cumulative_bonus_adjustment"] == 0.5
@@ -560,26 +674,41 @@ class TestTask8Calculator:
 
     def test_cumulative_empty_returns_ones(self):
         from pipelines.adjustments.calculator import AdjustmentCalculator
-        result = AdjustmentCalculator.calculate_cumulative_adjustment(pd.DataFrame(
-            columns=["action_code", "old_value", "event_date"]
-        ))
+
+        result = AdjustmentCalculator.calculate_cumulative_adjustment(
+            pd.DataFrame(columns=["action_code", "old_value", "event_date"])
+        )
         assert result["total_adjustment_factor"] == 1.0
 
 
 class TestTask8AdjustmentBuilder:
-
     def _make_actions(self):
-        return pd.DataFrame([
-            {"security_id": 1, "action_code": "SPLIT",
-             "event_date": "2022-06-15", "old_value": 0.5},
-            {"security_id": 1, "action_code": "BONUS",
-             "event_date": "2023-09-01", "old_value": 0.5},
-            {"security_id": 2, "action_code": "SPLIT",
-             "event_date": "2023-01-10", "old_value": 0.5},
-        ])
+        return pd.DataFrame(
+            [
+                {
+                    "security_id": 1,
+                    "action_code": "SPLIT",
+                    "event_date": "2022-06-15",
+                    "old_value": 0.5,
+                },
+                {
+                    "security_id": 1,
+                    "action_code": "BONUS",
+                    "event_date": "2023-09-01",
+                    "old_value": 0.5,
+                },
+                {
+                    "security_id": 2,
+                    "action_code": "SPLIT",
+                    "event_date": "2023-01-10",
+                    "old_value": 0.5,
+                },
+            ]
+        )
 
     def test_build_returns_dataframe(self):
         from pipelines.adjustments.adjuster import AdjustmentFactorBuilder
+
         df = AdjustmentFactorBuilder().build_from_corporate_actions(
             self._make_actions(), pd.DataFrame()
         )
@@ -587,6 +716,7 @@ class TestTask8AdjustmentBuilder:
 
     def test_build_has_required_columns(self):
         from pipelines.adjustments.adjuster import AdjustmentFactorBuilder
+
         df = AdjustmentFactorBuilder().build_from_corporate_actions(
             self._make_actions(), pd.DataFrame()
         )
@@ -595,6 +725,7 @@ class TestTask8AdjustmentBuilder:
 
     def test_build_row_count(self):
         from pipelines.adjustments.adjuster import AdjustmentFactorBuilder
+
         df = AdjustmentFactorBuilder().build_from_corporate_actions(
             self._make_actions(), pd.DataFrame()
         )
@@ -603,6 +734,7 @@ class TestTask8AdjustmentBuilder:
 
     def test_build_factors_positive(self):
         from pipelines.adjustments.adjuster import AdjustmentFactorBuilder
+
         df = AdjustmentFactorBuilder().build_from_corporate_actions(
             self._make_actions(), pd.DataFrame()
         )
@@ -610,6 +742,7 @@ class TestTask8AdjustmentBuilder:
 
     def test_build_cumulative_split_then_bonus(self):
         from pipelines.adjustments.adjuster import AdjustmentFactorBuilder
+
         df = AdjustmentFactorBuilder().build_from_corporate_actions(
             self._make_actions(), pd.DataFrame()
         )
@@ -621,6 +754,7 @@ class TestTask8AdjustmentBuilder:
 
     def test_build_no_duplicate_security_date(self):
         from pipelines.adjustments.adjuster import AdjustmentFactorBuilder
+
         df = AdjustmentFactorBuilder().build_from_corporate_actions(
             self._make_actions(), pd.DataFrame()
         )
@@ -628,17 +762,25 @@ class TestTask8AdjustmentBuilder:
 
     def test_build_ignores_dividend_actions(self):
         from pipelines.adjustments.adjuster import AdjustmentFactorBuilder
-        actions = pd.DataFrame([
-            {"security_id": 1, "action_code": "DIVIDEND",
-             "event_date": "2024-01-01", "old_value": 5.0},
-        ])
+
+        actions = pd.DataFrame(
+            [
+                {
+                    "security_id": 1,
+                    "action_code": "DIVIDEND",
+                    "event_date": "2024-01-01",
+                    "old_value": 5.0,
+                },
+            ]
+        )
         df = AdjustmentFactorBuilder().build_from_corporate_actions(
             actions, pd.DataFrame()
         )
-        assert len(df) == 0   # DIVIDEND does not produce adjustment rows
+        assert len(df) == 0  # DIVIDEND does not produce adjustment rows
 
     def test_build_missing_required_columns_raises(self):
         from pipelines.adjustments.adjuster import AdjustmentFactorBuilder
+
         bad = pd.DataFrame([{"symbol": "INFY", "value": 1.0}])
         with pytest.raises(ValueError, match="missing required columns"):
             AdjustmentFactorBuilder().build_from_corporate_actions(bad, pd.DataFrame())
@@ -647,6 +789,7 @@ class TestTask8AdjustmentBuilder:
 # ═══════════════════════════════════════════════════════════════════════════════
 # DATA VALIDATION — run against real staged / curated files
 # ═══════════════════════════════════════════════════════════════════════════════
+
 
 class Phase2Validator:
     """
@@ -672,8 +815,11 @@ class Phase2Validator:
         """Curated dimension files have correct columns and unique PKs."""
         ok = True
         checks = {
-            "dim_security_master.csv": (["security_id", "nse_symbol", "isin"], "security_id"),
-            "dim_issuer.csv":          (["issuer_id", "issuer_name"],          "issuer_id"),
+            "dim_security_master.csv": (
+                ["security_id", "nse_symbol", "isin"],
+                "security_id",
+            ),
+            "dim_issuer.csv": (["issuer_id", "issuer_name"], "issuer_id"),
         }
         for fname, (required_cols, pk) in checks.items():
             path = DATA_CURATED / fname
@@ -697,7 +843,7 @@ class Phase2Validator:
         """Lineage events are chronologically ordered and have valid confidence."""
         path = DATA_CURATED / "fact_symbol_lineage_event.csv"
         if not path.exists():
-            print(f"  ✗ MISSING: fact_symbol_lineage_event.csv")
+            print("  ✗ MISSING: fact_symbol_lineage_event.csv")
             return False
         df = pd.read_csv(path)
         ok = True
@@ -717,7 +863,7 @@ class Phase2Validator:
         """Adjustment factors are all positive and internally consistent."""
         path = DATA_CURATED / "fact_adjustment_factor.csv"
         if not path.exists():
-            print(f"  ✗ MISSING: fact_adjustment_factor.csv")
+            print("  ✗ MISSING: fact_adjustment_factor.csv")
             return False
         df = pd.read_csv(path)
         ok = True
@@ -766,10 +912,10 @@ if __name__ == "__main__":
 
     v = Phase2Validator()
     checks = [
-        ("Extraction",    v.validate_extraction),
+        ("Extraction", v.validate_extraction),
         ("Normalization", v.validate_normalization),
-        ("Lineage",       v.validate_lineage),
-        ("Adjustments",   v.validate_adjustments),
+        ("Lineage", v.validate_lineage),
+        ("Adjustments", v.validate_adjustments),
         ("Cross-validate", v.cross_validate_all),
     ]
 

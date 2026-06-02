@@ -12,12 +12,11 @@ Output: data/warehouse/{target}/  containing:
 """
 
 import logging
-from datetime import date
 from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
-PROJECT_ROOT  = Path(__file__).parent.parent.parent
+PROJECT_ROOT = Path(__file__).parent.parent.parent
 WAREHOUSE_DIR = PROJECT_ROOT / "data" / "warehouse"
 
 SUPPORTED_TARGETS = ("snowflake", "bigquery", "databricks", "duckdb")
@@ -63,7 +62,7 @@ class WarehouseExporter:
         out_dir.mkdir(parents=True, exist_ok=True)
 
         paths = []
-        ddl_fn   = getattr(self, f"_ddl_{target}")
+        ddl_fn = getattr(self, f"_ddl_{target}")
         query_fn = getattr(self, f"_queries_{target}", self._queries_generic)
 
         schema_path = out_dir / "schema.sql"
@@ -80,7 +79,9 @@ class WarehouseExporter:
 
         logger.info(
             "Warehouse export complete: %s  (%d files in %s)",
-            target, len(paths), out_dir,
+            target,
+            len(paths),
+            out_dir,
         )
         return paths
 
@@ -520,35 +521,38 @@ CREATE TABLE IF NOT EXISTS fact_symbol_lineage_event (
     # ── query generators ──────────────────────────────────────────────────────
 
     def _queries_snowflake(self) -> str:
-        return self._queries_generic().replace(
-            "CURDATE()", "CURRENT_DATE()"
-        ).replace(
-            "INTERVAL 365 DAY", "DATEADD(day, -365, CURRENT_DATE())"
+        return (
+            self._queries_generic()
+            .replace("CURDATE()", "CURRENT_DATE()")
+            .replace("INTERVAL 365 DAY", "DATEADD(day, -365, CURRENT_DATE())")
         )
 
     def _queries_bigquery(self) -> str:
-        return self._queries_generic().replace(
-            "CURDATE()", "CURRENT_DATE()"
-        ).replace(
-            "dim_security_master", "`your_project.tickertruth.dim_security_master`"
-        ).replace(
-            "fact_corporate_action_event", "`your_project.tickertruth.fact_corporate_action_event`"
-        ).replace(
-            "fact_adjustment_factor", "`your_project.tickertruth.fact_adjustment_factor`"
-        ).replace(
-            "fact_equity_eod", "`your_project.tickertruth.fact_equity_eod`"
+        return (
+            self._queries_generic()
+            .replace("CURDATE()", "CURRENT_DATE()")
+            .replace(
+                "dim_security_master", "`your_project.tickertruth.dim_security_master`"
+            )
+            .replace(
+                "fact_corporate_action_event",
+                "`your_project.tickertruth.fact_corporate_action_event`",
+            )
+            .replace(
+                "fact_adjustment_factor",
+                "`your_project.tickertruth.fact_adjustment_factor`",
+            )
+            .replace("fact_equity_eod", "`your_project.tickertruth.fact_equity_eod`")
         )
 
     def _queries_databricks(self) -> str:
-        return self._queries_generic().replace(
-            "CURDATE()", "current_date()"
-        )
+        return self._queries_generic().replace("CURDATE()", "current_date()")
 
     def _queries_duckdb(self) -> str:
-        return self._queries_generic().replace(
-            "CURDATE()", "current_date"
-        ).replace(
-            "INTERVAL 365 DAY", "INTERVAL 365 DAYS"
+        return (
+            self._queries_generic()
+            .replace("CURDATE()", "current_date")
+            .replace("INTERVAL 365 DAY", "INTERVAL 365 DAYS")
         )
 
     @staticmethod

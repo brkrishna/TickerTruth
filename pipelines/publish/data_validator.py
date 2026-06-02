@@ -17,20 +17,20 @@ from pathlib import Path
 
 import pandas as pd
 
-from pipelines.publish.dolt_importer import DoltImporter, _IMPORT_ORDER
+from pipelines.publish.dolt_importer import DoltImporter
 
 logger = logging.getLogger(__name__)
 
 PROJECT_ROOT = Path(__file__).parent.parent.parent
-CURATED_DIR  = PROJECT_ROOT / "data" / "curated"
+CURATED_DIR = PROJECT_ROOT / "data" / "curated"
 
 
 @dataclass
 class CheckResult:
-    name:    str
-    passed:  bool
+    name: str
+    passed: bool
     details: str = ""
-    errors:  list[str] = field(default_factory=list)
+    errors: list[str] = field(default_factory=list)
 
     def __bool__(self) -> bool:
         return self.passed
@@ -55,8 +55,8 @@ class DataValidator:
         curated_dir: Path = CURATED_DIR,
         dolt_importer: DoltImporter | None = None,
     ):
-        self.curated_dir   = Path(curated_dir)
-        self._dolt         = dolt_importer   # injected; None = Dolt checks unavailable
+        self.curated_dir = Path(curated_dir)
+        self._dolt = dolt_importer  # injected; None = Dolt checks unavailable
 
     # ── curated-file checks (no Dolt needed) ─────────────────────────────────
 
@@ -77,8 +77,8 @@ class DataValidator:
             "fact_symbol_lineage_event.csv",
         ]
         missing_core = []
-        empty_core   = []
-        missing_opt  = []
+        empty_core = []
+        missing_opt = []
 
         for fname in core_files:
             path = self.curated_dir / fname
@@ -92,10 +92,9 @@ class DataValidator:
             if not path.exists():
                 missing_opt.append(fname)
 
-        errors = (
-            [f"missing: {f}" for f in missing_core] +
-            [f"empty: {f}"   for f in empty_core]
-        )
+        errors = [f"missing: {f}" for f in missing_core] + [
+            f"empty: {f}" for f in empty_core
+        ]
         warnings = [f"missing: {f}" for f in missing_opt]
         passed = not errors
         total = len(core_files) + len(optional_files)
@@ -113,9 +112,9 @@ class DataValidator:
     def check_primary_keys_unique(self) -> CheckResult:
         """Verify no duplicate PKs in dimension and fact tables."""
         pk_map = {
-            "dim_issuer.csv":           "issuer_id",
-            "dim_security_master.csv":  "security_id",
-            "fact_adjustment_factor.csv": None,   # composite PK checked separately
+            "dim_issuer.csv": "issuer_id",
+            "dim_security_master.csv": "security_id",
+            "fact_adjustment_factor.csv": None,  # composite PK checked separately
         }
         errors = []
         for fname, pk_col in pk_map.items():
@@ -142,7 +141,9 @@ class DataValidator:
         return CheckResult(
             name="primary_keys_unique",
             passed=not errors,
-            details="No duplicate PKs" if not errors else f"{len(errors)} PK violation(s)",
+            details="No duplicate PKs"
+            if not errors
+            else f"{len(errors)} PK violation(s)",
             errors=errors,
         )
 
@@ -184,7 +185,9 @@ class DataValidator:
         return CheckResult(
             name="referential_integrity",
             passed=not errors,
-            details="All FK security_ids resolve" if not errors else f"{len(errors)} FK violation(s)",
+            details="All FK security_ids resolve"
+            if not errors
+            else f"{len(errors)} FK violation(s)",
             errors=errors,
         )
 
@@ -203,8 +206,11 @@ class DataValidator:
 
         df = pd.read_csv(path)
         errors = []
-        for col in ["cumulative_split_adjustment", "cumulative_bonus_adjustment",
-                    "total_adjustment_factor"]:
+        for col in [
+            "cumulative_split_adjustment",
+            "cumulative_bonus_adjustment",
+            "total_adjustment_factor",
+        ]:
             if col not in df.columns:
                 continue
             non_positive = (df[col] <= 0).sum()
@@ -243,9 +249,9 @@ class DataValidator:
 
         if "symbol_from" in df.columns and "symbol_to" in df.columns:
             self_loops = (
-                df["symbol_from"].notna() &
-                df["symbol_to"].notna() &
-                (df["symbol_from"] == df["symbol_to"])
+                df["symbol_from"].notna()
+                & df["symbol_to"].notna()
+                & (df["symbol_from"] == df["symbol_to"])
             ).sum()
             if self_loops:
                 errors.append(f"{self_loops} self-loop lineage events (from == to)")
@@ -285,8 +291,8 @@ class DataValidator:
                 details="No confidence_score column present",
             )
 
-        total        = len(df)
-        low_conf     = (df["confidence_score"] < 0.7).sum()
+        total = len(df)
+        low_conf = (df["confidence_score"] < 0.7).sum()
         low_conf_pct = low_conf / total if total > 0 else 0
 
         if low_conf_pct > 0.20:
@@ -321,11 +327,13 @@ class DataValidator:
                 results.append(result)
             except Exception as exc:
                 logger.error("Check %s raised: %s", fn.__name__, exc)
-                results.append(CheckResult(
-                    name=fn.__name__,
-                    passed=False,
-                    errors=[str(exc)],
-                ))
+                results.append(
+                    CheckResult(
+                        name=fn.__name__,
+                        passed=False,
+                        errors=[str(exc)],
+                    )
+                )
         return results
 
     # ── post-import Dolt checks ───────────────────────────────────────────────
@@ -351,9 +359,7 @@ class DataValidator:
             if act_count < 0:
                 errors.append(f"{table}: query failed")
             elif act_count < exp_count:
-                errors.append(
-                    f"{table}: expected ≥ {exp_count} rows, got {act_count}"
-                )
+                errors.append(f"{table}: expected ≥ {exp_count} rows, got {act_count}")
 
         return CheckResult(
             name="dolt_row_counts",
@@ -391,18 +397,24 @@ class DataValidator:
                 rows = self._dolt._sql_json(query)
                 orphans = int(rows[0]["n"]) if rows else 0
                 if orphans:
-                    errors.append(f"{table}: {orphans} orphan rows (no matching security_id)")
+                    errors.append(
+                        f"{table}: {orphans} orphan rows (no matching security_id)"
+                    )
             except Exception as exc:
                 errors.append(f"{table}: query failed — {exc}")
 
         return CheckResult(
             name="dolt_no_orphan_facts",
             passed=not errors,
-            details="No orphan fact rows" if not errors else f"{len(errors)} tables have orphans",
+            details="No orphan fact rows"
+            if not errors
+            else f"{len(errors)} tables have orphans",
             errors=errors,
         )
 
-    def run_dolt_checks(self, expected_counts: dict[str, int] | None = None) -> list[CheckResult]:
+    def run_dolt_checks(
+        self, expected_counts: dict[str, int] | None = None
+    ) -> list[CheckResult]:
         """Run all post-import Dolt checks."""
         results = [self.check_dolt_no_orphan_facts()]
         if expected_counts:
@@ -415,7 +427,7 @@ class DataValidator:
     def summarize(results: list[CheckResult]) -> dict:
         passed = sum(1 for r in results if r.passed)
         return {
-            "total":  len(results),
+            "total": len(results),
             "passed": passed,
             "failed": len(results) - passed,
             "all_passed": passed == len(results),

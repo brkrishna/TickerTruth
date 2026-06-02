@@ -21,13 +21,13 @@ import pyarrow.parquet as pq
 logger = logging.getLogger(__name__)
 
 PROJECT_ROOT = Path(__file__).parent.parent.parent
-CURATED_DIR  = PROJECT_ROOT / "data" / "curated"
-SAMPLES_DIR  = PROJECT_ROOT / "data" / "samples"
+CURATED_DIR = PROJECT_ROOT / "data" / "curated"
+SAMPLES_DIR = PROJECT_ROOT / "data" / "samples"
 
-PUBLIC_SAMPLE_SIZE     = 100
-TIER1_SECURITY_LIMIT   = 1000
-TIER1_YEARS_LOOKBACK   = 3
-TIER2_FULL_HISTORY     = True
+PUBLIC_SAMPLE_SIZE = 100
+TIER1_SECURITY_LIMIT = 1000
+TIER1_YEARS_LOOKBACK = 3
+TIER2_FULL_HISTORY = True
 
 
 class SampleGenerator:
@@ -69,13 +69,21 @@ class SampleGenerator:
         if sec_path.exists():
             df = pd.read_csv(sec_path)
             if "active_flag" in df.columns:
-                df = df[df["active_flag"] == True]   # noqa: E712
-            sample_cols = [c for c in [
-                "nse_symbol", "isin", "company_name", "sector",
-                "listing_date", "active_flag",
-            ] if c in df.columns]
+                df = df[df["active_flag"] == True]  # noqa: E712
+            sample_cols = [
+                c
+                for c in [
+                    "nse_symbol",
+                    "isin",
+                    "company_name",
+                    "sector",
+                    "listing_date",
+                    "active_flag",
+                ]
+                if c in df.columns
+            ]
             sample = df[sample_cols].head(PUBLIC_SAMPLE_SIZE)
-            out    = out_dir / f"nse_active_securities_sample_{date_str}.csv"
+            out = out_dir / f"nse_active_securities_sample_{date_str}.csv"
             sample.to_csv(out, index=False)
             self._write_checksum(out)
             paths["securities_sample"] = out
@@ -85,14 +93,21 @@ class SampleGenerator:
         ca_path = self.curated_dir / "fact_corporate_action_event.csv"
         if ca_path.exists():
             df = pd.read_csv(ca_path)
-            sample_cols = [c for c in [
-                "security_id", "action_code", "event_date",
-                "old_value", "confidence_score",
-            ] if c in df.columns]
+            sample_cols = [
+                c
+                for c in [
+                    "security_id",
+                    "action_code",
+                    "event_date",
+                    "old_value",
+                    "confidence_score",
+                ]
+                if c in df.columns
+            ]
             if "event_date" in df.columns:
                 df = df.sort_values("event_date", ascending=False)
             sample = df[sample_cols].head(PUBLIC_SAMPLE_SIZE)
-            out    = out_dir / f"corporate_actions_sample_{date_str}.csv"
+            out = out_dir / f"corporate_actions_sample_{date_str}.csv"
             sample.to_csv(out, index=False)
             self._write_checksum(out)
             paths["actions_sample"] = out
@@ -114,13 +129,13 @@ class SampleGenerator:
         out_dir = self.samples_dir / "paid_tier_1"
         out_dir.mkdir(parents=True, exist_ok=True)
         date_str = run_date.strftime("%Y%m%d")
-        cutoff   = pd.Timestamp(run_date) - pd.DateOffset(years=TIER1_YEARS_LOOKBACK)
+        cutoff = pd.Timestamp(run_date) - pd.DateOffset(years=TIER1_YEARS_LOOKBACK)
         paths: dict[str, Path] = {}
 
         # Extended security master (all securities, up to TIER1_SECURITY_LIMIT)
         sec_path = self.curated_dir / "dim_security_master.csv"
         if sec_path.exists():
-            df  = pd.read_csv(sec_path).head(TIER1_SECURITY_LIMIT)
+            df = pd.read_csv(sec_path).head(TIER1_SECURITY_LIMIT)
             out = out_dir / f"extended_nse_master_{date_str}.csv"
             df.to_csv(out, index=False)
             self._write_checksum(out)
@@ -138,12 +153,14 @@ class SampleGenerator:
             out = out_dir / f"corporate_actions_3yr_{date_str}.parquet"
             self._write_parquet(df, out)
             paths["corp_actions_3yr"] = out
-            logger.info("Tier-1 corporate actions (3yr): %d rows → %s", len(df), out.name)
+            logger.info(
+                "Tier-1 corporate actions (3yr): %d rows → %s", len(df), out.name
+            )
 
         # Adjustment factors as Parquet
         adj_path = self.curated_dir / "fact_adjustment_factor.csv"
         if adj_path.exists():
-            df  = pd.read_csv(adj_path)
+            df = pd.read_csv(adj_path)
             out = out_dir / f"adjustment_factors_{date_str}.parquet"
             self._write_parquet(df, out)
             paths["adjustment_factors"] = out
@@ -169,17 +186,26 @@ class SampleGenerator:
         paths: dict[str, Path] = {}
 
         exports = [
-            ("dim_security_master.csv",          f"full_security_master_{date_str}.parquet"),
-            ("fact_corporate_action_event.csv",   f"corporate_actions_full_history_{date_str}.parquet"),
-            ("fact_adjustment_factor.csv",        f"adjustment_factors_full_{date_str}.parquet"),
-            ("fact_symbol_lineage_event.csv",     f"symbol_lineage_full_{date_str}.parquet"),
+            ("dim_security_master.csv", f"full_security_master_{date_str}.parquet"),
+            (
+                "fact_corporate_action_event.csv",
+                f"corporate_actions_full_history_{date_str}.parquet",
+            ),
+            (
+                "fact_adjustment_factor.csv",
+                f"adjustment_factors_full_{date_str}.parquet",
+            ),
+            (
+                "fact_symbol_lineage_event.csv",
+                f"symbol_lineage_full_{date_str}.parquet",
+            ),
         ]
         for src_name, dst_name in exports:
             src = self.curated_dir / src_name
             if not src.exists():
                 logger.info("Skipping %s — curated file not found", src_name)
                 continue
-            df  = pd.read_csv(src)
+            df = pd.read_csv(src)
             out = out_dir / dst_name
             self._write_parquet(df, out)
             paths[dst_name] = out

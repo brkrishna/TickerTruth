@@ -32,6 +32,7 @@ def notifier(tmp_path):
 
 # ── generate_release_notes ────────────────────────────────────────────────────
 
+
 def test_generate_writes_to_releases_dir(notifier, tmp_path):
     path = notifier.generate_release_notes(RUN_DATE, STATS)
     assert path.exists()
@@ -47,12 +48,13 @@ def test_generate_does_not_touch_changelog(notifier):
 def test_generate_content_includes_stats(notifier):
     path = notifier.generate_release_notes(RUN_DATE, STATS)
     content = path.read_text()
-    assert "10" in content   # new_securities
-    assert "5" in content    # new_actions
-    assert "2" in content    # lineage_events
+    assert "10" in content  # new_securities
+    assert "5" in content  # new_actions
+    assert "2" in content  # lineage_events
 
 
 # ── update_changelog duplicate guard ─────────────────────────────────────────
+
 
 def test_update_changelog_skips_when_date_already_present(notifier, tmp_path):
     """Second call for the same date must not add a duplicate entry."""
@@ -109,5 +111,5 @@ def test_update_changelog_new_entry_appears_before_older_entries(notifier):
 
     content = notifier.changelog.read_text()
     june_pos = content.index("2026-06-01")
-    may_pos  = content.index("2026-05-01")
+    may_pos = content.index("2026-05-01")
     assert june_pos < may_pos, "newer entry should appear before older entry"
