@@ -8,6 +8,7 @@ on:
 env:
   PYTHONPATH: .
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+  R2_BUCKET: ${{ secrets.R2_BUCKET }}
 
 jobs:
   build-and-publish:
@@ -96,9 +97,8 @@ jobs:
             data/samples/metadata/manifest_*.md
 
       - name: Upload paid-tier artifacts to R2
-        if: ${{ secrets.R2_BUCKET != '' }}
+        if: env.R2_BUCKET != ''
         env:
-          R2_BUCKET:            ${{ secrets.R2_BUCKET }}
           R2_ENDPOINT:          ${{ secrets.R2_ENDPOINT }}
           R2_ACCESS_KEY_ID:     ${{ secrets.R2_ACCESS_KEY_ID }}
           R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
