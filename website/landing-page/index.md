@@ -1,4 +1,4 @@
-# India Symbol History & Corporate Actions Truth Layer
+# India Corporate Actions and Symbol History Truth Layer
 
 A versioned, low-cost reference data product for NSE-listed equities — solving the broken-backtest problem caused by incorrect ticker history and missing corporate action adjustments.
 
