@@ -52,17 +52,37 @@ jobs:
       - name: Commit website and release notes back to main
         env:
           TAG: ${{ github.ref_name }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          # Switch to main so the commit lands on the branch, not the tag
-          git checkout -b release-bot/website-update origin/main
+
+          BRANCH="release-bot/website-${TAG}"
+          git checkout -b "${BRANCH}" origin/main
           git add website/landing-page/release-notes.html \
                   releases/monthly/${TAG}.md
-          # Only commit if there are staged changes (idempotent on re-runs)
-          git diff --cached --quiet || \
-            git commit -m "release(${TAG}): update release notes and website"
-          git push origin release-bot/website-update:main
+
+          # Nothing staged means the card was already injected on a prior run
+          if git diff --cached --quiet; then
+            echo "No changes — already up to date"
+            exit 0
+          fi
+
+          git commit -m "release(${TAG}): update release notes and website"
+
+          # Try a direct push to main (works when branch protection is off).
+          # If protection is enabled, fall back to opening a PR instead.
+          if git push origin "${BRANCH}:main"; then
+            echo "Pushed directly to main"
+          else
+            echo "Direct push blocked — opening PR"
+            git push origin "${BRANCH}"
+            gh pr create \
+              --title "release(${TAG}): update release notes and website" \
+              --body "Automated: injects the ${TAG} release card into \`release-notes.html\`." \
+              --base main \
+              --head "${BRANCH}"
+          fi
 
       - name: Generate GitHub Release
         uses: softprops/action-gh-release@v2
