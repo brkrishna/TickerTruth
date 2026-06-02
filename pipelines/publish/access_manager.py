@@ -232,12 +232,17 @@ class AccessManager:
     ) -> str:
         """Generate a pre-signed URL via boto3."""
         import boto3
+        from botocore.config import Config
 
         client = boto3.client(
             "s3",
             endpoint_url=endpoint,
             aws_access_key_id=access_key,
             aws_secret_access_key=secret_key,
+            config=Config(
+                request_checksum_calculation="when_required",
+                response_checksum_validation="when_required",
+            ),
         )
         return client.generate_presigned_url(
             "get_object",
