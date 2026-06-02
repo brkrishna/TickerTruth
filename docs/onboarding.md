@@ -1,6 +1,6 @@
 # Buyer Onboarding Guide
 
-Manual commercial onboarding process for ICASHTL data subscribers.
+Manual commercial onboarding process for TickerTruth data subscribers.
 All steps are performed by the operator until automated fulfillment is added.
 
 ---
@@ -8,7 +8,7 @@ All steps are performed by the operator until automated fulfillment is added.
 ## 1. Receiving a New Inquiry
 
 Buyers reach out via:
-- Website contact form (contact@icashtl.com)
+- Website contact form (contact@tickertruth.com)
 - LinkedIn / X DM
 - Word of mouth
 
@@ -16,7 +16,7 @@ Buyers reach out via:
 
 Initial reply template:
 
-> Thanks for your interest in ICASHTL. We provide versioned NSE symbol
+> Thanks for your interest in TickerTruth. We provide versioned NSE symbol
 > lineage and corporate action data for backtesting and analytics.
 >
 > Could you share:
@@ -39,7 +39,7 @@ from pipelines.publish.packager import BundlePackager
 from datetime import date
 BundlePackager().build_bundle('explorer', date.today())
 "
-# Bundle is in releases/bundles/icashtl_explorer_{date}.zip
+# Bundle is in releases/bundles/tickertruth_explorer_{date}.zip
 ```
 
 Send the zip directly via email. No signed URL needed for the free tier.
@@ -107,7 +107,7 @@ print('Bundle:', path)
 
 ```bash
 # Set R2 credentials in environment or .env
-export R2_BUCKET=icashtl-releases
+export R2_BUCKET=tickertruth-releases
 export R2_ENDPOINT=https://<account-id>.r2.cloudflarestorage.com
 export R2_ACCESS_KEY_ID=<key>
 export R2_SECRET_ACCESS_KEY=<secret>
@@ -119,7 +119,7 @@ from pathlib import Path
 s3      = boto3.client('s3', endpoint_url=os.environ['R2_ENDPOINT'],
                        aws_access_key_id=os.environ['R2_ACCESS_KEY_ID'],
                        aws_secret_access_key=os.environ['R2_SECRET_ACCESS_KEY'])
-bundle  = Path('releases/bundles/icashtl_starter_20260601.zip')
+bundle  = Path('releases/bundles/tickertruth_starter_20260601.zip')
 key     = f'releases/2026-06-01/starter/{bundle.name}'
 s3.upload_file(str(bundle), os.environ['R2_BUCKET'], key)
 print('Uploaded:', key)
@@ -134,7 +134,7 @@ from pipelines.publish.access_manager import AccessManager
 mgr = AccessManager()
 url = mgr.generate_signed_url(
     buyer_id = 'ABCD1234',   # from step 3
-    s3_key   = 'releases/2026-06-01/starter/icashtl_starter_20260601.zip',
+    s3_key   = 'releases/2026-06-01/starter/tickertruth_starter_20260601.zip',
 )
 print('Download URL:', url)
 "
@@ -142,11 +142,11 @@ print('Download URL:', url)
 
 ### Step 4 — Email the buyer
 
-Subject: *Your ICASHTL Starter download is ready*
+Subject: *Your TickerTruth Starter download is ready*
 
 > Hi [Name],
 >
-> Your ICASHTL Starter bundle for 2026-06 is ready for download:
+> Your TickerTruth Starter bundle for 2026-06 is ready for download:
 >
 > [signed URL]
 >
@@ -154,11 +154,11 @@ Subject: *Your ICASHTL Starter download is ready*
 >
 > Please verify the download:
 > ```
-> sha256sum icashtl_starter_20260601.zip
+> sha256sum tickertruth_starter_20260601.zip
 > ```
 > Expected checksum is in MANIFEST.json inside the zip.
 >
-> Questions? Reply here or email contact@icashtl.com.
+> Questions? Reply here or email contact@tickertruth.com.
 
 ---
 
@@ -179,7 +179,7 @@ from datetime import date
 mgr     = AccessManager()
 buyers  = mgr.list_buyers(tier='starter')
 run_date = date.today().strftime('%Y%m%d')
-key_template = 'releases/{date}/starter/icashtl_starter_{date}.zip'
+key_template = 'releases/{date}/starter/tickertruth_starter_{date}.zip'
 
 for buyer in buyers:
     key = key_template.format(date=run_date)

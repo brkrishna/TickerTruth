@@ -167,7 +167,7 @@ python -m pipelines.normalize --dry-run
 ### Scheduled Execution (via cron/orchestrator)
 ```bash
 # crontab entry (daily @ 6:00 AM IST)
-0 6 * * * cd /path/to/ICASHTL && python -m pipelines.extract && python -m pipelines.normalize && python -m pipelines.lineage && python -m pipelines.adjustments && python -m pipelines.publish
+0 6 * * * cd /path/to/TickerTruth && python -m pipelines.extract && python -m pipelines.normalize && python -m pipelines.lineage && python -m pipelines.adjustments && python -m pipelines.publish
 ```
 
 ---

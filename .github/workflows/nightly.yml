@@ -50,8 +50,8 @@ jobs:
 
       - name: Configure Dolt identity
         run: |
-          dolt config --global --add user.name  "ICASHTL Bot"
-          dolt config --global --add user.email "bot@icashtl.com"
+          dolt config --global --add user.name  "TickerTruth Bot"
+          dolt config --global --add user.email "bot@tickertruth.com"
 
       - name: Initialize Dolt repository
         run: |

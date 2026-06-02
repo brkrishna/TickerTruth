@@ -1,4 +1,4 @@
-# ICASHTL Operational Runbook
+# TickerTruth Operational Runbook
 
 ## 1. Prerequisites
 
@@ -14,7 +14,7 @@
 
 ```bash
 # Cloudflare R2 (optional — only for artifact uploads)
-R2_BUCKET=icashtl-releases
+R2_BUCKET=tickertruth-releases
 R2_ENDPOINT=https://<account-id>.r2.cloudflarestorage.com
 R2_ACCESS_KEY_ID=<key>
 R2_SECRET_ACCESS_KEY=<secret>
@@ -43,7 +43,7 @@ Run this sequence after any trading day to ingest new data.
 ### Step 1 — Activate virtualenv
 
 ```bash
-cd /path/to/ICASHTL
+cd /path/to/TickerTruth
 source .venv/bin/activate
 ```
 

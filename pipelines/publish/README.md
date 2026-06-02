@@ -158,7 +158,7 @@ pipelines/publish/
 #!/bin/bash
 # publish_to_dolt.sh
 
-cd /path/to/ICASHTL/dolt
+cd /path/to/TickerTruth/dolt
 
 # Check if tables already exist; back up if needed
 dolt tables

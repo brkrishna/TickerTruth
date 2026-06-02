@@ -1,4 +1,4 @@
-# Project: India Symbol History and Corporate Actions Truth Layer
+# Project: TickerTruth — India Symbol History and Corporate Actions Truth Layer
 
 ## Goal
 Build a Python-based reference-data product that normalizes NSE corporate actions, security master history, and symbol lineage into curated tables and monthly releases.

@@ -1,4 +1,4 @@
-# ICASHTL Deployment Guide
+# TickerTruth Deployment Guide
 
 This guide covers everything needed to go from a clean checkout to a published
 monthly release: environment setup, pipeline execution, bundle generation,
@@ -29,7 +29,7 @@ pip install -r requirements.txt
 ### Cloudflare R2 bucket
 
 1. Log in to [dash.cloudflare.com](https://dash.cloudflare.com) → **R2** → **Create bucket**.
-2. Name the bucket `icashtl-releases` (or update `r2.bucket_env` in `pipelines/publish/config.yaml`).
+2. Name the bucket `tickertruth-releases` (or update `r2.bucket_env` in `pipelines/publish/config.yaml`).
 3. Go to **R2 → Manage R2 API Tokens** → **Create API Token** with *Object Read & Write* on that bucket.
 4. Note the **Account ID** (visible in the R2 overview URL) — it appears in the endpoint URL.
 
@@ -43,7 +43,7 @@ cp .env.example .env
 
 ```bash
 # .env
-R2_BUCKET=icashtl-releases
+R2_BUCKET=tickertruth-releases
 R2_ENDPOINT=https://<account-id>.r2.cloudflarestorage.com
 R2_ACCESS_KEY_ID=<your-access-key>
 R2_SECRET_ACCESS_KEY=<your-secret-key>
@@ -152,10 +152,10 @@ Bundles are written to `releases/bundles/`:
 
 ```
 releases/bundles/
-  icashtl_explorer_20260601.zip       ← free tier
-  icashtl_starter_20260601.zip        ← Starter (paid)
-  icashtl_professional_20260601.zip   ← Professional (paid)
-  icashtl_enterprise_20260601.zip     ← Enterprise (paid)
+  tickertruth_explorer_20260601.zip       ← free tier
+  tickertruth_starter_20260601.zip        ← Starter (paid)
+  tickertruth_professional_20260601.zip   ← Professional (paid)
+  tickertruth_enterprise_20260601.zip     ← Enterprise (paid)
 ```
 
 Each zip contains: data files for the tier, `LICENSE.md`, `README.md`,
@@ -238,7 +238,7 @@ buyer = mgr.create_buyer(
 print("buyer_id:", buyer["buyer_id"])
 
 # Generate a signed download URL for their bundle
-s3_key = "releases/2026-06-01/bundles/icashtl_starter_20260601.zip"
+s3_key = "releases/2026-06-01/bundles/tickertruth_starter_20260601.zip"
 url = mgr.generate_signed_url(buyer["buyer_id"], s3_key)
 print("Download URL (valid 7 days):")
 print(url)
@@ -276,7 +276,7 @@ Set these under **GitHub → Repository → Settings → Secrets and variables �
 
 | Secret | Value |
 |---|---|
-| `R2_BUCKET` | `icashtl-releases` |
+| `R2_BUCKET` | `tickertruth-releases` |
 | `R2_ENDPOINT` | `https://<account-id>.r2.cloudflarestorage.com` |
 | `R2_ACCESS_KEY_ID` | R2 API token access key |
 | `R2_SECRET_ACCESS_KEY` | R2 API token secret |
@@ -317,7 +317,7 @@ a static site.
 
 1. Go to [dash.cloudflare.com](https://dash.cloudflare.com) → **Workers & Pages** → **Create**.
 2. At the top of the creation screen, select the **Pages** tab (not Workers).
-3. Choose **Connect to Git**, authorize GitHub, and select the `ICASHTL` repository.
+3. Choose **Connect to Git**, authorize GitHub, and select the `TickerTruth` repository.
 4. Set build configuration:
    - **Framework preset:** None
    - **Build command:** *(leave blank — delete anything Cloudflare pre-fills)*
@@ -348,7 +348,7 @@ npm install -g wrangler
 wrangler login
 
 # Deploy — creates the Pages project on first run
-wrangler pages deploy website/landing-page --project-name icashtl
+wrangler pages deploy website/landing-page --project-name tickertruth
 ```
 
 ### Updating public docs

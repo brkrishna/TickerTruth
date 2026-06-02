@@ -1,5 +1,5 @@
 """
-ICASHTL pipeline entry point.
+TickerTruth pipeline entry point.
 
 Runs the full ETL pipeline end-to-end or any subset of tasks:
 
@@ -377,7 +377,7 @@ def run_release_notes(run_date: date, stats: dict) -> bool:
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         prog="run.py",
-        description="ICASHTL pipeline orchestrator",
+        description="TickerTruth pipeline orchestrator",
     )
     parser.add_argument(
         "--date",

@@ -1,4 +1,4 @@
-# India Symbol History and Corporate Actions Truth Layer
+# TickerTruth — India Symbol History and Corporate Actions Truth Layer
 
 A low-cost, versioned reference-data product for NSE-listed equities symbol lineage and corporate actions.
 

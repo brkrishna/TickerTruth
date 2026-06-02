@@ -1,6 +1,6 @@
-site_name: India Symbol History & Corporate Actions Truth Layer
+site_name: TickerTruth — India Symbol History & Corporate Actions Truth Layer
 site_description: Versioned NSE symbol lineage and corporate action reference data for backtesting.
-site_url: https://icashtl.pages.dev
+site_url: https://tickertruth.pages.dev
 
 # The site is built as plain static HTML — no MkDocs build step required.
 # Source files: website/landing-page/*.html

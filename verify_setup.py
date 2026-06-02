@@ -243,7 +243,7 @@ def check_docs_and_website():
 
 def main():
     print("\n" + "=" * 60)
-    print("ICASHTL Phase 1 Setup Verification")
+    print("TickerTruth Phase 1 Setup Verification")
     print("=" * 60 + "\n")
 
     checks = [

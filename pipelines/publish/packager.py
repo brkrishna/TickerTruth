@@ -39,7 +39,7 @@ _TIER_FILE_PATTERNS: dict[str, list[str]] = {
 
 _LICENSE_TEMPLATES: dict[str, str] = {
     "explorer": """\
-# Explorer License — ICASHTL Reference Data
+# Explorer License — TickerTruth Reference Data
 
 This dataset is provided free of charge for evaluation purposes only.
 
@@ -52,10 +52,10 @@ This dataset is provided free of charge for evaluation purposes only.
 - Redistribution or resale of data
 - Use in production trading or risk systems
 
-Full terms: contact@icashtl.com
+Full terms: contact@tickertruth.com
 """,
     "starter": """\
-# Starter License — ICASHTL Reference Data
+# Starter License — TickerTruth Reference Data
 
 This dataset is licensed for use by the purchasing organization only.
 
@@ -69,10 +69,10 @@ This dataset is licensed for use by the purchasing organization only.
 - Embedding data in commercial products sold to others
 - Sharing access credentials
 
-Full terms: contact@icashtl.com | License valid for 12 months from purchase date.
+Full terms: contact@tickertruth.com | License valid for 12 months from purchase date.
 """,
     "professional": """\
-# Professional License — ICASHTL Reference Data
+# Professional License — TickerTruth Reference Data
 
 This dataset is licensed for production use by the purchasing organization.
 
@@ -85,16 +85,16 @@ This dataset is licensed for production use by the purchasing organization.
 - Direct resale of raw data
 - Public redistribution without written consent
 
-Full terms and OEM pricing: contact@icashtl.com
+Full terms and OEM pricing: contact@tickertruth.com
 """,
     "enterprise": """\
-# Enterprise License — ICASHTL Reference Data
+# Enterprise License — TickerTruth Reference Data
 
 Custom terms apply per the signed Enterprise Agreement.
 
 For questions about permitted use, contact your account manager.
 
-contact@icashtl.com
+contact@tickertruth.com
 """,
 }
 
@@ -147,7 +147,7 @@ class BundlePackager:
 
         self.bundles_dir.mkdir(parents=True, exist_ok=True)
         date_str  = run_date.strftime("%Y%m%d")
-        zip_path  = self.bundles_dir / f"icashtl_{tier}_{date_str}.zip"
+        zip_path  = self.bundles_dir / f"tickertruth_{tier}_{date_str}.zip"
 
         data_files = self._collect_data_files(tier, run_date)
         if not data_files:
@@ -231,19 +231,19 @@ class BundlePackager:
             })
         tier_cfg = self.config.get("tiers", {}).get(tier, {})
         return {
-            "product":    "ICASHTL NSE Symbol History & Corporate Actions",
+            "product":    "TickerTruth NSE Symbol History & Corporate Actions",
             "tier":       tier,
             "tier_label": tier_cfg.get("label", tier),
             "run_date":   run_date.isoformat(),
             "files":      files_meta,
-            "contact":    "contact@icashtl.com",
+            "contact":    "contact@tickertruth.com",
         }
 
     @staticmethod
     def _build_readme(tier: str, run_date: date, data_files: list[Path]) -> str:
         filelist = "\n".join(f"- `data/{f.name}`" for f in data_files)
         return f"""\
-# ICASHTL — NSE Symbol History & Corporate Actions
+# TickerTruth — NSE Symbol History & Corporate Actions
 
 **Tier:** {tier.title()}
 **Release date:** {run_date.isoformat()}
@@ -275,13 +275,13 @@ sha256sum -c MANIFEST.json  # or check manually against MANIFEST.json
 
 ## Support
 
-contact@icashtl.com — include your buyer ID and tier in subject line.
+contact@tickertruth.com — include your buyer ID and tier in subject line.
 """
 
     @staticmethod
     def _build_sample_queries(tier: str) -> str:
         base = """\
--- ICASHTL Sample Queries
+-- TickerTruth Sample Queries
 -- Compatible with: Dolt (MySQL), Snowflake, BigQuery, DuckDB
 
 -- 1. All active securities
