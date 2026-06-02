@@ -61,11 +61,23 @@
     .hero-wrapper {
       background: radial-gradient(ellipse 90% 60% at 50% -10%, rgba(59,130,246,0.12), transparent);
       border-bottom: 1px solid var(--border);
-      padding: 5rem 2rem 4rem;
+    }
+    .hero-image-band {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 2.5rem 2rem 0;
+    }
+    .hero-image-band img {
+      width: 100%;
+      display: block;
+      border-radius: 10px 10px 0 0;
+      border: 1px solid var(--border);
+      border-bottom: none;
     }
     .hero {
       max-width: 760px;
       margin: 0 auto;
+      padding: 3rem 2rem 4rem;
     }
     .hero-badge {
       background: var(--accent-glow);
@@ -194,6 +206,7 @@
 
     @media (max-width: 600px) {
       .hero h1 { font-size: 1.5rem; }
+      .hero-image-band { padding: 1.5rem 1rem 0; }
       header nav { display: none; }
       .stats-bar { flex-wrap: wrap; }
       .stat-item { border-right: none; border-bottom: 1px solid var(--border); width: 50%; }
@@ -214,6 +227,9 @@
 
 <main>
   <div class="hero-wrapper">
+    <div class="hero-image-band">
+      <img src="../assets/images/tickertruth_hero_image.svg" alt="TickerTruth — NSE Symbol Lineage &amp; Corporate Actions Reference" width="690" height="410">
+    </div>
     <div class="hero">
       <div class="hero-badge">NSE Reference Data · Monthly Releases</div>
       <h1>India Corporate Actions &amp; Symbol History Truth Layer</h1>
