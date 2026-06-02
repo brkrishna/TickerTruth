@@ -73,14 +73,27 @@
       border-radius: 10px; overflow: hidden;
       margin-bottom: 1.5rem;
     }
-    .release-header {
+    .release > summary {
+      list-style: none;
+      cursor: pointer;
       padding: 1.25rem 1.5rem;
       background: var(--surface-raised);
-      border-bottom: 1px solid var(--border);
+      border-bottom: 1px solid transparent;
       display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem;
+      transition: background 0.15s;
     }
+    .release > summary::-webkit-details-marker { display: none; }
+    .release > summary::marker { display: none; }
+    .release > summary:hover { background: var(--border); }
+    .release[open] > summary { border-bottom-color: var(--border); }
     .release-header h2 { font-size: 1rem; font-weight: 700; margin: 0; text-transform: none; letter-spacing: normal; color: var(--text); }
     .release-header .release-date { font-size: 0.8rem; color: var(--text-muted); white-space: nowrap; margin-top: 0.1rem; }
+    .release-toggle {
+      font-size: 0.75rem; color: var(--text-muted); white-space: nowrap; margin-top: 0.15rem;
+      user-select: none; flex-shrink: 0;
+    }
+    .release[open] .release-toggle::after { content: "▲ collapse"; }
+    .release:not([open]) .release-toggle::after { content: "▼ expand"; }
     .release-stats {
       display: flex; gap: 1.5rem; padding: 0.85rem 1.5rem;
       border-bottom: 1px solid var(--border);
@@ -150,14 +163,68 @@
   <section>
     <h2>Latest Releases</h2>
 
-    <!-- release:v2026.06.01 -->
-    <div class="release">
-      <div class="release-header">
-        <div>
-          <h2>Release 2026-06-01</h2>
-          <div class="release-date">Released 2026-06-01</div>
+    <!-- release:v2026.06.02 — most recent first -->
+    <details class="release" open>
+      <summary>
+        <div class="release-header">
+          <div>
+            <h2>Release 2026-06-02</h2>
+            <div class="release-date">Released 2026-06-02</div>
+          </div>
+        </div>
+        <span class="release-toggle"></span>
+      </summary>
+      <div class="release-stats">
+        <div class="stat">
+          <div class="stat-val">2,388</div>
+          <div class="stat-label">Securities</div>
+        </div>
+        <div class="stat">
+          <div class="stat-val">0</div>
+          <div class="stat-label">Corp. Actions</div>
+        </div>
+        <div class="stat">
+          <div class="stat-val">0</div>
+          <div class="stat-label">Lineage Events</div>
+        </div>
+        <div class="stat">
+          <div class="stat-val">0</div>
+          <div class="stat-label">Adj. Factors</div>
         </div>
       </div>
+      <div class="release-body">
+        <div class="release-section">
+          <h3>Data Changes</h3>
+          <ul>
+            <li>Added 2,388 new securities to dim_security_master</li>
+          </ul>
+        </div>
+        <div class="release-section known-issues">
+          <h3>Known Issues</h3>
+          <ul>
+            <li>None for this release</li>
+          </ul>
+        </div>
+        <div class="release-section next-release">
+          <h3>Next Release</h3>
+          <ul>
+            <li>Planned: ongoing data refresh and quality improvements</li>
+          </ul>
+        </div>
+      </div>
+    </details>
+
+    <!-- release:v2026.06.01 -->
+    <details class="release">
+      <summary>
+        <div class="release-header">
+          <div>
+            <h2>Release 2026-06-01</h2>
+            <div class="release-date">Released 2026-06-01</div>
+          </div>
+        </div>
+        <span class="release-toggle"></span>
+      </summary>
       <div class="release-stats">
         <div class="stat">
           <div class="stat-val">2,388</div>
@@ -202,116 +269,7 @@
           </ul>
         </div>
       </div>
-    </div>
-
-    <!-- release:v2026.06.02 -->
-    <div class="release">
-      <div class="release-header">
-        <div>
-          <h2>Release 2026-06-02</h2>
-          <div class="release-date">Released 2026-06-02</div>
-        </div>
-      </div>
-      <div class="release-stats">
-        <div class="stat">
-          <div class="stat-val">2,388</div>
-          <div class="stat-label">Securities</div>
-        </div>
-        <div class="stat">
-          <div class="stat-val">0</div>
-          <div class="stat-label">Corp. Actions</div>
-        </div>
-        <div class="stat">
-          <div class="stat-val">0</div>
-          <div class="stat-label">Lineage Events</div>
-        </div>
-        <div class="stat">
-          <div class="stat-val">0</div>
-          <div class="stat-label">Adj. Factors</div>
-        </div>
-      </div>
-      <div class="release-body">
-        <div class="release-section">
-          <h3>Data Changes</h3>
-          <ul>
-            <li>Added 2,388 new securities to dim_security_master</li>
-          </ul>
-        </div>
-        <div class="release-section known-issues">
-          <h3>Known Issues</h3>
-          <ul>
-            <li>None for this release</li>
-          </ul>
-        </div>
-        <div class="release-section next-release">
-          <h3>Next Release</h3>
-          <ul>
-            <li>Planned: ongoing data refresh and quality improvements</li>
-          </ul>
-        </div>
-      </div>
-    </div>
-
-    <div class="release">
-      <div class="release-header">
-        <div>
-          <h2>Release 2026-06 — Symbol Cleanup and Dividend Normalization</h2>
-          <div class="release-date">Released 2026-06-30</div>
-        </div>
-      </div>
-      <div class="release-stats">
-        <div class="stat">
-          <div class="stat-val">1,247</div>
-          <div class="stat-label">Records Updated</div>
-        </div>
-        <div class="stat">
-          <div class="stat-val">8</div>
-          <div class="stat-label">New Symbols</div>
-        </div>
-        <div class="stat">
-          <div class="stat-val">12</div>
-          <div class="stat-label">Corrections</div>
-        </div>
-      </div>
-      <div class="release-body">
-        <div class="release-section">
-          <h3>Highlights</h3>
-          <ul>
-            <li>Fixed 12 historical symbol mapping errors reported by subscribers</li>
-            <li>Added dividend normalization for bonus-adjusted equities</li>
-            <li>Implemented new QA check for listing date consistency</li>
-          </ul>
-        </div>
-        <div class="release-section">
-          <h3>Data Changes</h3>
-          <ul>
-            <li><strong>Dimension updates:</strong> 8 new IPO listings, 2 rebranding corrections</li>
-            <li><strong>Corporate actions:</strong> 156 new dividend records normalized, 3 split adjustments corrected</li>
-            <li><strong>Adjustments:</strong> Refactored bonus-dividend calculation logic</li>
-          </ul>
-        </div>
-        <div class="release-section">
-          <h3>Quality Improvements</h3>
-          <ul>
-            <li>Added validation for corporate action date ordering</li>
-            <li>Enhanced symbol lineage cycle detection</li>
-          </ul>
-        </div>
-        <div class="release-section known-issues">
-          <h3>Known Issues</h3>
-          <ul>
-            <li>BSE data not yet integrated — NSE-only for v1</li>
-            <li>Some historical dividend records pre-2015 are incomplete</li>
-          </ul>
-        </div>
-        <div class="release-section next-release">
-          <h3>Next Release</h3>
-          <ul>
-            <li>Dividend yield series and liquidity metrics</li>
-          </ul>
-        </div>
-      </div>
-    </div>
+    </details>
 
   </section>
 </main>
