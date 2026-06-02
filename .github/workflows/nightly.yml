@@ -28,10 +28,10 @@ jobs:
     timeout-minutes: 120
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4.2.2
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v5.6.0
         with:
           python-version: "3.12"
           cache: pip
@@ -44,7 +44,7 @@ jobs:
 
       - name: Install Dolt
         run: |
-          curl -L https://github.com/dolthub/dolt/releases/latest/download/install.sh | bash
+          curl -L https://github.com/dolthub/dolt/releases/latest/download/install.sh | sudo bash
           dolt version
 
       - name: Configure Dolt identity
@@ -63,11 +63,11 @@ jobs:
         run: |
           python pipelines/run.py \
             ${RUN_DATE:+--date $RUN_DATE} \
-            ${DRY_RUN:+--dry-run}
+            $([[ "$DRY_RUN" == "true" ]] && echo "--dry-run")
 
       - name: Upload quality report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v4.6.2
         with:
           name: quality-report-${{ github.run_id }}
           path: data/staging/quality_report_*.json
@@ -75,7 +75,7 @@ jobs:
 
       - name: Upload release manifest
         if: success()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v4.6.2
         with:
           name: manifest-${{ github.run_id }}
           path: data/samples/metadata/manifest_*.md
