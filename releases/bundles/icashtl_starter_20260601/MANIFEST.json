@@ -1,0 +1,19 @@
+{
+  "product": "ICASHTL NSE Symbol History & Corporate Actions",
+  "tier": "starter",
+  "tier_label": "Starter",
+  "run_date": "2026-06-01",
+  "files": [
+    {
+      "filename": "extended_nse_master_20260601.csv",
+      "size_bytes": 125835,
+      "sha256": "98d1332f2798a2965756db079c0d8a1808497bc3c8b797db91b523dc4992b928"
+    },
+    {
+      "filename": "nse_active_securities_sample_20260601.csv",
+      "size_bytes": 6480,
+      "sha256": "fb040deebbbd7bc2e97549e0769b9b9a04a776527f6b22f535d0885d689e6521"
+    }
+  ],
+  "contact": "contact@icashtl.com"
+}
