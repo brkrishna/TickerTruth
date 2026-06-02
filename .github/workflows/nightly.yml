@@ -20,6 +20,7 @@ on:
 
 env:
   PYTHONPATH: .
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
   refresh:
@@ -51,6 +52,14 @@ jobs:
         run: |
           dolt config --global --add user.name  "ICASHTL Bot"
           dolt config --global --add user.email "bot@icashtl.com"
+
+      - name: Initialize Dolt repository
+        run: |
+          cd dolt
+          dolt init
+          dolt sql < schema.sql
+          dolt add -A
+          dolt commit -m "init schema"
 
       - name: Run pipeline
         env:
