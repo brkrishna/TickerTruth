@@ -310,19 +310,35 @@ deployed to Cloudflare Pages.
 
 ### First-time Pages setup
 
-1. Go to [dash.cloudflare.com](https://dash.cloudflare.com) → **Pages** → **Create a project**.
-2. Connect to the GitHub repository.
-3. Set:
-   - **Framework preset:** None
-   - **Build command:** *(leave blank — static site — Cloudflare may auto-populate this from `requirements.txt`; delete whatever it suggests)*
-   - **Build output directory:** `website/landing-page`
-4. Click **Save and Deploy**.
+Cloudflare merged Workers and Pages under a single **Workers & Pages** section.
+When creating a project you must explicitly select the **Pages** tab — the default
+lands on Workers, which will ask for a deploy command and is the wrong product for
+a static site.
 
-> **Common failure:** if the build log shows `pip install -r requirements.txt` running, Cloudflare auto-detected the repo's Python dependencies and added them as a build step. Clear the Build command field and redeploy — the site is static HTML and needs no build step.
+1. Go to [dash.cloudflare.com](https://dash.cloudflare.com) → **Workers & Pages** → **Create**.
+2. At the top of the creation screen, select the **Pages** tab (not Workers).
+3. Choose **Connect to Git**, authorize GitHub, and select the `ICASHTL` repository.
+4. Set build configuration:
+   - **Framework preset:** None
+   - **Build command:** *(leave blank — delete anything Cloudflare pre-fills)*
+   - **Build output directory:** `website/landing-page`
+   - **Root directory:** *(leave blank)*
+5. Click **Save and Deploy**.
+
+> **Common failure — wrong product:** if you see a required "Deploy command" field,
+> you are in the Workers flow. Go back and select the **Pages** tab instead.
+
+> **Common failure — Python build step:** if the build log shows
+> `pip install -r requirements.txt` running, Cloudflare auto-detected the repo's
+> Python dependencies and injected a build step. Clear the Build command field
+> and redeploy — the site is static HTML and needs no build step.
 
 Subsequent pushes to `main` redeploy automatically.
 
 ### Manual deploy (without GitHub integration)
+
+Use `wrangler pages deploy` — note this is different from `wrangler deploy`
+(which deploys a Worker, not a Pages site):
 
 ```bash
 # Install Wrangler (Cloudflare's CLI)
@@ -331,7 +347,7 @@ npm install -g wrangler
 # Authenticate
 wrangler login
 
-# Deploy
+# Deploy — creates the Pages project on first run
 wrangler pages deploy website/landing-page --project-name icashtl
 ```
 
