@@ -6,6 +6,7 @@
   <title>TickerTruth — India Corporate Actions & Symbol History</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="icon" href="assets/images/tickertruth_favicon.svg" type="image/svg+xml">
   <style>
     :root {
       --bg:             #06091a;
@@ -47,12 +48,10 @@
       top: 0;
       z-index: 50;
     }
-    header .logo {
-      font-weight: 700;
-      font-size: 1rem;
-      letter-spacing: -0.02em;
-      color: var(--accent);
-    }
+    header .logo { display: flex; align-items: center; gap: 0.45rem; text-decoration: none; }
+    .logo-wordmark { font-family: Georgia, serif; font-size: 1.05rem; font-weight: 700; letter-spacing: 0.01em; line-height: 1; }
+    .logo-ticker { color: var(--text); }
+    .logo-truth  { color: var(--accent); }
     header nav { display: flex; gap: 1.5rem; font-size: 0.875rem; }
     header nav a { color: var(--text-muted); }
     header nav a:hover { color: var(--text); text-decoration: none; }
@@ -216,7 +215,21 @@
 <body>
 
 <header>
-  <span class="logo">TickerTruth</span>
+  <a href="index.html" class="logo" aria-label="TickerTruth home">
+    <svg width="22" height="22" viewBox="-1 0 23 22" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <rect x="0" y="10" width="5" height="9" rx="1" fill="#1A6EE8"/>
+      <line x1="2.5" y1="9" x2="2.5" y2="10" stroke="#1A6EE8" stroke-width="1"/>
+      <line x1="2.5" y1="19" x2="2.5" y2="20" stroke="#1A6EE8" stroke-width="1"/>
+      <rect x="8" y="5" width="5" height="14" rx="1" fill="#35C28A"/>
+      <line x1="10.5" y1="4" x2="10.5" y2="5" stroke="#35C28A" stroke-width="1"/>
+      <line x1="10.5" y1="19" x2="10.5" y2="20" stroke="#35C28A" stroke-width="1"/>
+      <rect x="16" y="2" width="5" height="18" rx="1" fill="#1A6EE8"/>
+      <line x1="18.5" y1="1" x2="18.5" y2="2" stroke="#1A6EE8" stroke-width="1"/>
+      <line x1="18.5" y1="20" x2="18.5" y2="21" stroke="#1A6EE8" stroke-width="1"/>
+      <polyline points="3,13 9,19 18,5" fill="none" stroke="#FFFFFF" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" opacity="0.9"/>
+    </svg>
+    <span class="logo-wordmark"><span class="logo-ticker">Ticker</span><span class="logo-truth">Truth</span></span>
+  </a>
   <nav>
     <a href="methodology.html">Methodology</a>
     <a href="pricing.html">Pricing</a>
