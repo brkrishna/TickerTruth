@@ -223,6 +223,7 @@ def run_load(
     dry_run: bool,
     no_dolt_commit: bool,
     validate_passed: bool = True,
+    stats: dict | None = None,
 ) -> bool:
     """Task 9: load curated data into Dolt, commit, and tag."""
     from pipelines.publish.dolt_importer import DoltImporter
@@ -231,8 +232,8 @@ def run_load(
     logger.info("[load] Importing curated files into Dolt...")
     try:
         report = importer.import_all(run_date=run_date)
-        for table, stats in report["tables"].items():
-            logger.info("[load] %s: %s (%d rows)", table, stats["status"], stats["rows"])
+        for table, tbl_stats in report["tables"].items():
+            logger.info("[load] %s: %s (%d rows)", table, tbl_stats["status"], tbl_stats["rows"])
         if report["errors"]:
             for err in report["errors"]:
                 logger.error("[load] %s", err)
@@ -258,6 +259,8 @@ def run_load(
             f"ETL import: {run_date.isoformat()}", tag=tag
         )
         logger.info("[load] Dolt commit: %s  tag: %s", commit_hash, tag)
+        if stats is not None:
+            stats["dolt_commit"] = commit_hash
     except Exception as exc:
         logger.error("[load] Dolt commit failed: %s", exc)
         return False
@@ -298,6 +301,46 @@ def run_manifest(run_date: date, export_paths: dict) -> bool:
     except Exception as exc:
         logger.error("[manifest] failed: %s", exc)
         return False
+
+
+def collect_stats(run_date: date) -> dict:
+    """Read row counts from curated CSVs and quality report for release notes."""
+    import json
+    import pandas as pd
+
+    curated = PROJECT_ROOT / "data" / "curated"
+    staging = PROJECT_ROOT / "data" / "staging"
+
+    def csv_rows(path: Path) -> int:
+        try:
+            return len(pd.read_csv(path))
+        except Exception:
+            return 0
+
+    stats = {
+        "new_securities":  csv_rows(curated / "dim_security_master.csv"),
+        "new_actions":     csv_rows(curated / "fact_corporate_action_event.csv"),
+        "lineage_events":  csv_rows(curated / "fact_symbol_lineage_event.csv"),
+        "adjustment_rows": csv_rows(curated / "fact_adjustment_factor.csv"),
+    }
+
+    quality_report = staging / f"quality_report_{run_date.isoformat()}.json"
+    if quality_report.exists():
+        try:
+            data = json.loads(quality_report.read_text())
+            stats["quality_warnings"] = data.get("warnings", [])
+        except Exception:
+            pass
+
+    logger.info(
+        "[stats] securities=%d  actions=%d  lineage=%d  adjustments=%d  warnings=%d",
+        stats["new_securities"],
+        stats["new_actions"],
+        stats["lineage_events"],
+        stats["adjustment_rows"],
+        len(stats.get("quality_warnings", [])),
+    )
+    return stats
 
 
 def run_release_notes(run_date: date, stats: dict) -> bool:
@@ -406,17 +449,18 @@ def main(argv: list[str] | None = None) -> int:
         results["load"] = run_load(
             run_date, args.dry_run, args.no_dolt_commit,
             validate_passed=validate_passed,
+            stats=stats,
         )
 
     if "export" in tasks:
         export_paths = run_export(run_date)
         results["export"] = bool(export_paths)
-        stats["new_actions"] = 0   # populated from curated files when available
 
     if "manifest" in tasks:
         results["manifest"] = run_manifest(run_date, export_paths)
 
     if "release-notes" in tasks:
+        stats.update(collect_stats(run_date))
         results["release-notes"] = run_release_notes(run_date, stats)
 
     # ── summary ───────────────────────────────────────────────────────────────
