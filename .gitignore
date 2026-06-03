@@ -72,7 +72,6 @@ data/warehouse/
 data/buyers/
 
 # Release and build outputs
-# releases/monthly/ is committed — MD files are the source for the website card injector
 build/
 dist/
 
@@ -89,3 +88,6 @@ logs/
 tmp/
 temp/
 .claude/settings.json
+releases/bundles/
+releases/monthly/
+
