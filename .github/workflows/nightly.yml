@@ -130,6 +130,7 @@ jobs:
           if ! git diff --quiet website/landing-page/release-notes.html; then
             git add website/landing-page/release-notes.html
             git commit -m "chore(website): update release notes for ${RUN_DATE:-$(date +%Y-%m-%d)} [skip ci]"
+            git pull --rebase origin main
             git push origin HEAD:main
             echo "release-notes.html pushed — Cloudflare Pages will redeploy"
           else
