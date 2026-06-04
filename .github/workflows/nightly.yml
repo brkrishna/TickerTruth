@@ -28,6 +28,8 @@ jobs:
     name: Data Refresh Pipeline
     runs-on: ubuntu-latest
     timeout-minutes: 120
+    permissions:
+      contents: write
 
     steps:
       - uses: actions/checkout@v4.2.2
@@ -117,6 +119,22 @@ jobs:
                   uploaded += 1
           print(f"Done — {uploaded} files uploaded to R2")
           EOF
+
+      - name: Commit updated release-notes.html
+        if: success() && github.event.inputs.dry_run != 'true'
+        env:
+          RUN_DATE: ${{ github.event.inputs.run_date }}
+        run: |
+          git config user.name  "TickerTruth Bot"
+          git config user.email "bot@tickertruth.com"
+          if ! git diff --quiet website/landing-page/release-notes.html; then
+            git add website/landing-page/release-notes.html
+            git commit -m "chore(website): update release notes for ${RUN_DATE:-$(date +%Y-%m-%d)} [skip ci]"
+            git push origin HEAD:main
+            echo "release-notes.html pushed — Cloudflare Pages will redeploy"
+          else
+            echo "release-notes.html unchanged — no commit needed"
+          fi
 
       - name: Upload quality report
         if: always()

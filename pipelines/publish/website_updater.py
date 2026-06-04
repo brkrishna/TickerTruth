@@ -216,13 +216,16 @@ def _build_card_html(data: dict) -> str:
 
     return (
         f"    {tag}\n"
-        f'    <div class="release">\n'
-        f'      <div class="release-header">\n'
-        f"        <div>\n"
-        f"          <h2>Release {display_version}</h2>\n"
-        f'          <div class="release-date">Released {released}</div>\n'
+        f'    <details class="release" open>\n'
+        f"      <summary>\n"
+        f'        <div class="release-header">\n'
+        f"          <div>\n"
+        f"            <h2>Release {display_version}</h2>\n"
+        f'            <div class="release-date">Released {released}</div>\n'
+        f"          </div>\n"
         f"        </div>\n"
-        f"      </div>\n"
+        f'        <span class="release-toggle"></span>\n'
+        f"      </summary>\n"
         f'      <div class="release-stats">\n'
         f'        <div class="stat">\n'
         f'          <div class="stat-val">{fmt(new_sec)}</div>\n'
@@ -244,7 +247,7 @@ def _build_card_html(data: dict) -> str:
         f'      <div class="release-body">\n'
         f"{body_html}\n"
         f"      </div>\n"
-        f"    </div>\n"
+        f"    </details>\n"
     )
 
 
