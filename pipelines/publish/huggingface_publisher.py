@@ -11,7 +11,6 @@ Requires: HF_TOKEN env var (Write-scoped HuggingFace access token).
 import logging
 import os
 from datetime import date
-from io import StringIO
 from pathlib import Path
 
 import pandas as pd

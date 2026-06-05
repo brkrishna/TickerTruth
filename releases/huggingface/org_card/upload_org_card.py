@@ -41,4 +41,4 @@ api.upload_folder(
     commit_message="add org card",
 )
 
-print(f"Done — https://huggingface.co/tickertruthorg")
+print("Done — https://huggingface.co/tickertruthorg")
