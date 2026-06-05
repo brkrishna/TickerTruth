@@ -11,7 +11,7 @@ tags:
   - isin
   - symbol-master
 pretty_name: "TickerTruth — NSE India Security Master (Explorer)"
-thumbnail: https://huggingface.co/datasets/tickertruth/nse-india-security-master/resolve/main/images/tickertruth_favicon.png
+thumbnail: https://huggingface.co/datasets/tickertruthorg/nse-india-security-master/resolve/main/images/tickertruth_favicon.png
 size_categories:
   - 1K<n<10K
 task_categories:
@@ -73,7 +73,7 @@ Or load directly from Hugging Face:
 ```python
 from datasets import load_dataset
 
-ds = load_dataset("tickertruth/nse-india-security-master", data_files="data/nse_security_master.csv")
+ds = load_dataset("tickertruthorg/nse-india-security-master", data_files="data/nse_security_master.csv")
 df = ds["train"].to_pandas()
 ```
 
@@ -113,7 +113,7 @@ CC BY 4.0 — free to use, share, and adapt with attribution.
   title   = {TickerTruth NSE India Security Master},
   author  = {TickerTruth},
   year    = {2026},
-  url     = {https://huggingface.co/datasets/tickertruth/nse-india-security-master},
+  url     = {https://huggingface.co/datasets/tickertruthorg/nse-india-security-master},
   license = {CC-BY-4.0}
 }
 ```

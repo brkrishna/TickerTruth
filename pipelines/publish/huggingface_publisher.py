@@ -1,6 +1,6 @@
 """
 HuggingFacePublisher — pushes the refreshed security master CSV to the
-tickertruth/nse-india-security-master dataset on HuggingFace.
+tickertruthorg/nse-india-security-master dataset on HuggingFace.
 
 Reads from data/curated/dim_security_master.csv, projects to the public
 5-column schema, and uploads via the huggingface_hub API.
@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 
 PROJECT_ROOT = Path(__file__).parent.parent.parent
 
-REPO_ID = "tickertruth/nse-india-security-master"
+REPO_ID = "tickertruthorg/nse-india-security-master"
 PUBLIC_COLUMNS = ["nse_symbol", "isin", "company_name", "listing_date", "active_flag"]
 
 

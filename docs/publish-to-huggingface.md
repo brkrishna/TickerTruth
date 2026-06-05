@@ -8,7 +8,7 @@ The `releases/huggingface/` folder already contains the dataset card README and 
 
 1. Go to [huggingface.co](https://huggingface.co) → sign in (or create an account)
 2. Click your avatar → **New Organization**
-3. Name it exactly **`tickertruth`** (lowercase) — this matches what the README already references: `tickertruth/nse-india-security-master`
+3. Name it exactly **`tickertruth`** (lowercase) — this matches what the README already references: `tickertruthorg/nse-india-security-master`
 4. Set visibility to **Public**
 
 ---
@@ -46,7 +46,7 @@ api = HfApi()
 
 # Create repo if it doesn't exist yet (safe to re-run)
 api.create_repo(
-    repo_id="tickertruth/nse-india-security-master",
+    repo_id="tickertruthorg/nse-india-security-master",
     repo_type="dataset",
     exist_ok=True,
     private=False,
@@ -56,7 +56,7 @@ api.create_repo(
 api.upload_file(
     path_or_fileobj="releases/huggingface/README.md",
     path_in_repo="README.md",
-    repo_id="tickertruth/nse-india-security-master",
+    repo_id="tickertruthorg/nse-india-security-master",
     repo_type="dataset",
 )
 
@@ -64,18 +64,18 @@ api.upload_file(
 api.upload_file(
     path_or_fileobj="releases/huggingface/data/nse_security_master.csv",
     path_in_repo="data/nse_security_master.csv",
-    repo_id="tickertruth/nse-india-security-master",
+    repo_id="tickertruthorg/nse-india-security-master",
     repo_type="dataset",
 )
 
 api.upload_file(
     path_or_fileobj="releases/huggingface/data/nse_explorer_20symbols.csv",
     path_in_repo="data/nse_explorer_20symbols.csv",
-    repo_id="tickertruth/nse-india-security-master",
+    repo_id="tickertruthorg/nse-india-security-master",
     repo_type="dataset",
 )
 
-print("Done — https://huggingface.co/datasets/tickertruth/nse-india-security-master")
+print("Done — https://huggingface.co/datasets/tickertruthorg/nse-india-security-master")
 EOF
 ```
 
@@ -83,7 +83,7 @@ EOF
 
 ## Step 5 — Verify the published card
 
-Visit `huggingface.co/datasets/tickertruth/nse-india-security-master` and check:
+Visit `huggingface.co/datasets/tickertruthorg/nse-india-security-master` and check:
 
 - The YAML tags render correctly (Finance, India, NSE badges appear)
 - The **Files** tab shows `data/nse_security_master.csv` and `data/nse_explorer_20symbols.csv`
