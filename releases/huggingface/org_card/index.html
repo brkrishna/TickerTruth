@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TickerTruth — NSE India Reference Data</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 720px; margin: 60px auto; padding: 0 24px; color: #1a1a2e; line-height: 1.6; }
+    h1 { font-size: 2rem; margin-bottom: 0.25rem; }
+    .tagline { color: #555; font-size: 1.1rem; margin-bottom: 2rem; }
+    h2 { font-size: 1.1rem; text-transform: uppercase; letter-spacing: 0.05em; color: #888; margin-top: 2.5rem; }
+    table { width: 100%; border-collapse: collapse; margin-top: 0.75rem; }
+    td, th { text-align: left; padding: 10px 12px; border-bottom: 1px solid #eee; font-size: 0.95rem; }
+    th { font-weight: 600; color: #444; }
+    a { color: #3b5bdb; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .links { display: flex; gap: 1.5rem; margin-top: 0.75rem; font-size: 0.95rem; }
+  </style>
+</head>
+<body>
+  <h1>TickerTruth</h1>
+  <p class="tagline">Reference data for Indian equity markets — versioned, normalized, and production-ready.</p>
+
+  <p>We build the trust layer that Indian equity analytics is missing: clean symbol histories, corporate action events, and adjustment factors for NSE-listed securities.</p>
+
+  <h2>Datasets</h2>
+  <table>
+    <tr><th>Dataset</th><th>Description</th></tr>
+    <tr>
+      <td><a href="https://huggingface.co/datasets/tickertruthorg/nse-india-security-master">nse-india-security-master</a></td>
+      <td>NSE security master — ISIN mappings, listing dates, active/delisted status. Updated nightly.</td>
+    </tr>
+  </table>
+  <p style="font-size:0.9rem;color:#888;">Coming soon: symbol lineage events, corporate actions, pre-computed adjustment factors.</p>
+
+  <h2>The problem we solve</h2>
+  <p>Backtesting Indian equities breaks silently. Symbols rename without warning, splits go unapplied, and historical corporate action records are scattered across inconsistent sources. TickerTruth normalizes all of this into a consistent, versioned schema so your pipeline doesn't have to.</p>
+
+  <h2>Links</h2>
+  <div class="links">
+    <a href="https://tickertruth.com">tickertruth.com</a>
+    <a href="https://github.com/brkrishna/TickerTruth">GitHub</a>
+    <a href="https://huggingface.co/datasets/tickertruthorg/nse-india-security-master">Dataset</a>
+  </div>
+</body>
+</html>

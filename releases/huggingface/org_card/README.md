@@ -1,5 +1,10 @@
 ---
-cover: https://huggingface.co/datasets/tickertruthorg/nse-india-security-master/resolve/main/images/tickertruth_favicon.png
+title: TickerTruth
+emoji: 📊
+colorFrom: blue
+colorTo: indigo
+sdk: static
+pinned: false
 ---
 
 # TickerTruth
