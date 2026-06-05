@@ -11,6 +11,7 @@ tags:
   - isin
   - symbol-master
 pretty_name: "TickerTruth — NSE India Security Master (Explorer)"
+thumbnail: https://huggingface.co/datasets/tickertruth/nse-india-security-master/resolve/main/images/tickertruth_favicon.png
 size_categories:
   - 1K<n<10K
 task_categories:
@@ -19,7 +20,7 @@ task_categories:
 
 # TickerTruth — NSE India Security Master (Explorer)
 
-A clean, normalized reference table of **2,389 NSE-listed equities** — ISIN mappings, listing dates, company names, and active/delisted status — built from the [TickerTruth](https://tickertruth.pages.dev) India reference-data pipeline.
+A clean, normalized reference table of **2,389 NSE-listed equities** — ISIN mappings, listing dates, company names, and active/delisted status — built from the [TickerTruth](https://tickertruth.com) India reference-data pipeline.
 
 ## Why this dataset exists
 
