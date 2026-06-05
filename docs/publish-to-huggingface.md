@@ -75,20 +75,6 @@ api.upload_file(
     repo_type="dataset",
 )
 
-api.upload_file(
-    path_or_fileobj="releases/huggingface/images/tickertruth_favicon.png",
-    path_in_repo="images/tickertruth_favicon.png",
-    repo_id="tickertruth/nse-india-security-master",
-    repo_type="dataset",
-)
-
-api.upload_file(
-    path_or_fileobj="releases/huggingface/images/tickertruth_favicon.ico",
-    path_in_repo="images/tickertruth_favicon.ico",
-    repo_id="tickertruth/nse-india-security-master",
-    repo_type="dataset",
-)
-
 print("Done — https://huggingface.co/datasets/tickertruth/nse-india-security-master")
 EOF
 ```
