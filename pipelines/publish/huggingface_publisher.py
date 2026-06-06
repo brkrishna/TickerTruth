@@ -51,11 +51,11 @@ class HuggingFacePublisher:
         try:
             from huggingface_hub import HfApi
         except ImportError:
-            logger.error(
-                "[huggingface] huggingface_hub is not installed. "
+            logger.warning(
+                "[huggingface] huggingface_hub is not installed — skipping. "
                 "Run: pip install huggingface_hub"
             )
-            return False
+            return True
 
         source = self.curated_dir / "dim_security_master.csv"
         if not source.exists():
