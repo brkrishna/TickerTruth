@@ -43,10 +43,10 @@ class HuggingFacePublisher:
         """
         token = os.environ.get("HF_TOKEN", "").strip()
         if not token:
-            logger.warning(
+            logger.info(
                 "[huggingface] HF_TOKEN not set — skipping HuggingFace publish"
             )
-            return False
+            return True
 
         try:
             from huggingface_hub import HfApi

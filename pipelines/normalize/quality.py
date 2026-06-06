@@ -66,15 +66,15 @@ class QualityMetadata:
         """
         df = df.copy()
 
-        df["_source_file"] = self.source_file
-        df["_extracted_date"] = self.extracted_date
+        df.loc[:, "_source_file"] = self.source_file
+        df.loc[:, "_extracted_date"] = self.extracted_date
 
         issues_series = df.apply(self._detect_issues, axis=1)
-        df["_quality_issues"] = issues_series.apply(
+        df.loc[:, "_quality_issues"] = issues_series.apply(
             lambda codes: ",".join(codes) if codes else ""
         )
-        df["_confidence_score"] = issues_series.apply(self._score)
-        df["_manual_review_required"] = (
+        df.loc[:, "_confidence_score"] = issues_series.apply(self._score)
+        df.loc[:, "_manual_review_required"] = (
             df["_confidence_score"] < _MANUAL_REVIEW_THRESHOLD
         )
 

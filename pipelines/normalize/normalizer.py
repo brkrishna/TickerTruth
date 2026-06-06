@@ -163,18 +163,18 @@ class RawToCanonicalMapper:
             raise ValueError("raw_symbols missing SYMBOL column")
 
         # Normalise ticker
-        df["nse_symbol"] = df[symbol_col].apply(FN.normalize_ticker)
+        df.loc[:, "nse_symbol"] = df[symbol_col].apply(FN.normalize_ticker)
 
         # Normalise company name and resolve issuer_id via join
         if name_col:
-            df["_norm_name"] = df[name_col].apply(FN.normalize_company_name)
-            df["company_name"] = df["_norm_name"]
+            df.loc[:, "_norm_name"] = df[name_col].apply(FN.normalize_company_name)
+            df.loc[:, "company_name"] = df["_norm_name"]
         else:
-            df["_norm_name"] = ""
-            df["company_name"] = ""
+            df.loc[:, "_norm_name"] = ""
+            df.loc[:, "company_name"] = ""
 
         issuer_lookup = dim_issuer.set_index("issuer_name")["issuer_id"]
-        df["issuer_id"] = df["_norm_name"].map(issuer_lookup)
+        df.loc[:, "issuer_id"] = df["_norm_name"].map(issuer_lookup)
 
         # Flag rows where issuer could not be resolved
         unresolved = df["issuer_id"].isna()
@@ -182,10 +182,10 @@ class RawToCanonicalMapper:
             df = QualityMetadata.flag_unresolved_symbols(df, unresolved)
 
         # Normalise ISIN
-        df["isin"] = df[isin_col].str.strip().str.upper() if isin_col else None
+        df.loc[:, "isin"] = df[isin_col].str.strip().str.upper() if isin_col else None
 
         # Normalise listing_date
-        df["listing_date"] = (
+        df.loc[:, "listing_date"] = (
             df[date_col]
             .apply(FN.normalize_date)
             .apply(lambda d: d.isoformat() if d else None)
@@ -194,7 +194,7 @@ class RawToCanonicalMapper:
         )
 
         # Derive active_flag from STATUS column
-        df["active_flag"] = True
+        df.loc[:, "active_flag"] = True
         if status_col:
             inactive = (
                 df[status_col]
@@ -203,12 +203,12 @@ class RawToCanonicalMapper:
             )
             df.loc[inactive, "active_flag"] = False
 
-        df["exchange_id"] = NSE_EXCHANGE_ID
+        df.loc[:, "exchange_id"] = NSE_EXCHANGE_ID
 
         # Deduplicate on normalised symbol (keep last — most recent status)
         df.drop_duplicates(subset=["nse_symbol"], keep="last", inplace=True)
         df.reset_index(drop=True, inplace=True)
-        df["security_id"] = df.index + 1
+        df.loc[:, "security_id"] = df.index + 1
 
         # Apply quality flags
         df = self._qm.add_quality_flags(df)
@@ -280,31 +280,31 @@ class RawToCanonicalMapper:
             )
 
         # Normalise ticker and resolve security_id
-        df["_norm_symbol"] = df[symbol_col].apply(FN.normalize_ticker)
+        df.loc[:, "_norm_symbol"] = df[symbol_col].apply(FN.normalize_ticker)
         security_lookup = dim_security_master.set_index("nse_symbol")["security_id"]
-        df["security_id"] = df["_norm_symbol"].map(security_lookup)
+        df.loc[:, "security_id"] = df["_norm_symbol"].map(security_lookup)
 
         unresolved = df["security_id"].isna()
         if unresolved.any():
             df = QualityMetadata.flag_unresolved_symbols(df, unresolved)
 
         # Normalise action type → canonical code
-        df["action_code"] = df[action_col].apply(FN.normalize_action_type)
+        df.loc[:, "action_code"] = df[action_col].apply(FN.normalize_action_type)
 
         # Normalise dates
-        df["event_date"] = (
+        df.loc[:, "event_date"] = (
             df[exdate_col]
             .apply(FN.normalize_date)
             .apply(lambda d: d.isoformat() if d else None)
         )
-        df["record_date"] = (
+        df.loc[:, "record_date"] = (
             df[recdate_col]
             .apply(FN.normalize_date)
             .apply(lambda d: d.isoformat() if d else None)
             if recdate_col
             else None
         )
-        df["payment_date"] = (
+        df.loc[:, "payment_date"] = (
             df[paydate_col]
             .apply(FN.normalize_date)
             .apply(lambda d: d.isoformat() if d else None)
@@ -313,11 +313,11 @@ class RawToCanonicalMapper:
         )
 
         # Normalise value/ratio
-        df["old_value"] = (
+        df.loc[:, "old_value"] = (
             df[value_col].apply(FN.normalize_numeric) if value_col else None
         )
-        df["new_value"] = None  # populated by adjustment pipeline (Task 8)
-        df["adjustment_factor"] = None  # populated by adjustment pipeline (Task 8)
+        df.loc[:, "new_value"] = None  # populated by adjustment pipeline (Task 8)
+        df.loc[:, "adjustment_factor"] = None  # populated by adjustment pipeline (Task 8)
 
         # Confidence score comes from QualityMetadata
         df = self._qm.add_quality_flags(df)

@@ -122,7 +122,7 @@ jobs:
           EOF
 
       - name: Commit updated release-notes.html
-        if: success() && github.event.inputs.dry_run != 'true'
+        if: always() && github.event.inputs.dry_run != 'true'
         env:
           RUN_DATE: ${{ github.event.inputs.run_date }}
         run: |

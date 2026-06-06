@@ -982,7 +982,7 @@ class RawDataExtractor:
             label="Corporate actions",
         )
 
-        self._write_quality_report(report, staging_dir)
+        self._write_quality_report(report, staging_dir, run_date)
         return report
 
     # ── consolidation helpers ────────────────────────────────────────────────
@@ -1095,13 +1095,15 @@ class RawDataExtractor:
         )
         return result
 
-    def _write_quality_report(self, report: dict, staging_dir: Path) -> None:
+    def _write_quality_report(
+        self, report: dict, staging_dir: Path, run_date: date | None = None
+    ) -> None:
         """Write a JSON quality report summarising the consolidation run."""
-        today = date.today().isoformat()
-        report_path = staging_dir / f"quality_report_{today}.json"
+        report_date = (run_date or date.today()).isoformat()
+        report_path = staging_dir / f"quality_report_{report_date}.json"
 
         output = {
-            "generated_on": today,
+            "generated_on": report_date,
             "raw_dir": str(self.output_dir),
             "staging_dir": str(staging_dir),
             "sources": report,
