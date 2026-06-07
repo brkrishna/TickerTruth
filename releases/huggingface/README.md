@@ -88,6 +88,7 @@ Raw data is fetched nightly from the NSE public equity master. The pipeline:
 
 Source: NSE India public archives (equity master)
 Pipeline: [github.com/brkrishna/TickerTruth](https://github.com/brkrishna/TickerTruth)
+Explorer: [tickertruth-nse-explorer](https://huggingface.co/spaces/tickertruth/tickertruth-nse-explorer) — browse and filter without writing code
 
 ## What's coming
 

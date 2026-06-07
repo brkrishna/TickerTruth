@@ -23,6 +23,10 @@ We build the trust layer that Indian equity analytics is missing: clean symbol h
 
 More datasets coming: symbol lineage events, corporate actions, and pre-computed adjustment factors.
 
+## Interactive Explorer
+
+Browse and filter the data without writing any code: [tickertruth-nse-explorer](https://huggingface.co/spaces/tickertruth/tickertruth-nse-explorer)
+
 ---
 
 ## The problem we solve
@@ -34,5 +38,6 @@ Backtesting Indian equities breaks silently. Symbols rename without warning, spl
 ## Links
 
 - Site: [tickertruth.com](https://tickertruth.com)
+- Explorer: [tickertruth-nse-explorer](https://huggingface.co/spaces/tickertruth/tickertruth-nse-explorer)
 - Pipeline: [github.com/brkrishna/TickerTruth](https://github.com/brkrishna/TickerTruth)
 - License: CC BY 4.0 (free tier) — see dataset card for details
