@@ -82,6 +82,9 @@ dolt/.dolt/
 *.log
 logs/
 
+# Parquet data files — generated at runtime
+*.parquet
+
 # Temporary files
 *.tmp
 *.temp
