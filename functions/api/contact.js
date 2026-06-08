@@ -1,5 +1,3 @@
-import { EmailMessage } from "cloudflare:email";
-
 export async function onRequestPost({ request, env }) {
   try {
     let body;
@@ -45,23 +43,12 @@ export async function onRequestPost({ request, env }) {
     if (interest) lines.push(`Interest: ${interest}`);
     lines.push("", "Notes:", notes || "(none)");
 
-    const raw = [
-      `From: TickerTruth Contact <noreply@tickertruth.com>`,
-      `To: connect@tickertruth.com`,
-      `Reply-To: ${name} <${email}>`,
-      `Subject: New Inquiry — TickerTruth (${name})`,
-      `MIME-Version: 1.0`,
-      `Content-Type: text/plain; charset=utf-8`,
-      "",
-      lines.join("\n"),
-    ].join("\r\n");
-
-    const message = new EmailMessage(
-      "noreply@tickertruth.com",
-      "connect@tickertruth.com",
-      raw
-    );
-    await env.SEND_EMAIL.send(message);
+    await env.SEND_EMAIL.send({
+      from: "noreply@tickertruth.com",
+      to: "connect@tickertruth.com",
+      subject: `New Inquiry — TickerTruth (${name})`,
+      text: lines.join("\n"),
+    });
 
     return Response.json({ success: true });
   } catch (err) {
