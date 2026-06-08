@@ -1,11 +1,8 @@
 name = "tickertruth"
 pages_build_output_dir = "website/landing-page"
 
-# Email Workers binding — delivers contact form submissions to connect@tickertruth.com.
-# Requires Cloudflare Email Routing to be active for tickertruth.com.
-# After deploying, also add this binding in the Pages dashboard:
-#   Pages > tickertruth > Settings > Functions > Email bindings
-#   Variable name: SEND_EMAIL   Destination: connect@tickertruth.com
-[[send_email]]
-name = "SEND_EMAIL"
-destination_address = "connect@tickertruth.com"
+# Contact form email delivery uses Resend (https://resend.com).
+# Set RESEND_API_KEY as an environment variable in the Pages dashboard:
+#   Pages > tickertruth > Settings > Environment variables > Add variable
+#   Variable name: RESEND_API_KEY   Value: re_xxxxxxxxxxxx
+# The sending domain (tickertruth.com) must be verified in your Resend account.

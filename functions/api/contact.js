@@ -43,12 +43,26 @@ export async function onRequestPost({ request, env }) {
     if (interest) lines.push(`Interest: ${interest}`);
     lines.push("", "Notes:", notes || "(none)");
 
-    await env.SEND_EMAIL.send({
-      from: "noreply@tickertruth.com",
-      to: "connect@tickertruth.com",
-      subject: `New Inquiry — TickerTruth (${name})`,
-      text: lines.join("\n"),
+    const res = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${env.RESEND_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        from: "TickerTruth Contact <noreply@tickertruth.com>",
+        to: ["connect@tickertruth.com"],
+        reply_to: `${name} <${email}>`,
+        subject: `New Inquiry — TickerTruth (${name})`,
+        text: lines.join("\n"),
+      }),
     });
+
+    if (!res.ok) {
+      const err = await res.text();
+      console.error("Resend error:", err);
+      throw new Error("Email delivery failed");
+    }
 
     return Response.json({ success: true });
   } catch (err) {
