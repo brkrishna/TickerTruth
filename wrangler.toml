@@ -1,0 +1,11 @@
+name = "tickertruth"
+pages_build_output_dir = "website/landing-page"
+
+# Email Workers binding — delivers contact form submissions to connect@tickertruth.com.
+# Requires Cloudflare Email Routing to be active for tickertruth.com.
+# After deploying, also add this binding in the Pages dashboard:
+#   Pages > tickertruth > Settings > Functions > Email bindings
+#   Variable name: SEND_EMAIL   Destination: connect@tickertruth.com
+[[send_email]]
+name = "SEND_EMAIL"
+destination_address = "connect@tickertruth.com"

@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Contact — TickerTruth</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="icon" href="assets/images/tickertruth_favicon.svg" type="image/svg+xml">
+  <style>
+    :root {
+      --bg:             #06091a;
+      --surface:        #0c1228;
+      --surface-raised: #101930;
+      --border:         #1a2847;
+      --text:           #dbe8f8;
+      --text-muted:     #6b8db5;
+      --accent:         #3b82f6;
+      --accent-hover:   #2563eb;
+      --accent-glow:    rgba(59,130,246,0.12);
+      --green:          #10b981;
+      --amber:          #f59e0b;
+      --red:            #f87171;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      font-size: 16px; line-height: 1.6; color: var(--text); background: var(--bg);
+    }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 1.25rem 2rem;
+      display: flex; align-items: center; justify-content: space-between;
+      position: sticky; top: 0; z-index: 50;
+    }
+    header .logo { display: flex; align-items: center; gap: 0.45rem; text-decoration: none; }
+    .logo-wordmark { font-family: Georgia, serif; font-size: 1.05rem; font-weight: 700; letter-spacing: 0.01em; line-height: 1; }
+    .logo-ticker { color: var(--text); }
+    .logo-truth  { color: var(--accent); }
+    header nav { display: flex; gap: 1.5rem; font-size: 0.875rem; }
+    header nav a { color: var(--text-muted); }
+    header nav a:hover { color: var(--text); text-decoration: none; }
+    header nav a.active { color: var(--text); }
+
+    .page-header {
+      max-width: 760px; margin: 3rem auto 2rem; padding: 0 2rem;
+      border-bottom: 1px solid var(--border); padding-bottom: 2rem;
+    }
+    .page-header h1 { font-size: 1.75rem; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 0.5rem; color: var(--text); }
+    .page-header p { color: var(--text-muted); }
+
+    .divider { border: none; border-top: 1px solid var(--border); margin: 0 2rem; }
+
+    section { max-width: 760px; margin: 2.5rem auto; padding: 0 2rem; }
+    h2 { font-size: 1rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text); margin-bottom: 1.25rem; }
+
+    /* Form */
+    .inquiry-form {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 2rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+    }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    .form-group { display: flex; flex-direction: column; gap: 0.4rem; }
+    .form-group label {
+      font-size: 0.8rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text-muted);
+    }
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 0.6rem 0.85rem;
+      font-size: 0.9rem;
+      font-family: inherit;
+      color: var(--text);
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    .form-group input:focus,
+    .form-group select:focus,
+    .form-group textarea:focus {
+      border-color: var(--accent);
+    }
+    .form-group input::placeholder,
+    .form-group textarea::placeholder {
+      color: var(--text-muted);
+      opacity: 0.6;
+    }
+    .form-group select option { background: var(--surface); }
+    .form-group textarea { resize: vertical; min-height: 110px; }
+
+    .btn-submit {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.65rem 1.5rem;
+      border-radius: 6px;
+      font-size: 0.9rem;
+      font-weight: 500;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      cursor: pointer;
+      transition: background 0.15s;
+      align-self: flex-start;
+    }
+    .btn-submit:hover { background: var(--accent-hover); }
+    .btn-submit:disabled { opacity: 0.55; cursor: not-allowed; }
+
+    /* Status messages */
+    .form-status {
+      display: none;
+      padding: 0.85rem 1rem;
+      border-radius: 6px;
+      font-size: 0.9rem;
+      border: 1px solid;
+    }
+    .form-status.success {
+      display: block;
+      background: rgba(16,185,129,0.08);
+      border-color: rgba(16,185,129,0.4);
+      color: var(--green);
+    }
+    .form-status.error {
+      display: block;
+      background: rgba(248,113,113,0.08);
+      border-color: rgba(248,113,113,0.4);
+      color: var(--red);
+    }
+
+    /* Context bullets */
+    .context-list { list-style: none; display: flex; flex-direction: column; gap: 0.4rem; }
+    .context-list li {
+      padding-left: 1.25rem; position: relative;
+      font-size: 0.9rem; color: var(--text-muted);
+    }
+    .context-list li::before { content: "→"; position: absolute; left: 0; color: var(--accent); }
+
+    footer {
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      padding: 2rem;
+      text-align: center; font-size: 0.8rem; color: var(--text-muted); margin-top: 4rem;
+    }
+
+    .menu-toggle {
+      display: none;
+      background: none; border: none; cursor: pointer; padding: 0.25rem; color: var(--text);
+    }
+    .menu-toggle span {
+      display: block; width: 22px; height: 2px; background: currentColor;
+      margin: 5px 0; transition: transform 0.2s, opacity 0.2s;
+    }
+    .menu-toggle.open span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+    .menu-toggle.open span:nth-child(2) { opacity: 0; }
+    .menu-toggle.open span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+
+    .mobile-nav {
+      display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      background: var(--surface); z-index: 49;
+      flex-direction: column; align-items: center; justify-content: center; gap: 2rem;
+    }
+    .mobile-nav a { font-size: 1.25rem; color: var(--text); font-weight: 500; }
+    .mobile-nav a:hover { color: var(--accent); text-decoration: none; }
+    .mobile-nav.open { display: flex; }
+
+    @media (max-width: 600px) {
+      header nav { display: none; }
+      .menu-toggle { display: block; }
+      .form-row { grid-template-columns: 1fr; }
+      .inquiry-form { padding: 1.25rem; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <a href="index.html" class="logo" aria-label="TickerTruth home">
+    <svg width="22" height="22" viewBox="-1 0 23 22" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <rect x="0" y="10" width="5" height="9" rx="1" fill="#1A6EE8"/>
+      <line x1="2.5" y1="9" x2="2.5" y2="10" stroke="#1A6EE8" stroke-width="1"/>
+      <line x1="2.5" y1="19" x2="2.5" y2="20" stroke="#1A6EE8" stroke-width="1"/>
+      <rect x="8" y="5" width="5" height="14" rx="1" fill="#35C28A"/>
+      <line x1="10.5" y1="4" x2="10.5" y2="5" stroke="#35C28A" stroke-width="1"/>
+      <line x1="10.5" y1="19" x2="10.5" y2="20" stroke="#35C28A" stroke-width="1"/>
+      <rect x="16" y="2" width="5" height="18" rx="1" fill="#1A6EE8"/>
+      <line x1="18.5" y1="1" x2="18.5" y2="2" stroke="#1A6EE8" stroke-width="1"/>
+      <line x1="18.5" y1="20" x2="18.5" y2="21" stroke="#1A6EE8" stroke-width="1"/>
+      <polyline points="3,13 9,19 18,5" fill="none" stroke="#FFFFFF" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" opacity="0.9"/>
+    </svg>
+    <span class="logo-wordmark"><span class="logo-ticker">Ticker</span><span class="logo-truth">Truth</span></span>
+  </a>
+  <nav>
+    <a href="methodology.html">Methodology</a>
+    <a href="pricing.html">Pricing</a>
+    <a href="sample-queries.html">Sample Queries</a>
+    <a href="release-notes.html">Release Notes</a>
+    <a href="https://huggingface.co/datasets/tickertruth/nse-india-security-master" target="_blank" rel="noopener">Dataset ↗</a>
+    <a href="https://huggingface.co/spaces/tickertruth/tickertruth-nse-explorer" target="_blank" rel="noopener">Explorer ↗</a>
+    <a href="contact.html" class="active">Contact</a>
+  </nav>
+  <button class="menu-toggle" aria-label="Toggle navigation" aria-expanded="false">
+    <span></span><span></span><span></span>
+  </button>
+</header>
+<nav class="mobile-nav" aria-label="Mobile navigation">
+  <a href="methodology.html">Methodology</a>
+  <a href="pricing.html">Pricing</a>
+  <a href="sample-queries.html">Sample Queries</a>
+  <a href="release-notes.html">Release Notes</a>
+  <a href="https://huggingface.co/datasets/tickertruth/nse-india-security-master" target="_blank" rel="noopener">Dataset ↗</a>
+  <a href="https://huggingface.co/spaces/tickertruth/tickertruth-nse-explorer" target="_blank" rel="noopener">Explorer ↗</a>
+  <a href="contact.html">Contact</a>
+</nav>
+
+<main>
+  <div class="page-header">
+    <h1>Get in Touch</h1>
+    <p>Leave your details and we'll get back to you within 1–2 business days.</p>
+  </div>
+
+  <section>
+    <h2>Inquiry Form</h2>
+    <form class="inquiry-form" id="inquiry-form">
+      <input type="checkbox" name="botcheck" style="display:none" tabindex="-1" autocomplete="off">
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="name">Name <span style="color:var(--red)">*</span></label>
+          <input type="text" id="name" name="name" placeholder="Your name" required autocomplete="name">
+        </div>
+        <div class="form-group">
+          <label for="email">Email <span style="color:var(--red)">*</span></label>
+          <input type="email" id="email" name="email" placeholder="you@company.com" required autocomplete="email">
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="phone">Phone / WhatsApp</label>
+          <input type="tel" id="phone" name="phone" placeholder="+91 98765 43210" autocomplete="tel">
+        </div>
+        <div class="form-group">
+          <label for="interest">I'm interested in</label>
+          <select id="interest" name="interest">
+            <option value="">— Select one —</option>
+            <option value="Explorer (free)">Explorer — free tier</option>
+            <option value="Starter">Starter — INR 15K–35K/mo</option>
+            <option value="Professional">Professional — INR 40K–1L/mo</option>
+            <option value="Enterprise">Enterprise — INR 1.5L+/mo</option>
+            <option value="Custom / Not sure">Custom or not sure yet</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="notes">What are you looking to solve?</label>
+        <textarea id="notes" name="notes" placeholder="Tell us about your use case — backtesting, data pipeline, research, compliance, etc."></textarea>
+      </div>
+
+      <div class="form-status" id="form-status" role="alert"></div>
+
+      <button type="submit" class="btn-submit" id="submit-btn">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <line x1="22" y1="2" x2="11" y2="13"></line>
+          <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+        </svg>
+        Send Inquiry
+      </button>
+    </form>
+  </section>
+
+  <hr class="divider">
+
+  <section>
+    <h2>Other Ways to Reach Us</h2>
+    <ul class="context-list">
+      <li>Email directly: <a href="mailto:connect@tickertruth.com">connect@tickertruth.com</a></li>
+      <li>Explore the free dataset on <a href="https://huggingface.co/datasets/tickertruth/nse-india-security-master" target="_blank" rel="noopener">HuggingFace ↗</a></li>
+      <li>Try the interactive <a href="https://huggingface.co/spaces/tickertruth/tickertruth-nse-explorer" target="_blank" rel="noopener">NSE Explorer ↗</a> before committing</li>
+      <li>Review <a href="pricing.html">pricing tiers</a> and <a href="methodology.html">methodology</a> for context</li>
+    </ul>
+  </section>
+</main>
+
+<footer>
+  &copy; 2026 TickerTruth &middot; NSE reference data for quantitative research
+</footer>
+
+<script>
+  const toggle = document.querySelector('.menu-toggle');
+  const mobileNav = document.querySelector('.mobile-nav');
+  toggle.addEventListener('click', () => {
+    const open = toggle.classList.toggle('open');
+    mobileNav.classList.toggle('open', open);
+    toggle.setAttribute('aria-expanded', open);
+  });
+  mobileNav.querySelectorAll('a').forEach(a => {
+    a.addEventListener('click', () => {
+      toggle.classList.remove('open');
+      mobileNav.classList.remove('open');
+      toggle.setAttribute('aria-expanded', 'false');
+    });
+  });
+
+  const form = document.getElementById('inquiry-form');
+  const statusEl = document.getElementById('form-status');
+  const submitBtn = document.getElementById('submit-btn');
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    statusEl.className = 'form-status';
+    statusEl.textContent = '';
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Sending…';
+
+    try {
+      const data = Object.fromEntries(new FormData(form));
+      const res = await fetch('/api/contact', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      const json = await res.json();
+      if (res.ok && json.success) {
+        statusEl.className = 'form-status success';
+        statusEl.textContent = 'Thanks! We received your inquiry and will be in touch within 1–2 business days.';
+        form.reset();
+      } else {
+        throw new Error(json.message || 'Submission failed');
+      }
+    } catch (err) {
+      statusEl.className = 'form-status error';
+      statusEl.textContent = 'Something went wrong. Please email us directly at connect@tickertruth.com.';
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg> Send Inquiry';
+    }
+  });
+</script>
+</body>
+</html>
