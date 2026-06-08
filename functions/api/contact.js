@@ -59,9 +59,9 @@ export async function onRequestPost({ request, env }) {
     });
 
     if (!res.ok) {
-      const err = await res.text();
-      console.error("Resend error:", err);
-      throw new Error("Email delivery failed");
+      const errBody = await res.json().catch(() => ({}));
+      console.error("Resend error:", res.status, JSON.stringify(errBody));
+      throw new Error(`Resend ${res.status}: ${errBody.message || errBody.name || "unknown"}`);
     }
 
     return Response.json({ success: true });
