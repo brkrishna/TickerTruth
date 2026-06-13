@@ -574,7 +574,7 @@
     </details>
 
     <!-- release:v2026.06.04 -->
-    <details class="release" open>
+    <details class="release">
       <summary>
         <div class="release-header">
           <div>
@@ -799,9 +799,9 @@
 </footer>
 
 <script>
-  // Always expand only the first (latest) release card
-  const firstRelease = document.querySelector('details.release');
-  if (firstRelease) firstRelease.open = true;
+  // Always expand only the first (latest) release card, collapse all others
+  const allReleases = document.querySelectorAll('details.release');
+  allReleases.forEach((el, i) => { el.open = i === 0; });
 
   const toggle = document.querySelector('.menu-toggle');
   const mobileNav = document.querySelector('.mobile-nav');
