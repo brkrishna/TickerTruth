@@ -41,10 +41,10 @@ try:
     # Adjust paths based on your actual data locations
 
     data_sources = {
-        'corporate_actions': project_root / 'data' / 'corporate_actions.parquet',
-        'symbol_lineage': project_root / 'data' / 'symbol_lineage.parquet',
-        'security_master': project_root / 'data' / 'security_master.parquet',
-        'adjustment_factors': project_root / 'data' / 'adjustment_factors.parquet',
+        "corporate_actions": project_root / "data" / "corporate_actions.parquet",
+        "symbol_lineage": project_root / "data" / "symbol_lineage.parquet",
+        "security_master": project_root / "data" / "security_master.parquet",
+        "adjustment_factors": project_root / "data" / "adjustment_factors.parquet",
     }
 
     for name, path in data_sources.items():
@@ -67,7 +67,7 @@ try:
 
     # Connect to Dolt repo
     # Adjust this based on your Dolt setup (local or remote)
-    conn = duckdb.connect(':memory:')
+    conn = duckdb.connect(":memory:")
 
     # If you have Dolt installed, you can query it like:
     # conn = duckdb.connect('dolt://path/to/repo')
@@ -91,7 +91,7 @@ try:
             ORDER BY ex_date DESC
         """).df()
 
-        df_ca.to_parquet(output_dir / "corporate_actions.parquet", compression='snappy')
+        df_ca.to_parquet(output_dir / "corporate_actions.parquet", compression="snappy")
         print(f"  ✓ Exported corporate_actions: {len(df_ca)} records")
     except Exception as e:
         print(f"  ⚠️  Could not export corporate_actions: {e}")
@@ -109,56 +109,192 @@ print("\n📝 Creating synthetic sample data for testing...")
 
 try:
     # Synthetic corporate actions
-    df_ca_synthetic = pd.DataFrame({
-        'symbol': ['RELIANCE', 'RELIANCE', 'INFY', 'INFY', 'TCS', 'TATASTEEL', 'TATASTEEL'] * 2,
-        'ex_date': pd.date_range('2020-01-01', periods=14, freq='6M'),
-        'action_type': ['SPLIT', 'BONUS', 'DIVIDEND', 'SPLIT', 'DIVIDEND', 'SPLIT', 'BONUS'] * 2,
-        'value_ratio': ['1:5', '1:2', '21.0', '1:2', '15.0', '1:2', '1:1'] * 2,
-        'adjustment_factor': [0.2, 0.5, 1.0, 0.5, 1.0, 0.5, 0.5] * 2,
-        'dividend_amount': [0, 0, 21.0, 0, 15.0, 0, 0] * 2,
-        'frequency': ['', '', 'FINAL', '', 'INTERIM', '', ''] * 2,
-    })
+    df_ca_synthetic = pd.DataFrame(
+        {
+            "symbol": [
+                "RELIANCE",
+                "RELIANCE",
+                "INFY",
+                "INFY",
+                "TCS",
+                "TATASTEEL",
+                "TATASTEEL",
+            ]
+            * 2,
+            "ex_date": pd.date_range("2020-01-01", periods=14, freq="6M"),
+            "action_type": [
+                "SPLIT",
+                "BONUS",
+                "DIVIDEND",
+                "SPLIT",
+                "DIVIDEND",
+                "SPLIT",
+                "BONUS",
+            ]
+            * 2,
+            "value_ratio": ["1:5", "1:2", "21.0", "1:2", "15.0", "1:2", "1:1"] * 2,
+            "adjustment_factor": [0.2, 0.5, 1.0, 0.5, 1.0, 0.5, 0.5] * 2,
+            "dividend_amount": [0, 0, 21.0, 0, 15.0, 0, 0] * 2,
+            "frequency": ["", "", "FINAL", "", "INTERIM", "", ""] * 2,
+        }
+    )
 
-    df_ca_synthetic.to_parquet(output_dir / "corporate_actions.parquet", compression='snappy')
+    df_ca_synthetic.to_parquet(
+        output_dir / "corporate_actions.parquet", compression="snappy"
+    )
     print(f"  ✓ Created synthetic corporate_actions: {len(df_ca_synthetic)} records")
 
     # Synthetic symbol lineage
-    df_lineage = pd.DataFrame({
-        'symbol': ['POWERGRID', 'ZENITHEQUIP', 'AEGISLOG'],
-        'old_symbol': ['POWERGRID', 'ZENITHEQUIP', 'AEGISLOG'],
-        'new_symbol': ['POWERGRDL', 'ICIL', 'AEGIS'],
-        'effective_date': pd.to_datetime(['2025-12-30', '2022-06-30', '2025-10-15']),
-        'event_type': ['RENAME', 'MERGER', 'RENAME'],
-        'reason': ['Name change by issuer', 'Merger with ICIL', 'Symbol optimization'],
-    })
+    df_lineage = pd.DataFrame(
+        {
+            "symbol": ["POWERGRID", "ZENITHEQUIP", "AEGISLOG"],
+            "old_symbol": ["POWERGRID", "ZENITHEQUIP", "AEGISLOG"],
+            "new_symbol": ["POWERGRDL", "ICIL", "AEGIS"],
+            "effective_date": pd.to_datetime(
+                ["2025-12-30", "2022-06-30", "2025-10-15"]
+            ),
+            "event_type": ["RENAME", "MERGER", "RENAME"],
+            "reason": [
+                "Name change by issuer",
+                "Merger with ICIL",
+                "Symbol optimization",
+            ],
+        }
+    )
 
-    df_lineage.to_parquet(output_dir / "symbol_lineage.parquet", compression='snappy')
+    df_lineage.to_parquet(output_dir / "symbol_lineage.parquet", compression="snappy")
     print(f"  ✓ Created synthetic symbol_lineage: {len(df_lineage)} records")
 
     # Synthetic security master
-    df_sm = pd.DataFrame({
-        'symbol': ['RELIANCE', 'INFY', 'TCS', 'TATASTEEL', 'WIPRO', 'HDFC', 'ICICIBANK', 'HDBANK', 'AXISBANK', 'SBIN'],
-        'isin': ['INE002A01018', 'INE009A01021', 'INE467B01029', 'INE081A01012', 'INE009A01025', 'INE001A01036', 'INE090A01021', 'INE026A01034', 'INE424H01027', 'INE682A01012'],
-        'company_name': ['Reliance Industries', 'Infosys', 'Tata Consultancy Services', 'Tata Steel', 'Wipro', 'HDFC Bank', 'ICICI Bank', 'HDFC Bank', 'Axis Bank', 'State Bank of India'],
-        'sector': ['OIL & GAS', 'IT', 'IT', 'STEEL', 'IT', 'BANKING', 'BANKING', 'BANKING', 'BANKING', 'BANKING'],
-        'listing_date': pd.to_datetime(['1995-01-01', '1993-06-01', '1997-08-01', '1993-03-01', '1994-07-01', '1995-10-01', '1997-01-01', '1995-10-01', '1995-12-01', '1991-07-01']),
-        'trading_status': ['ACTIVE'] * 10,
-        'market_cap': [150000, 85000, 120000, 45000, 65000, 180000, 95000, 180000, 110000, 200000],
-    })
+    df_sm = pd.DataFrame(
+        {
+            "symbol": [
+                "RELIANCE",
+                "INFY",
+                "TCS",
+                "TATASTEEL",
+                "WIPRO",
+                "HDFC",
+                "ICICIBANK",
+                "HDBANK",
+                "AXISBANK",
+                "SBIN",
+            ],
+            "isin": [
+                "INE002A01018",
+                "INE009A01021",
+                "INE467B01029",
+                "INE081A01012",
+                "INE009A01025",
+                "INE001A01036",
+                "INE090A01021",
+                "INE026A01034",
+                "INE424H01027",
+                "INE682A01012",
+            ],
+            "company_name": [
+                "Reliance Industries",
+                "Infosys",
+                "Tata Consultancy Services",
+                "Tata Steel",
+                "Wipro",
+                "HDFC Bank",
+                "ICICI Bank",
+                "HDFC Bank",
+                "Axis Bank",
+                "State Bank of India",
+            ],
+            "sector": [
+                "OIL & GAS",
+                "IT",
+                "IT",
+                "STEEL",
+                "IT",
+                "BANKING",
+                "BANKING",
+                "BANKING",
+                "BANKING",
+                "BANKING",
+            ],
+            "listing_date": pd.to_datetime(
+                [
+                    "1995-01-01",
+                    "1993-06-01",
+                    "1997-08-01",
+                    "1993-03-01",
+                    "1994-07-01",
+                    "1995-10-01",
+                    "1997-01-01",
+                    "1995-10-01",
+                    "1995-12-01",
+                    "1991-07-01",
+                ]
+            ),
+            "trading_status": ["ACTIVE"] * 10,
+            "market_cap": [
+                150000,
+                85000,
+                120000,
+                45000,
+                65000,
+                180000,
+                95000,
+                180000,
+                110000,
+                200000,
+            ],
+        }
+    )
 
-    df_sm.to_parquet(output_dir / "security_master.parquet", compression='snappy')
+    df_sm.to_parquet(output_dir / "security_master.parquet", compression="snappy")
     print(f"  ✓ Created synthetic security_master: {len(df_sm)} records")
 
     # Synthetic adjustment factors
-    df_adj = pd.DataFrame({
-        'symbol': ['RELIANCE', 'RELIANCE', 'TATASTEEL', 'TATASTEEL', 'TATASTEEL', 'INFY', 'INFY'],
-        'ex_date': pd.to_datetime(['2020-01-01', '2023-05-31', '2018-02-01', '2020-05-20', '2023-11-10', '2022-06-01', '2024-08-15']),
-        'action_type': ['SPLIT', 'SPLIT', 'BONUS', 'SPLIT', 'DIVIDEND', 'SPLIT', 'DIVIDEND'],
-        'adjustment_factor': [0.5, 0.2, 0.1667, 0.5, 1.0, 0.5, 1.0],
-        'cumulative_adjustment_factor': [0.5, 0.1, 0.1667, 0.0834, 0.0834, 0.5, 0.5],
-    })
+    df_adj = pd.DataFrame(
+        {
+            "symbol": [
+                "RELIANCE",
+                "RELIANCE",
+                "TATASTEEL",
+                "TATASTEEL",
+                "TATASTEEL",
+                "INFY",
+                "INFY",
+            ],
+            "ex_date": pd.to_datetime(
+                [
+                    "2020-01-01",
+                    "2023-05-31",
+                    "2018-02-01",
+                    "2020-05-20",
+                    "2023-11-10",
+                    "2022-06-01",
+                    "2024-08-15",
+                ]
+            ),
+            "action_type": [
+                "SPLIT",
+                "SPLIT",
+                "BONUS",
+                "SPLIT",
+                "DIVIDEND",
+                "SPLIT",
+                "DIVIDEND",
+            ],
+            "adjustment_factor": [0.5, 0.2, 0.1667, 0.5, 1.0, 0.5, 1.0],
+            "cumulative_adjustment_factor": [
+                0.5,
+                0.1,
+                0.1667,
+                0.0834,
+                0.0834,
+                0.5,
+                0.5,
+            ],
+        }
+    )
 
-    df_adj.to_parquet(output_dir / "adjustment_factors.parquet", compression='snappy')
+    df_adj.to_parquet(output_dir / "adjustment_factors.parquet", compression="snappy")
     print(f"  ✓ Created synthetic adjustment_factors: {len(df_adj)} records")
 
 except Exception as e:

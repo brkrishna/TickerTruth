@@ -317,7 +317,9 @@ class RawToCanonicalMapper:
             df[value_col].apply(FN.normalize_numeric) if value_col else None
         )
         df.loc[:, "new_value"] = None  # populated by adjustment pipeline (Task 8)
-        df.loc[:, "adjustment_factor"] = None  # populated by adjustment pipeline (Task 8)
+        df.loc[:, "adjustment_factor"] = (
+            None  # populated by adjustment pipeline (Task 8)
+        )
 
         # Confidence score comes from QualityMetadata
         df = self._qm.add_quality_flags(df)

@@ -43,9 +43,7 @@ class HuggingFacePublisher:
         """
         token = os.environ.get("HF_TOKEN", "").strip()
         if not token:
-            logger.info(
-                "[huggingface] HF_TOKEN not set — skipping HuggingFace publish"
-            )
+            logger.info("[huggingface] HF_TOKEN not set — skipping HuggingFace publish")
             return True
 
         try:

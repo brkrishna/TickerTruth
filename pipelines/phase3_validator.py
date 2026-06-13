@@ -117,7 +117,6 @@ class TestDoltImporterResolveActionTypes:
         assert result.iloc[0]["action_type_id"] == 2
 
     def test_empty_action_map_raises(self):
-
         imp = self._make_importer_with_mock({})
         df = pd.DataFrame([{"action_code": "BONUS"}])
         with pytest.raises(RuntimeError, match="dim_corporate_action_type is empty"):
