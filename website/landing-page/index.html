@@ -180,6 +180,75 @@
     .features li::before { content: "→"; position: absolute; left: 0.75rem; color: var(--accent); }
     .features li strong { color: var(--text); }
 
+    /* Notebooks section */
+    .notebook-featured {
+      background: var(--surface);
+      border: 1px solid rgba(59,130,246,0.35);
+      border-radius: 10px;
+      padding: 1.75rem;
+      margin-bottom: 1rem;
+      position: relative;
+    }
+    .notebook-featured-tag {
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--accent);
+      margin-bottom: 0.6rem;
+    }
+    .notebook-featured h3 {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 0.5rem;
+    }
+    .notebook-featured p {
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      margin-bottom: 1.1rem;
+    }
+    .notebook-featured .nb-actions { display: flex; gap: 0.75rem; flex-wrap: wrap; align-items: center; }
+    .btn-colab {
+      display: inline-flex; align-items: center; gap: 0.4rem;
+      background: #f9ab00; color: #000;
+      padding: 0.45rem 1rem;
+      border-radius: 5px;
+      font-size: 0.85rem; font-weight: 600;
+      text-decoration: none;
+    }
+    .btn-colab:hover { background: #e09b00; text-decoration: none; }
+    .btn-gh {
+      font-size: 0.85rem; color: var(--text-muted);
+      border: 1px solid var(--border);
+      padding: 0.45rem 0.9rem;
+      border-radius: 5px;
+    }
+    .btn-gh:hover { border-color: var(--accent); color: var(--text); text-decoration: none; }
+
+    .notebook-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0.75rem;
+    }
+    .notebook-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1.1rem 1.25rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+    }
+    .notebook-card h4 { font-size: 0.875rem; font-weight: 600; color: var(--text); }
+    .notebook-card p  { font-size: 0.8rem; color: var(--text-muted); flex: 1; }
+    .notebook-card a  { font-size: 0.8rem; color: var(--accent); margin-top: 0.25rem; }
+    .notebook-card a:hover { text-decoration: underline; }
+
+    @media (max-width: 600px) {
+      .notebook-grid { grid-template-columns: 1fr; }
+    }
+
     .audience { list-style: none; display: flex; flex-direction: column; gap: 0.4rem; }
     .audience li { padding-left: 1.25rem; position: relative; color: var(--text-muted); font-size: 0.95rem; }
     .audience li::before { content: "·"; position: absolute; left: 0; color: var(--text-muted); }
@@ -328,6 +397,52 @@
       (splits, bonuses, dividends) are either missing or applied inconsistently,
       producing price series that are wrong by construction.
     </p>
+  </section>
+
+  <hr class="divider">
+
+  <section>
+    <h2>See It in Action</h2>
+    <p>Open these notebooks in Google Colab — no install, no signup required.</p>
+
+    <div class="notebook-featured">
+      <div class="notebook-featured-tag">Start here</div>
+      <h3>Broken vs Corrected Backtest</h3>
+      <p>
+        Raw NSE prices generate the wrong momentum signal on every split and bonus date.
+        This notebook runs a 12-month momentum strategy on TATASTEEL before and after
+        adjustment — showing the exact wrong trade, when it fires, and the P&amp;L difference.
+      </p>
+      <div class="nb-actions">
+        <a href="https://colab.research.google.com/github/brkrishna/TickerTruth/blob/main/notebooks/broken_vs_corrected_backtest.ipynb"
+           target="_blank" rel="noopener" class="btn-colab">
+          ▶ Open in Colab
+        </a>
+        <a href="https://github.com/brkrishna/TickerTruth/blob/main/notebooks/broken_vs_corrected_backtest.ipynb"
+           target="_blank" rel="noopener" class="btn-gh">View on GitHub ↗</a>
+      </div>
+    </div>
+
+    <div class="notebook-grid">
+      <div class="notebook-card">
+        <h4>Raw vs Adjusted Price Series</h4>
+        <p>How to apply cumulative adjustment factors to produce a continuous RELIANCE price series across two splits.</p>
+        <a href="https://colab.research.google.com/github/brkrishna/TickerTruth/blob/main/notebooks/adjusted_vs_raw_series.ipynb"
+           target="_blank" rel="noopener">Open in Colab ↗</a>
+      </div>
+      <div class="notebook-card">
+        <h4>Symbol Lineage Walkthrough</h4>
+        <p>Trace a merger (ZENITHEQUIP → ICIL) and a rename (AEGISLOG → AEGIS) using ISIN as the stable anchor.</p>
+        <a href="https://colab.research.google.com/github/brkrishna/TickerTruth/blob/main/notebooks/sample_lineage_walkthrough.ipynb"
+           target="_blank" rel="noopener">Open in Colab ↗</a>
+      </div>
+      <div class="notebook-card">
+        <h4>Corporate Action Examples</h4>
+        <p>Read split and bonus ratios, filter by confidence flag, and chain RELIANCE's full adjustment history.</p>
+        <a href="https://colab.research.google.com/github/brkrishna/TickerTruth/blob/main/notebooks/action_event_examples.ipynb"
+           target="_blank" rel="noopener">Open in Colab ↗</a>
+      </div>
+    </div>
   </section>
 
   <hr class="divider">
