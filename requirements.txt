@@ -18,6 +18,9 @@ pyyaml>=6.0
 # Environment variables
 python-dotenv==1.0.1
 
+# Notebooks and visualisation
+matplotlib>=3.8.0
+
 # Development and testing
 pytest==7.4.4
 pytest-cov==4.1.0

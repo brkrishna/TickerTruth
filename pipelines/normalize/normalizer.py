@@ -327,6 +327,11 @@ class RawToCanonicalMapper:
         # Rename _confidence_score → confidence_score to match schema
         df.rename(columns={"_confidence_score": "confidence_score"}, inplace=True)
 
+        # Derive categorical confidence flag from numeric score
+        df["confidence_flag"] = df["confidence_score"].apply(
+            QualityMetadata.score_to_flag
+        )
+
         # Drop working columns
         df.drop(
             columns=["_norm_symbol", "_unresolved_symbol"],
@@ -344,6 +349,7 @@ class RawToCanonicalMapper:
             "new_value",
             "adjustment_factor",
             "confidence_score",
+            "confidence_flag",
             "_source_file",
             "_extracted_date",
             "_quality_issues",

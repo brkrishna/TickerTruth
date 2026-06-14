@@ -115,6 +115,24 @@ class QualityMetadata:
             score -= _ISSUE_PENALTY.get(code, 0.05)
         return round(max(0.0, score), 4)
 
+    @staticmethod
+    def score_to_flag(score: float) -> str:
+        """Map a numeric confidence score to a categorical confidence flag.
+
+        HIGH       >= 0.9  official source, all critical fields present
+        MEDIUM     >= 0.7  scraped or partially complete
+        LOW        >= 0.4  estimated or ambiguous source
+        UNRESOLVED  < 0.4  conflicting or critically incomplete; do not use in production
+        """
+        if score >= 0.9:
+            return "HIGH"
+        elif score >= 0.7:
+            return "MEDIUM"
+        elif score >= 0.4:
+            return "LOW"
+        else:
+            return "UNRESOLVED"
+
     @classmethod
     def flag_unresolved_symbols(
         cls, df: pd.DataFrame, unresolved_mask: pd.Series

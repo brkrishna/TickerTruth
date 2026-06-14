@@ -136,6 +136,18 @@ try:
             "adjustment_factor": [0.2, 0.5, 1.0, 0.5, 1.0, 0.5, 0.5] * 2,
             "dividend_amount": [0, 0, 21.0, 0, 15.0, 0, 0] * 2,
             "frequency": ["", "", "FINAL", "", "INTERIM", "", ""] * 2,
+            # confidence_flag: HIGH = official NSE source with complete ratio;
+            # MEDIUM = value present but frequency or record_date ambiguous
+            "confidence_flag": [
+                "HIGH",
+                "HIGH",
+                "MEDIUM",
+                "HIGH",
+                "MEDIUM",
+                "HIGH",
+                "HIGH",
+            ]
+            * 2,
         }
     )
 
