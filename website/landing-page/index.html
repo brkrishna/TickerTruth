@@ -3,7 +3,61 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>TickerTruth — India Corporate Actions & Symbol History</title>
+  <title>TickerTruth — India Corporate Actions &amp; Symbol History</title>
+
+  <!-- SEO -->
+  <meta name="description" content="Versioned NSE corporate actions, symbol lineage, and adjustment factors for India equity backtesting. Monthly CSV and Parquet releases with confidence scores and full ticker history.">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://tickertruth.com/">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="TickerTruth">
+  <meta property="og:title" content="TickerTruth — India Corporate Actions &amp; Symbol History">
+  <meta property="og:description" content="Versioned NSE corporate actions, symbol lineage, and adjustment factors for India equity backtesting. Monthly CSV and Parquet releases with confidence scores and full ticker history.">
+  <meta property="og:url" content="https://tickertruth.com/">
+  <meta property="og:image" content="https://tickertruth.com/assets/images/tickertruth_og.png">
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="TickerTruth — India Corporate Actions &amp; Symbol History">
+  <meta name="twitter:description" content="Versioned NSE corporate actions, symbol lineage, and adjustment factors for India equity backtesting. Monthly CSV and Parquet releases.">
+  <meta name="twitter:image" content="https://tickertruth.com/assets/images/tickertruth_og.png">
+
+  <!-- Structured data -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "Organization",
+        "name": "TickerTruth",
+        "url": "https://tickertruth.com",
+        "description": "Versioned NSE corporate actions, symbol lineage, and adjustment factors for India equity backtesting.",
+        "contactPoint": {
+          "@type": "ContactPoint",
+          "email": "connect@tickertruth.com",
+          "contactType": "customer service"
+        }
+      },
+      {
+        "@type": "WebSite",
+        "name": "TickerTruth",
+        "url": "https://tickertruth.com"
+      },
+      {
+        "@type": "Dataset",
+        "name": "NSE India Symbol History and Corporate Actions",
+        "description": "Versioned reference dataset covering NSE-listed equities: corporate action events, symbol lineage, adjustment factors, and security master with ISIN mappings.",
+        "url": "https://tickertruth.com/",
+        "creator": { "@type": "Organization", "name": "TickerTruth" },
+        "license": "https://tickertruth.com/pricing.html",
+        "keywords": ["NSE", "India", "corporate actions", "symbol history", "adjustment factors", "backtesting", "equity data"]
+      }
+    ]
+  }
+  </script>
+
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   <link rel="icon" href="assets/images/tickertruth_favicon.svg" type="image/svg+xml">
@@ -521,5 +575,11 @@
     });
   });
 </script>
+
+<!-- Cloudflare Web Analytics
+     To activate: Cloudflare dashboard → Web Analytics → Add a site → copy your beacon token
+     Then replace REPLACE_WITH_YOUR_CF_TOKEN below and redeploy. -->
+<script defer src="https://static.cloudflareinsights.com/beacon.min.js"
+        data-cf-beacon='{"token": "REPLACE_WITH_YOUR_CF_TOKEN"}'></script>
 </body>
 </html>
