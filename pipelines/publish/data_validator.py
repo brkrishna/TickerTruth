@@ -308,6 +308,193 @@ class DataValidator:
             errors=errors,
         )
 
+    # ── BSE-specific curated checks ───────────────────────────────────────────
+
+    def check_bse_files_exist(self) -> CheckResult:
+        """Verify expected BSE curated files are present and non-empty."""
+        core_files = ["dim_bse_scrip_master.csv"]
+        optional_files = [
+            "fact_bse_scrip_lineage_event.csv",
+            "fact_exchange_security_map.csv",
+            "bse_fact_adjustment_factor.csv",
+        ]
+        missing_core = []
+        empty_core = []
+        missing_opt = []
+
+        for fname in core_files:
+            path = self.curated_dir / fname
+            if not path.exists():
+                missing_core.append(fname)
+            elif path.stat().st_size == 0:
+                empty_core.append(fname)
+
+        for fname in optional_files:
+            path = self.curated_dir / fname
+            if not path.exists():
+                missing_opt.append(fname)
+
+        errors = [f"missing: {f}" for f in missing_core] + [
+            f"empty: {f}" for f in empty_core
+        ]
+        warnings = [f"optional missing: {f}" for f in missing_opt]
+        total = len(core_files) + len(optional_files)
+        present = total - len(missing_core) - len(empty_core) - len(missing_opt)
+        return CheckResult(
+            name="bse_files_exist",
+            passed=not errors,
+            details=f"{present}/{total} BSE files present",
+            errors=errors + warnings,
+        )
+
+    def check_bse_scrip_codes_valid(self) -> CheckResult:
+        """Verify all BSE scrip codes are 6-digit zero-padded strings."""
+        path = self.curated_dir / "dim_bse_scrip_master.csv"
+        if not path.exists():
+            return CheckResult(
+                name="bse_scrip_codes_valid",
+                passed=True,
+                details="dim_bse_scrip_master.csv not found — skipping",
+            )
+
+        df = pd.read_csv(path, dtype={"scrip_code": str})
+        errors = []
+
+        if "scrip_code" not in df.columns:
+            return CheckResult(
+                name="bse_scrip_codes_valid",
+                passed=False,
+                details="scrip_code column missing",
+                errors=["scrip_code column not found in dim_bse_scrip_master.csv"],
+            )
+
+        invalid = df["scrip_code"].dropna()
+        non_six_digit = invalid[~invalid.str.match(r"^\d{6}$")]
+        if len(non_six_digit):
+            errors.append(
+                f"{len(non_six_digit)} scrip codes not exactly 6 digits "
+                f"(e.g. {non_six_digit.head(3).tolist()})"
+            )
+
+        null_codes = df["scrip_code"].isna().sum()
+        if null_codes:
+            errors.append(f"{null_codes} rows have null scrip_code")
+
+        return CheckResult(
+            name="bse_scrip_codes_valid",
+            passed=not errors,
+            details=f"{len(df)} scrip codes validated",
+            errors=errors,
+        )
+
+    def check_bse_adjustment_factors_valid(self) -> CheckResult:
+        """Verify BSE adjustment factors are in (0, 1000]."""
+        path = self.curated_dir / "bse_fact_adjustment_factor.csv"
+        if not path.exists():
+            return CheckResult(
+                name="bse_adjustment_factors_valid",
+                passed=True,
+                details="bse_fact_adjustment_factor.csv not found — skipping",
+            )
+
+        df = pd.read_csv(path)
+        errors = []
+        for col in [
+            "cumulative_split_adjustment",
+            "cumulative_bonus_adjustment",
+            "total_adjustment_factor",
+        ]:
+            if col not in df.columns:
+                continue
+            non_positive = (df[col] <= 0).sum()
+            extreme = (df[col] > 1000).sum()
+            if non_positive:
+                errors.append(f"BSE {col}: {non_positive} non-positive values")
+            if extreme:
+                errors.append(f"BSE {col}: {extreme} values > 1000 (likely data error)")
+
+        return CheckResult(
+            name="bse_adjustment_factors_valid",
+            passed=not errors,
+            details=f"{len(df)} BSE adjustment rows checked",
+            errors=errors,
+        )
+
+    def check_isin_bridge_integrity(self) -> CheckResult:
+        """
+        Verify every ISIN in fact_exchange_security_map appears in at least
+        one of NSE dim_security_master or BSE dim_bse_scrip_master.
+        """
+        bridge_path = self.curated_dir / "fact_exchange_security_map.csv"
+        if not bridge_path.exists():
+            return CheckResult(
+                name="isin_bridge_integrity",
+                passed=True,
+                details="fact_exchange_security_map.csv not found — skipping",
+            )
+
+        bridge = pd.read_csv(bridge_path)
+        if "isin" not in bridge.columns:
+            return CheckResult(
+                name="isin_bridge_integrity",
+                passed=False,
+                errors=["isin column missing from fact_exchange_security_map.csv"],
+            )
+
+        nse_path = self.curated_dir / "dim_security_master.csv"
+        bse_path = self.curated_dir / "dim_bse_scrip_master.csv"
+
+        known_isins: set[str] = set()
+        for path, col in [(nse_path, "isin"), (bse_path, "isin")]:
+            if path.exists():
+                df = pd.read_csv(path)
+                if col in df.columns:
+                    known_isins.update(df[col].dropna().astype(str).str.upper())
+
+        bridge_isins = set(bridge["isin"].dropna().astype(str).str.upper())
+        orphan_isins = bridge_isins - known_isins
+        errors = []
+        if orphan_isins:
+            errors.append(
+                f"{len(orphan_isins)} ISINs in bridge not found in any security master "
+                f"(e.g. {list(orphan_isins)[:3]})"
+            )
+
+        dual_listed = (
+            (bridge["is_bse_only"].eq(False) & bridge["is_nse_only"].eq(False)).sum()
+            if "is_bse_only" in bridge.columns and "is_nse_only" in bridge.columns
+            else 0
+        )
+
+        return CheckResult(
+            name="isin_bridge_integrity",
+            passed=not errors,
+            details=f"{len(bridge_isins)} bridge ISINs checked; {dual_listed} dual-listed",
+            errors=errors,
+        )
+
+    def run_bse_checks(self) -> list[CheckResult]:
+        """Run all BSE-specific curated-file checks and return results."""
+        checks = [
+            self.check_bse_files_exist,
+            self.check_bse_scrip_codes_valid,
+            self.check_bse_adjustment_factors_valid,
+            self.check_isin_bridge_integrity,
+        ]
+        results = []
+        for fn in checks:
+            try:
+                result = fn()
+                status = "PASS" if result.passed else "FAIL"
+                logger.info("[%s] %s — %s", status, result.name, result.details)
+                results.append(result)
+            except Exception as exc:
+                logger.error("BSE check %s raised: %s", fn.__name__, exc)
+                results.append(
+                    CheckResult(name=fn.__name__, passed=False, errors=[str(exc)])
+                )
+        return results
+
     def run_curated_checks(self) -> list[CheckResult]:
         """Run all curated-file checks and return results."""
         checks = [

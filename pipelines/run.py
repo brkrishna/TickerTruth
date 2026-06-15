@@ -366,6 +366,10 @@ def collect_stats(run_date: date) -> dict:
         "new_actions": csv_rows(curated / "fact_corporate_action_event.csv"),
         "lineage_events": csv_rows(curated / "fact_symbol_lineage_event.csv"),
         "adjustment_rows": csv_rows(curated / "fact_adjustment_factor.csv"),
+        "bse_scrips": csv_rows(curated / "dim_bse_scrip_master.csv"),
+        "bse_actions": csv_rows(curated / "bse_fact_corporate_action_event.csv"),
+        "isin_bridge_rows": csv_rows(curated / "fact_exchange_security_map.csv"),
+        "bse_adjustment_rows": csv_rows(curated / "bse_fact_adjustment_factor.csv"),
     }
 
     quality_report = staging / f"quality_report_{run_date.isoformat()}.json"
@@ -377,14 +381,237 @@ def collect_stats(run_date: date) -> dict:
             pass
 
     logger.info(
-        "[stats] securities=%d  actions=%d  lineage=%d  adjustments=%d  warnings=%d",
+        "[stats] NSE: securities=%d  actions=%d  lineage=%d  adjustments=%d  warnings=%d",
         stats["new_securities"],
         stats["new_actions"],
         stats["lineage_events"],
         stats["adjustment_rows"],
         len(stats.get("quality_warnings", [])),
     )
+    logger.info(
+        "[stats] BSE: scrips=%d  actions=%d  bridge=%d  adjustments=%d",
+        stats["bse_scrips"],
+        stats["bse_actions"],
+        stats["isin_bridge_rows"],
+        stats["bse_adjustment_rows"],
+    )
     return stats
+
+
+def run_extract_bse(run_date: date) -> bool:
+    """BSE extract: fetch scrip master, bhavcopy, corporate actions → data/raw/bse/."""
+    from pipelines.extract.bse_extractor import BSERawDataExtractor
+
+    extractor = BSERawDataExtractor()
+    staging_dir = PROJECT_ROOT / "data" / "staging"
+    ok = True
+
+    logger.info("[extract-bse] Fetching BSE equity master...")
+    try:
+        df = extractor.fetch_bse_equity_master()
+        logger.info("[extract-bse] Scrips: %d rows", len(df))
+    except Exception as exc:
+        logger.error("[extract-bse] fetch_bse_equity_master failed: %s", exc)
+        ok = False
+
+    logger.info("[extract-bse] Fetching bhavcopy for %s...", run_date)
+    try:
+        df = extractor.fetch_bse_bhavcopy(run_date)
+        logger.info("[extract-bse] Bhavcopy: %d rows", len(df))
+    except Exception as exc:
+        logger.warning("[extract-bse] fetch_bse_bhavcopy failed (non-fatal): %s", exc)
+
+    logger.info("[extract-bse] Fetching corporate actions...")
+    try:
+        df = extractor.fetch_bse_corporate_actions()
+        logger.info("[extract-bse] Corporate actions: %d rows", len(df))
+    except Exception as exc:
+        logger.warning(
+            "[extract-bse] fetch_bse_corporate_actions failed (non-fatal): %s", exc
+        )
+
+    logger.info("[extract-bse] Consolidating to staging...")
+    try:
+        report = extractor.consolidate_bse_to_staging(
+            staging_dir=staging_dir, run_date=run_date
+        )
+        for src, stats in report.items():
+            logger.info(
+                "[extract-bse] staging.%s: %d rows",
+                src,
+                stats.get("rows_after_dedup", 0),
+            )
+    except Exception as exc:
+        logger.error("[extract-bse] consolidate_bse_to_staging failed: %s", exc)
+        ok = False
+
+    return ok
+
+
+def run_normalize_bse(run_date: date) -> bool:
+    """BSE normalize: map staging data → dim_bse_scrip_master + fact CAs."""
+    import pandas as pd
+    from pipelines.normalize.bse_normalizer import BSERawToCanonicalMapper
+
+    curated_dir = PROJECT_ROOT / "data" / "curated"
+    staging_dir = PROJECT_ROOT / "data" / "staging"
+    curated_dir.mkdir(parents=True, exist_ok=True)
+
+    scrips_path = staging_dir / "bse_scrips_consolidated.csv"
+    actions_path = staging_dir / "bse_actions_consolidated.csv"
+
+    if not scrips_path.exists():
+        logger.warning(
+            "[normalize-bse] bse_scrips_consolidated.csv not found — skipping"
+        )
+        return True
+
+    try:
+        mapper = BSERawToCanonicalMapper(source_file=scrips_path.name)
+        raw_scrips = pd.read_csv(scrips_path, dtype={"SCRIP_CODE": str})
+
+        dim_bse = mapper.map_to_dim_bse_scrip_master(raw_scrips)
+        dim_bse.to_csv(curated_dir / "dim_bse_scrip_master.csv", index=False)
+        logger.info("[normalize-bse] dim_bse_scrip_master: %d rows", len(dim_bse))
+
+        if actions_path.exists():
+            raw_actions = pd.read_csv(actions_path)
+            fact_bse_ca = mapper.map_to_fact_bse_corporate_action_event(
+                raw_actions, dim_bse
+            )
+            fact_bse_ca.to_csv(
+                curated_dir / "bse_fact_corporate_action_event.csv", index=False
+            )
+            logger.info(
+                "[normalize-bse] bse_fact_corporate_action_event: %d rows",
+                len(fact_bse_ca),
+            )
+        else:
+            logger.warning(
+                "[normalize-bse] bse_actions_consolidated.csv not found — skipping actions"
+            )
+
+        return True
+    except Exception as exc:
+        logger.error("[normalize-bse] failed: %s", exc)
+        return False
+
+
+def run_lineage_bse(run_date: date) -> bool:
+    """BSE lineage: detect scrip events and build ISIN bridge."""
+    import pandas as pd
+    from pipelines.lineage.isin_bridge import ISINBridgeBuilder
+
+    curated_dir = PROJECT_ROOT / "data" / "curated"
+    bse_path = curated_dir / "dim_bse_scrip_master.csv"
+    nse_path = curated_dir / "dim_security_master.csv"
+
+    if not bse_path.exists():
+        logger.warning("[lineage-bse] dim_bse_scrip_master.csv not found — skipping")
+        return True
+
+    try:
+        bse_scrips = pd.read_csv(bse_path, dtype={"scrip_code": str})
+
+        if nse_path.exists():
+            nse_securities = pd.read_csv(nse_path)
+            builder = ISINBridgeBuilder()
+            bridge = builder.build(nse_securities=nse_securities, bse_scrips=bse_scrips)
+            bridge.to_csv(curated_dir / "fact_exchange_security_map.csv", index=False)
+            summary = builder.summarize(bridge)
+            logger.info(
+                "[lineage-bse] ISIN bridge: total=%d  dual=%d  bse_only=%d  nse_only=%d",
+                summary["total_isins"],
+                summary["dual_listed"],
+                summary["bse_only"],
+                summary["nse_only"],
+            )
+        else:
+            logger.warning(
+                "[lineage-bse] dim_security_master.csv not found — bridge skipped"
+            )
+
+        return True
+    except Exception as exc:
+        logger.error("[lineage-bse] failed: %s", exc)
+        return False
+
+
+def run_adjust_bse(run_date: date) -> bool:
+    """BSE adjustment factors + NSE cross-validation for dual-listed securities."""
+    import pandas as pd
+    from pipelines.adjustments.bse_adjuster import BSEAdjustmentFactorBuilder
+
+    curated_dir = PROJECT_ROOT / "data" / "curated"
+    ca_path = curated_dir / "bse_fact_corporate_action_event.csv"
+    dim_path = curated_dir / "dim_bse_scrip_master.csv"
+
+    if not ca_path.exists():
+        logger.warning(
+            "[adjust-bse] bse_fact_corporate_action_event.csv not found — skipping"
+        )
+        return True
+
+    try:
+        bse_actions = pd.read_csv(ca_path)
+        dim_bse = (
+            pd.read_csv(dim_path, dtype={"scrip_code": str})
+            if dim_path.exists()
+            else pd.DataFrame()
+        )
+        builder = BSEAdjustmentFactorBuilder()
+        bse_factors = builder.build_from_bse_actions(bse_actions, dim_bse)
+        bse_factors.to_csv(curated_dir / "bse_fact_adjustment_factor.csv", index=False)
+        logger.info(
+            "[adjust-bse] bse_fact_adjustment_factor: %d rows", len(bse_factors)
+        )
+
+        # Cross-validate vs NSE factors for dual-listed securities
+        nse_factors_path = curated_dir / "fact_adjustment_factor.csv"
+        bridge_path = curated_dir / "fact_exchange_security_map.csv"
+        if nse_factors_path.exists() and bridge_path.exists():
+            nse_factors = pd.read_csv(nse_factors_path)
+            bridge = pd.read_csv(bridge_path)
+            discrepancies = builder.cross_validate_with_nse(
+                bse_factors, nse_factors, bridge
+            )
+            if len(discrepancies):
+                logger.warning(
+                    "[adjust-bse] %d factor discrepancies between BSE and NSE "
+                    "(HIGH: %d, MEDIUM: %d, LOW: %d)",
+                    len(discrepancies),
+                    (discrepancies["discrepancy_severity"] == "HIGH").sum(),
+                    (discrepancies["discrepancy_severity"] == "MEDIUM").sum(),
+                    (discrepancies["discrepancy_severity"] == "LOW").sum(),
+                )
+                discrepancies.to_csv(
+                    curated_dir / "bse_nse_factor_discrepancies.csv", index=False
+                )
+            else:
+                logger.info("[adjust-bse] No factor discrepancies found with NSE")
+
+        return True
+    except Exception as exc:
+        logger.error("[adjust-bse] failed: %s", exc)
+        return False
+
+
+def run_validate_bse(run_date: date) -> bool:
+    """Run BSE-specific QA checks."""
+    from pipelines.publish.data_validator import DataValidator
+
+    validator = DataValidator()
+    results = validator.run_bse_checks()
+    summary = DataValidator.summarize(results)
+    for r in results:
+        status = "PASS" if r.passed else "FAIL"
+        logger.info("[validate-bse] [%s] %s — %s", status, r.name, r.details)
+        for err in r.errors:
+            logger.warning("[validate-bse]        %s", err)
+    logger.info(
+        "[validate-bse] %d/%d checks passed", summary["passed"], summary["total"]
+    )
+    return summary["all_passed"]
 
 
 def run_release_notes(run_date: date, stats: dict) -> bool:
@@ -440,6 +667,12 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         action="store_true",
         help="Skip Dolt commit and tag (import data but do not commit)",
     )
+    parser.add_argument(
+        "--exchange",
+        choices=["nse", "bse", "both"],
+        default="nse",
+        help="Which exchange(s) to process (default: nse)",
+    )
     return parser.parse_args(argv)
 
 
@@ -466,10 +699,15 @@ def main(argv: list[str] | None = None) -> int:
         logger.error("Unknown tasks: %s. Valid: %s", unknown, ALL_TASKS)
         return 2
 
+    exchange = args.exchange
+    include_nse = exchange in ("nse", "both")
+    include_bse = exchange in ("bse", "both")
+
     logger.info(
-        "Pipeline run: date=%s  tasks=%s  dry_run=%s",
+        "Pipeline run: date=%s  tasks=%s  exchange=%s  dry_run=%s",
         run_date,
         sorted(tasks),
+        exchange,
         args.dry_run,
     )
 
@@ -478,19 +716,34 @@ def main(argv: list[str] | None = None) -> int:
     stats: dict = {}
 
     if "extract" in tasks and not args.no_fetch:
-        results["extract"] = run_extract(run_date, args.dry_run)
+        if include_nse:
+            results["extract"] = run_extract(run_date, args.dry_run)
+        if include_bse:
+            results["extract-bse"] = run_extract_bse(run_date)
 
     if "normalize" in tasks:
-        results["normalize"] = run_normalize(run_date)
+        if include_nse:
+            results["normalize"] = run_normalize(run_date)
+        if include_bse:
+            results["normalize-bse"] = run_normalize_bse(run_date)
 
     if "lineage" in tasks:
-        results["lineage"] = run_lineage(run_date)
+        if include_nse:
+            results["lineage"] = run_lineage(run_date)
+        if include_bse:
+            results["lineage-bse"] = run_lineage_bse(run_date)
 
     if "adjust" in tasks:
-        results["adjust"] = run_adjust(run_date)
+        if include_nse:
+            results["adjust"] = run_adjust(run_date)
+        if include_bse:
+            results["adjust-bse"] = run_adjust_bse(run_date)
 
     if "validate" in tasks:
-        results["validate"] = run_validate(run_date)
+        if include_nse:
+            results["validate"] = run_validate(run_date)
+        if include_bse:
+            results["validate-bse"] = run_validate_bse(run_date)
 
     if "load" in tasks:
         validate_passed = results.get("validate", True)
