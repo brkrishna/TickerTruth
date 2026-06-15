@@ -17,3 +17,78 @@ company_name_rules:
   - strip_extra_spaces
   - normalize_special_chars
   - remove_limited_variants
+
+# ── BSE-specific mappings ─────────────────────────────────────────────────────
+
+bse_action_type_mapping:
+  # Keys are raw 'purpose' strings (lowercased, stripped) from BSE API.
+  # Values map to the canonical action taxonomy shared with NSE.
+  "bonus issue":             BONUS
+  "bonus":                   BONUS
+  "stock split":             SPLIT
+  "sub-division":            SPLIT
+  "sub division":            SPLIT
+  "face value split":        SPLIT
+  "stock consolidation":     REVERSE_SPLIT
+  "consolidation":           REVERSE_SPLIT
+  "reverse split":           REVERSE_SPLIT
+  "interim dividend":        DIVIDEND
+  "final dividend":          DIVIDEND
+  "dividend":                DIVIDEND
+  "special dividend":        DIVIDEND
+  "rights issue":            RIGHTS
+  "rights":                  RIGHTS
+  "merger":                  MERGER
+  "amalgamation":            MERGER
+  "scheme of arrangement":   MERGER
+  "demerger":                DEMERGER
+  "spin-off":                DEMERGER
+  "name change":             NAME_CHANGE
+  "change in company name":  NAME_CHANGE
+  "delisting":               DELISTING
+  "voluntary delisting":     DELISTING
+  "compulsory delisting":    DELISTING
+  "suspension":              SUSPENSION
+  "re-listing":              RELISTING
+  "face value change":       FACE_VALUE_CHANGE
+  "capital reduction":       CAPITAL_REDUCTION
+
+bse_scrip_column_aliases:
+  # Maps BSE API response keys → our canonical column names
+  "SCRIP_CD":     SCRIP_CODE
+  "SC_CD":        SCRIP_CODE
+  "Scrip_Cd":     SCRIP_CODE
+  "scripCode":    SCRIP_CODE
+  "SCRIP_CODE":   SCRIP_CODE
+  "SC_NAME":      SCRIP_NAME
+  "Scrip_Name":   SCRIP_NAME
+  "scrip_name":   SCRIP_NAME
+  "scripName":    SCRIP_NAME
+  "COMPANY_NAME": COMPANY_NAME
+  "company_name": COMPANY_NAME
+  "ISIN_CODE":    ISIN
+  "ISIN":         ISIN
+  "isin_code":    ISIN
+  "isin":         ISIN
+  "GROUP":        SEGMENT
+  "Segment":      SEGMENT
+  "Status":       STATUS
+  "STATUS":       STATUS
+  "DT_DATE":      LISTING_DATE
+  "listing_date": LISTING_DATE
+
+bse_bhavcopy_column_aliases:
+  # BSE bhavcopy CSV column → canonical name
+  "SC_CODE":      SCRIP_CODE
+  "SC_NAME":      SCRIP_NAME
+  "SC_GROUP":     SEGMENT
+  "SC_TYPE":      SERIES
+  "OPEN":         OPEN
+  "HIGH":         HIGH
+  "LOW":          LOW
+  "CLOSE":        CLOSE
+  "LAST":         LAST
+  "PREVCLOSE":    PREVCLOSE
+  "NO_TRADES":    TOTALTRADES
+  "NET_TURNOV":   TOTTRDVAL
+  "TDCLOINDI":    CLOSE_IND

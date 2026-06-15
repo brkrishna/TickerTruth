@@ -232,14 +232,118 @@ sources:
       - All symbols in file are valid trading securities
       - Volume = 0 may indicate suspension or delisting
 
-  # Future sources (Phase 2 extensions)
-  # bse_master:
-  #   name: "BSE Listed Companies Master"
-  #   primary_url: "https://www.bseindia.com"
-  #   format: "csv"
-  #   frequency: "daily"
-  #   access_method: "web_scrape"
-  #   notes: "Excluded from MVP; included for future multi-exchange support"
+  bse_equity_master:
+    name: "BSE Listed Companies Master"
+    # Returns JSON array; no session cookie required as of 2026
+    primary_url: "https://api.bseindia.com/BseIndiaAPI/api/ListofScripData/w"
+    primary_params:
+      Group: ""
+      Scripcode: ""
+      industry: ""
+      segment: "Equity"
+      status: "Active"
+      ListType: "Main"
+    # Fallback: download full equity list CSV from BSE corporate page
+    fallback_url: "https://www.bseindia.com/corporates/List_Scrips.html"
+    format: "json"
+    frequency: "daily"
+    access_method: "http_api"
+
+    expected_fields:
+      - scrip_code      # numeric, e.g. "500325"
+      - scrip_name      # short name ≤12 chars
+      - company_name    # full registered name
+      - isin
+      - segment         # EQ / SME / MF
+      - status          # Active / Delisted / Suspended
+      - listing_date
+
+    output:
+      directory: "data/raw"
+      filename_pattern: "bse_equity_master_{YYYY-MM-DD}.csv"
+      compression: "none"
+
+    data_quality:
+      min_rows: 4000        # BSE lists ~5000+ scrips including SME
+      required_columns: [scrip_code, isin, scrip_name]
+      check_duplicates_on: [scrip_code]
+
+    notes: |
+      BSE uses numeric scrip codes (6 digits) as primary identifier, not ticker symbols.
+      ISIN is the natural join key to NSE. STATUS column is present (unlike NSE EQUITY_L.csv).
+      SME Board and BSE Emerge scrips share the same API; filter on segment=Equity for main board.
+
+  bse_bhavcopy:
+    name: "BSE Equity Bhavcopy (EOD Market Data)"
+    # Pattern: https://www.bseindia.com/download/BhavCopy/Equity/EQ{DDMMYYYY}_CSV.ZIP
+    primary_url: "https://www.bseindia.com/download/BhavCopy/Equity/"
+    url_pattern: "EQ{DDMMYYYY}_CSV.ZIP"
+    format: "csv_in_zip"
+    frequency: "daily"
+    access_method: "http_download"
+
+    expected_fields:
+      - scrip_code
+      - scrip_name
+      - open
+      - high
+      - low
+      - close
+      - no_trades
+      - net_turnov
+
+    output:
+      directory: "data/raw"
+      filename_pattern: "bse_bhavcopy_{YYYY-MM-DD}.csv"
+      compression: "none"
+
+    data_quality:
+      min_rows: 3000
+      required_columns: [scrip_code, open, high, low, close]
+      validate_prices: true
+
+    notes: |
+      BSE bhavcopy ZIP naming: EQ{DDMMYYYY}_CSV.ZIP (zero-padded DD, MM).
+      No authentication required for historical bhavcopy archive downloads.
+      Column names differ from NSE: uses scrip_code/scrip_name, not SYMBOL.
+
+  bse_corporate_actions:
+    name: "BSE Corporate Actions"
+    # BSE API returns JSON; from_date and to_date in DD/MM/YYYY format
+    primary_url: "https://api.bseindia.com/BseIndiaAPI/api/CorporateActionData/w"
+    primary_params:
+      scripcode: ""         # empty = all scrips
+      FromDate: "{DD/MM/YYYY}"
+      ToDate: "{DD/MM/YYYY}"
+      CorporateAcType: ""   # empty = all types
+    format: "json"
+    frequency: "daily"
+    access_method: "http_api"
+
+    expected_fields:
+      - scrip_code
+      - scrip_name
+      - purpose           # raw action description
+      - ex_date
+      - record_date
+      - payment_date
+      - bcstartdate
+      - bcenddate
+
+    output:
+      directory: "data/raw"
+      filename_pattern: "bse_actions_{from}_{to}.csv"
+      compression: "none"
+
+    data_quality:
+      required_columns: [scrip_code, purpose, ex_date]
+      validate_dates: true
+
+    notes: |
+      BSE API uses DD/MM/YYYY for date params (different from NSE DD-MM-YYYY).
+      'purpose' field contains raw action strings; map to canonical taxonomy in normalize step.
+      BSE often omits ex_date for dividends announced far in advance; flag with LOW confidence.
+      Chunk large date ranges into 30-day windows to stay within API limits.
 
 # Global extraction settings
 global:

@@ -1,4 +1,5 @@
 -- Core schema for India Symbol History and Corporate Actions Truth Layer
+-- BSE extensions added in migration 002_bse_scrip_master.sql
 
 -- ============================================================================
 -- DIMENSION TABLES
