@@ -6,7 +6,7 @@
   <title>TickerTruth — India Corporate Actions &amp; Symbol History</title>
 
   <!-- SEO -->
-  <meta name="description" content="Versioned NSE corporate actions, symbol lineage, and adjustment factors for India equity backtesting. Monthly CSV and Parquet releases with confidence scores and full ticker history.">
+  <meta name="description" content="Versioned NSE + BSE corporate actions, symbol lineage, and adjustment factors for India equity backtesting. Monthly CSV and Parquet releases with ISIN bridge, confidence scores, and full ticker history.">
   <meta name="robots" content="index, follow">
   <link rel="canonical" href="https://tickertruth.com/">
 
@@ -14,14 +14,14 @@
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="TickerTruth">
   <meta property="og:title" content="TickerTruth — India Corporate Actions &amp; Symbol History">
-  <meta property="og:description" content="Versioned NSE corporate actions, symbol lineage, and adjustment factors for India equity backtesting. Monthly CSV and Parquet releases with confidence scores and full ticker history.">
+  <meta property="og:description" content="Versioned NSE + BSE corporate actions, symbol lineage, and adjustment factors for India equity backtesting. Monthly releases with ISIN bridge, cross-exchange reconciliation, and full ticker history.">
   <meta property="og:url" content="https://tickertruth.com/">
   <meta property="og:image" content="https://tickertruth.com/assets/images/tickertruth_og.png">
 
   <!-- Twitter Card -->
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="TickerTruth — India Corporate Actions &amp; Symbol History">
-  <meta name="twitter:description" content="Versioned NSE corporate actions, symbol lineage, and adjustment factors for India equity backtesting. Monthly CSV and Parquet releases.">
+  <meta name="twitter:description" content="Versioned NSE + BSE corporate actions, symbol lineage, and adjustment factors for India equity backtesting. Now with cross-exchange ISIN bridge and dual-listing reconciliation.">
   <meta name="twitter:image" content="https://tickertruth.com/assets/images/tickertruth_og.png">
 
   <!-- Structured data -->
@@ -47,12 +47,12 @@
       },
       {
         "@type": "Dataset",
-        "name": "NSE India Symbol History and Corporate Actions",
-        "description": "Versioned reference dataset covering NSE-listed equities: corporate action events, symbol lineage, adjustment factors, and security master with ISIN mappings.",
+        "name": "NSE + BSE India Symbol History and Corporate Actions",
+        "description": "Versioned reference dataset covering NSE and BSE-listed equities: corporate action events, symbol lineage, adjustment factors, ISIN bridge, and security master with cross-exchange reconciliation.",
         "url": "https://tickertruth.com/",
         "creator": { "@type": "Organization", "name": "TickerTruth" },
         "license": "https://tickertruth.com/pricing.html",
-        "keywords": ["NSE", "India", "corporate actions", "symbol history", "adjustment factors", "backtesting", "equity data"]
+        "keywords": ["NSE", "BSE", "India", "corporate actions", "symbol history", "adjustment factors", "backtesting", "equity data", "ISIN", "dual listing"]
       }
     ]
   }
@@ -418,12 +418,13 @@
       <img src="assets/images/tickertruth_hero_image.svg" alt="TickerTruth — NSE Symbol Lineage &amp; Corporate Actions Reference" width="690" height="410">
     </div>
     <div class="hero">
-      <div class="hero-badge">NSE Reference Data · Monthly Releases</div>
+      <div class="hero-badge">NSE + BSE Reference Data · Monthly Releases</div>
       <h1>India Corporate Actions &amp; Symbol History Truth Layer</h1>
       <p>
-        A versioned, low-cost reference data product for NSE-listed equities —
+        A versioned, low-cost reference data product for NSE and BSE-listed equities —
         solving the broken-backtest problem caused by incorrect ticker history
-        and missing corporate action adjustments.
+        and missing corporate action adjustments. Now with a cross-exchange ISIN bridge
+        that flags BSE/NSE date conflicts and reconciles dual-listed securities.
       </p>
       <div class="cta">
         <a href="pricing.html" class="btn btn-primary">View Pricing</a>
@@ -438,7 +439,7 @@
     <div class="stat-item"><div class="stat-val">2,388+</div><div class="stat-label">Securities Tracked</div></div>
     <div class="stat-item"><div class="stat-val">20+ yrs</div><div class="stat-label">History Depth</div></div>
     <div class="stat-item"><div class="stat-val">Monthly</div><div class="stat-label">Release Cadence</div></div>
-    <div class="stat-item"><div class="stat-val">NSE</div><div class="stat-label">Exchange Coverage</div></div>
+    <div class="stat-item"><div class="stat-val">NSE + BSE</div><div class="stat-label">Exchange Coverage</div></div>
   </div>
 
   <hr class="divider">
@@ -496,6 +497,12 @@
         <a href="https://colab.research.google.com/github/brkrishna/TickerTruth/blob/main/notebooks/action_event_examples.ipynb"
            target="_blank" rel="noopener">Open in Colab ↗</a>
       </div>
+      <div class="notebook-card">
+        <h4>BSE/NSE Dual-Listing Reconciliation</h4>
+        <p>Use the ISIN bridge to find dual-listed securities, detect corporate action date conflicts between exchanges, and cross-validate adjustment factors.</p>
+        <a href="https://colab.research.google.com/github/brkrishna/TickerTruth/blob/main/notebooks/bse_nse_dual_listing_reconciliation.ipynb"
+           target="_blank" rel="noopener">Open in Colab ↗</a>
+      </div>
     </div>
   </section>
 
@@ -505,8 +512,10 @@
     <h2>What We Provide</h2>
     <ul class="features">
       <li><strong>Symbol lineage</strong> — complete rename, merger, and delisting history for NSE-listed equities</li>
-      <li><strong>Corporate action events</strong> — normalized dividend, split, bonus, rights, and merger records</li>
-      <li><strong>Adjustment factors</strong> — pre-computed multipliers for backtest-ready price series normalization</li>
+      <li><strong>BSE scrip history</strong> — BSE scrip master with name changes, delistings, relistings, and the rare code-reassignment edge case</li>
+      <li><strong>Corporate action events</strong> — normalized dividend, split, bonus, rights, and merger records for NSE and BSE</li>
+      <li><strong>Adjustment factors</strong> — pre-computed multipliers for backtest-ready price series normalization on both exchanges</li>
+      <li><strong>ISIN bridge</strong> — cross-exchange entity map identifying dual-listed, BSE-only, and NSE-only securities; flags CA date conflicts</li>
       <li><strong>Security master</strong> — active/inactive status, ISIN mappings, and identifier history</li>
       <li><strong>Monthly versioned releases</strong> — changelogs, Dolt history, and CSV/Parquet bundles</li>
     </ul>
@@ -556,7 +565,7 @@
 </main>
 
 <footer>
-  &copy; 2026 TickerTruth &middot; NSE reference data for quantitative research
+  &copy; 2026 TickerTruth &middot; NSE + BSE reference data for quantitative research
 </footer>
 
 <script>
