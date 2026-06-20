@@ -10,9 +10,9 @@
 | Persona | Who they are | Pain point | Where to find them |
 |---|---|---|---|
 | **Quant Researcher** | Works at a prop desk, hedge fund, or systematic AIF. Builds backtests in Python/R. | Historical series are split-unadjusted. Mergers and delistings break price continuity. | LinkedIn, QuantLib India, GitHub |
-| **Fintech Data Engineer** | Builds financial data pipelines at a fintech or neo-broker. | Corporate actions arrive late, de-normalized, or wrong from vendors. | LinkedIn, Discord, Twitter/X |
+| **Fintech Data Engineer** | Builds financial data pipelines at a fintech or neo-broker. | Corporate actions arrive late, de-normalized, or wrong from vendors. | LinkedIn, Discord |
 | **Research Analyst (Broker side)** | Builds sector models or event studies at a brokerage. | NSE bulk-deal and corporate-action data needs manual cleanup before every analysis. | LinkedIn, BSE/NSE analyst groups |
-| **Algo Trader / Indie Quant** | Self-funded, builds systematic strategies on NSE. | Suffers survivorship bias because data providers quietly drop dead tickers. | Twitter/X, Reddit (r/IndiaInvestments, r/algotrading), Discord |
+| **Algo Trader / Indie Quant** | Self-funded, builds systematic strategies on NSE. | Suffers survivorship bias because data providers quietly drop dead tickers. | Reddit (r/IndiaInvestments, r/algotrading), Discord |
 | **Head of Data / CTO at Fintech** | Budget holder at a Series A–C fintech with a data team. | Evaluates buy vs. build on reference data; the team keeps re-solving the same cleanup problems. | LinkedIn |
 
 ### Secondary — amplifiers (do not pitch directly; engage authentically)
@@ -53,29 +53,21 @@
 
 ---
 
-### 3.2 Twitter/X — secondary channel for indie quants and visibility
-
-**Audience:** Indie algo traders, quant finance Twitter, open-source finance community  
-**Tone:** Short, punchy, data-led. Threads work well. Link to LinkedIn for depth.  
-**Goal:** 3 posts/week; engage replies from #QuantFinance #IndiaMarkets threads
-
----
-
-### 3.3 GitHub — credibility and discoverability
+### 3.2 GitHub — credibility and discoverability
 
 **Audience:** Data engineers, quants who evaluate vendor trustworthiness via code  
 **Goal:** Strong README with methodology summary, sample notebooks, and a link to the dataset. Star count is social proof.
 
 ---
 
-### 3.4 Hugging Face — passive inbound from the ML/data science community
+### 3.3 Hugging Face — passive inbound from the ML/data science community
 
 **Audience:** ML practitioners who need financial data, data scientists building India market models  
 **Goal:** Well-described dataset card, sample usage notebooks, link to TickerTruth for full access
 
 ---
 
-### 3.5 Reddit — community engagement (not direct selling)
+### 3.4 Reddit — community engagement (not direct selling)
 
 **Subreddits:** r/algotrading, r/IndiaInvestments, r/quant, r/dataisbeautiful  
 **Tone:** Helpful community member. Share findings, not product pitches. Add value in comments.  
@@ -83,7 +75,7 @@
 
 ---
 
-### 3.6 Direct outreach — highest conversion channel
+### 3.5 Direct outreach — highest conversion channel
 
 **Target list:** Heads of data / quant team leads at India-focused AMCs, AIFs, fintech firms  
 **Channels:** LinkedIn DM, cold email  
@@ -102,7 +94,6 @@
 | Mon | LinkedIn | **Post 1:** "Why India backtests break" — the symbol continuity problem |
 | Wed | GitHub | Polish README with methodology summary and link to tickertruth.com |
 | Thu | Hugging Face | Update dataset card with use-case description and sample notebook |
-| Fri | Twitter/X | Short thread teasing the LinkedIn post; link to dataset |
 
 ### Week 2 — First Product Signal
 
@@ -110,7 +101,6 @@
 |---|---|---|
 | Mon | LinkedIn | **Post 2:** "Corporate actions are not just dividends and splits" |
 | Tue | Direct outreach | Batch 1: 10 DMs to quant leads and fintech data heads |
-| Wed | Twitter/X | Share a specific data finding — e.g., "X% of NSE tickers from 2015 are no longer active. Here's where they went." |
 | Fri | LinkedIn | Share the Hugging Face dataset with a short product context post |
 
 ### Week 3 — Community Seeding
@@ -120,7 +110,6 @@
 | Mon | LinkedIn | **Post 3:** "Survivorship bias in India equity data — the graveyard problem" |
 | Tue | Direct outreach | Batch 2: 10 DMs |
 | Wed | Reddit | Post in r/algotrading: share the "broken backtest" problem as a community question/finding |
-| Fri | Twitter/X | Thread: "5 corporate action types most India data vendors get wrong" |
 
 ### Week 4 — Sample Release + Pricing Reveal
 
@@ -129,7 +118,6 @@
 | Mon | LinkedIn | **Post 4:** Product post — "TickerTruth first public release: what's in it" |
 | Tue | Direct outreach | Batch 3: 10 DMs, mention first release |
 | Thu | LinkedIn | Share release notes link (tickertruth.com/release-notes) as a product update post |
-| Fri | Twitter/X | "We just published our first public dataset release. Here's what's inside." |
 
 ### Week 5 — Technical Depth
 
@@ -137,7 +125,7 @@
 |---|---|---|
 | Mon | LinkedIn | **Post 5:** Sample query walkthrough — "How to join symbol lineage to your price series in 5 lines of pandas" |
 | Wed | GitHub | Publish sample notebook: `adjusted_vs_raw_series.ipynb` |
-| Fri | Twitter/X | Share notebook snippet with chart: "Adjusted vs raw price after a bonus issue — the gap that breaks your backtest" |
+| Fri | LinkedIn | Share notebook snippet with chart: "Adjusted vs raw price after a bonus issue — the gap that breaks your backtest" |
 
 ### Week 6 — Social Proof / Design Partner Mention
 
@@ -153,7 +141,7 @@
 | Day | Platform | Content |
 |---|---|---|
 | Mon | LinkedIn | **Post 7:** "Rights issues, face-value changes, and capital reductions — the corporate actions your data vendor quietly ignores" |
-| Wed | Twitter/X | Poll: "What's the biggest pain with India historical data? (split adjustment / delistings / mergers / corporate actions)" |
+| Wed | LinkedIn | Poll: "What's the biggest pain with India historical data? (split adjustment / delistings / mergers / corporate actions)" |
 | Fri | LinkedIn | Share poll results with commentary |
 
 ### Week 8 — Release Notes Highlight
@@ -163,7 +151,6 @@
 | Mon | LinkedIn | **Post 8:** "Monthly release is out — here's what changed in the NSE security master this month" |
 | Tue | Direct outreach | Batch 5: 10 DMs to second-tier list (broker research teams, consultants) |
 | Thu | Hugging Face | Update dataset with latest monthly snapshot and notify in model card |
-| Fri | Twitter/X | "New release dropped. Full changelog at tickertruth.com/release-notes" |
 
 ### Week 9 — Use-Case Spotlights
 
@@ -171,7 +158,7 @@
 |---|---|---|
 | Mon | LinkedIn | **Post 9:** "Event-study methodology using correct corporate action dates — a before/after example" |
 | Wed | GitHub | Publish second notebook: `action_event_examples.ipynb` |
-| Fri | Twitter/X | Share the notebook with a striking chart |
+| Fri | LinkedIn | Share the notebook with a striking chart |
 
 ### Week 10 — Pain Amplification
 
@@ -186,7 +173,6 @@
 | Day | Platform | Content |
 |---|---|---|
 | Mon | LinkedIn | **Post 11:** "NSE data sources compared: what each gives you and what each misses" |
-| Wed | Twitter/X | Thread version of the comparison post |
 | Fri | LinkedIn | Engage and reply to all comments on Post 11 (comparison posts drive discussion) |
 
 ### Week 12 — Momentum Review + Next Quarter Tease
@@ -195,7 +181,7 @@
 |---|---|---|
 | Mon | LinkedIn | **Post 12:** "12 weeks of TickerTruth — what we've shipped and what's next" |
 | Thu | Direct outreach | Batch 7: Follow up on all warm leads from weeks 1–11 |
-| Fri | Twitter/X | "Q2 roadmap thread: what's coming to TickerTruth" |
+| Fri | LinkedIn | "Q2 roadmap: what's coming to TickerTruth" |
 
 ---
 
@@ -510,21 +496,6 @@
 
 ---
 
-### Twitter/X Thread — Week 2
-**"X% of NSE tickers from 2015 are gone"**
-
-> 1/ We pulled every NSE ticker listed as of Jan 2015 and checked their status today. Here's what we found: [data point]
->
-> 2/ [X%] are still active under the same ticker. But [Y%] have changed — mergers, name changes, delistings, or suspensions.
->
-> 3/ If your backtesting universe uses a static list of tickers from a snapshot, you're missing all of this movement. Your factor model's universe is contaminated.
->
-> 4/ We track all of it — listing status history, ticker renames, merge targets, delistings — in TickerTruth's security master. Versioned monthly.
->
-> 5/ Free sample at tickertruth.com. Full data from INR 15k/month.
-
----
-
 ### Direct Outreach DM — Template A (LinkedIn, cold)
 
 > Hi [Name], I noticed you're working on [quant/data engineering/analytics] at [Company] — looks like you're solving problems in the India equity space.
@@ -552,7 +523,6 @@
 | Cadence | Action |
 |---|---|
 | Every Monday | Publish 1 LinkedIn post (rotate through educational, product update, use-case) |
-| Every Wednesday | Twitter/X post or thread |
 | Every Tuesday | 10 direct outreach DMs |
 | Monthly (on release day) | LinkedIn release post + Hugging Face dataset update + subscriber email |
 | Monthly | 1 sample notebook or walkthrough published to GitHub |
@@ -579,7 +549,6 @@
 | Tool | Purpose | Cost |
 |---|---|---|
 | LinkedIn personal profile | All B2B content and DMs | Free |
-| Twitter/X account | Community and amplification | Free |
 | GitHub (existing) | Credibility, notebooks, README | Free |
 | Hugging Face (existing) | Passive discovery and sample distribution | Free |
 | Canva or similar | Simple charts for LinkedIn posts | Free tier |
@@ -594,4 +563,3 @@
 - Do not pitch in Reddit comments — add value first, link only when directly relevant
 - Do not claim real-time data coverage — TickerTruth is a monthly reference product
 - Do not compare directly to Bloomberg/Refinitiv on price or scale — compete on India-specificity and transparency
-- Do not post the same content verbatim across LinkedIn and Twitter — repurpose, don't duplicate
