@@ -1,8 +1,20 @@
 name = "tickertruth"
 pages_build_output_dir = "website/landing-page"
 
-# Contact form email delivery uses Resend (https://resend.com).
-# Set RESEND_API_KEY as an environment variable in the Pages dashboard:
-#   Pages > tickertruth > Settings > Environment variables > Add variable
-#   Variable name: RESEND_API_KEY   Value: re_xxxxxxxxxxxx
-# The sending domain (tickertruth.com) must be verified in your Resend account.
+# ── Environment variables ────────────────────────────────────────────────────
+# Set all of these in: Cloudflare Pages → tickertruth → Settings → Environment variables
+#
+# RESEND_API_KEY             (existing) Resend API key for email delivery
+#                            re_xxxxxxxxxxxx — from resend.com
+#                            Domain tickertruth.com must be verified in Resend.
+#
+# RAZORPAY_WEBHOOK_SECRET    Razorpay webhook signing secret
+#                            From: Razorpay Dashboard → Settings → Webhooks → <your webhook> → Secret
+#                            Webhook URL to register: https://tickertruth.com/api/razorpay-webhook
+#                            Event to subscribe: payment_link.paid
+#
+# STRIPE_WEBHOOK_SECRET      Stripe webhook signing secret
+#                            From: Stripe Dashboard → Developers → Webhooks → <your endpoint> → Signing secret
+#                            whsec_xxxxxxxxxxxx
+#                            Webhook URL to register: https://tickertruth.com/api/stripe-webhook
+#                            Events to subscribe: checkout.session.completed, invoice.paid

@@ -97,6 +97,19 @@
     .tier-features li::before { content: "✓"; position: absolute; left: 0; color: var(--green); font-size: 0.8rem; }
     .tier-usecase { font-size: 0.8rem; color: var(--text-muted); border-top: 1px solid var(--border); padding-top: 0.6rem; margin-top: auto; }
 
+    /* Payment buttons */
+    .tier-cta { display: flex; flex-direction: column; gap: 0.4rem; border-top: 1px solid var(--border); padding-top: 0.75rem; }
+    .btn-pay {
+      display: block; width: 100%;
+      padding: 0.55rem 1rem; border-radius: 6px;
+      font-size: 0.825rem; font-weight: 600; text-align: center;
+      text-decoration: none; transition: opacity 0.15s;
+    }
+    .btn-pay:hover { opacity: 0.85; text-decoration: none; }
+    .btn-pay-rzp  { background: #528FF0; color: #fff; }
+    .btn-pay-contact { background: var(--accent); color: #fff; }
+    .pay-note { font-size: 0.72rem; color: var(--text-muted); text-align: center; margin-top: 0.25rem; }
+
     /* Value prop */
     .value-points { display: flex; flex-direction: column; gap: 0.6rem; }
     .value-point {
@@ -239,7 +252,7 @@
       <div class="tier highlighted">
         <div class="tier-label">Most Popular</div>
         <div class="tier-name">Starter</div>
-        <div class="tier-price">INR 15,000–35,000 <span>/ month</span></div>
+        <div class="tier-price">INR 14,999 <span>/ month</span></div>
         <ul class="tier-features">
           <li>Full NSE symbol lineage history</li>
           <li>BSE scrip master and lineage events</li>
@@ -247,13 +260,19 @@
           <li>Monthly versioned releases</li>
           <li>Email support</li>
         </ul>
+        <div class="tier-cta">
+          <a href="https://rzp.io/rzp/kRMYpwc" target="_blank" rel="noopener" class="btn-pay btn-pay-rzp">
+            Subscribe — INR · UPI / Card
+          </a>
+          <p class="pay-note">Billed monthly. Cancel anytime.</p>
+        </div>
         <div class="tier-usecase">Small teams, backtesting, research</div>
       </div>
 
       <div class="tier">
         <div class="tier-label">Professional</div>
         <div class="tier-name">Professional</div>
-        <div class="tier-price">INR 40,000–1,00,000 <span>/ month</span></div>
+        <div class="tier-price">INR 39,999 <span>/ month</span></div>
         <ul class="tier-features">
           <li>Full NSE + BSE history including delisting data</li>
           <li>ISIN bridge and cross-exchange CA date conflict report</li>
@@ -261,6 +280,12 @@
           <li>Custom date ranges and exports</li>
           <li>Priority email support</li>
         </ul>
+        <div class="tier-cta">
+          <a href="https://rzp.io/rzp/FodnBDpD" target="_blank" rel="noopener" class="btn-pay btn-pay-rzp">
+            Subscribe — INR · UPI / Card
+          </a>
+          <p class="pay-note">Billed monthly. Cancel anytime.</p>
+        </div>
         <div class="tier-usecase">Production quant systems, broker platforms</div>
       </div>
 
