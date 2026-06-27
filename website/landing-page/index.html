@@ -7,6 +7,8 @@
 
   <!-- SEO -->
   <meta name="description" content="Versioned NSE + BSE corporate actions, symbol lineage, and adjustment factors for India equity backtesting. Monthly CSV and Parquet releases with ISIN bridge, confidence scores, and full ticker history.">
+  <meta name="keywords" content="NSE corporate actions data, BSE corporate actions data, India equity reference data, NSE symbol history, stock split data India, bonus issue data India, NSE ISIN database, India backtesting data, NSE ticker changes, equity adjustment factors India, NSE historical data download, India equity master data, symbol lineage NSE, NSE corporate actions API, India stock market data, NSE split history, BSE symbol changes, India quant data, algo trading India data, NSE equity data provider">
+  <meta name="author" content="TickerTruth">
   <meta name="robots" content="index, follow">
   <link rel="canonical" href="https://tickertruth.com/">
 
@@ -33,7 +35,7 @@
         "@type": "Organization",
         "name": "TickerTruth",
         "url": "https://tickertruth.com",
-        "description": "Versioned NSE corporate actions, symbol lineage, and adjustment factors for India equity backtesting.",
+        "description": "Versioned NSE and BSE corporate actions, symbol lineage, and adjustment factors for India equity backtesting and quantitative research.",
         "contactPoint": {
           "@type": "ContactPoint",
           "email": "connect@tickertruth.com",
@@ -43,16 +45,97 @@
       {
         "@type": "WebSite",
         "name": "TickerTruth",
-        "url": "https://tickertruth.com"
+        "url": "https://tickertruth.com",
+        "potentialAction": {
+          "@type": "SearchAction",
+          "target": "https://tickertruth.com/sample-queries.html?q={search_term_string}",
+          "query-input": "required name=search_term_string"
+        }
       },
       {
-        "@type": "Dataset",
-        "name": "NSE + BSE India Symbol History and Corporate Actions",
-        "description": "Versioned reference dataset covering NSE and BSE-listed equities: corporate action events, symbol lineage, adjustment factors, ISIN bridge, and security master with cross-exchange reconciliation.",
+        "@type": "DataCatalog",
+        "name": "TickerTruth India Equity Reference Data",
+        "description": "Curated, versioned reference datasets for NSE and BSE-listed equities: corporate action events, symbol lineage, adjustment factors, ISIN bridge, and security master.",
         "url": "https://tickertruth.com/",
         "creator": { "@type": "Organization", "name": "TickerTruth" },
-        "license": "https://tickertruth.com/pricing.html",
-        "keywords": ["NSE", "BSE", "India", "corporate actions", "symbol history", "adjustment factors", "backtesting", "equity data", "ISIN", "dual listing"]
+        "dataset": [
+          {
+            "@type": "Dataset",
+            "name": "NSE + BSE Corporate Action Events",
+            "description": "Normalised corporate action events for all NSE and BSE-listed equities: stock splits, bonus issues, rights issues, dividends, mergers, demergers, name changes, and delistings. Includes ex-date, ratio, confidence score, and source provenance.",
+            "url": "https://tickertruth.com/",
+            "creator": { "@type": "Organization", "name": "TickerTruth" },
+            "license": "https://tickertruth.com/pricing.html",
+            "temporalCoverage": "2000-01-01/..",
+            "spatialCoverage": "IN",
+            "keywords": ["NSE corporate actions", "BSE corporate actions", "India equity data", "stock split India", "bonus issue India", "dividend data India", "NSE ISIN", "India backtesting", "equity reference data", "NSE symbol history", "adjustment factors India", "ticker changes India"],
+            "distribution": [
+              { "@type": "DataDownload", "encodingFormat": "text/csv", "contentUrl": "https://tickertruth.com/pricing.html" },
+              { "@type": "DataDownload", "encodingFormat": "application/x-parquet", "contentUrl": "https://tickertruth.com/pricing.html" }
+            ]
+          },
+          {
+            "@type": "Dataset",
+            "name": "NSE Symbol Lineage and Ticker History",
+            "description": "Full ticker symbol change history for NSE-listed equities. Each record captures the old symbol, new symbol, change date, event type (RENAME / LISTING / DELISTING), ISIN bridge, and confidence score.",
+            "url": "https://tickertruth.com/",
+            "creator": { "@type": "Organization", "name": "TickerTruth" },
+            "keywords": ["NSE symbol change", "NSE ticker history", "NSE symbol rename", "India stock symbol history", "NSE delisting history", "ISIN bridge India"]
+          },
+          {
+            "@type": "Dataset",
+            "name": "India Equity Price Adjustment Factors",
+            "description": "Cumulative backward price and volume adjustment factors for NSE-listed equities, covering stock splits, bonus issues, and reverse splits. Use to build split-adjusted and fully-adjusted price series.",
+            "url": "https://tickertruth.com/",
+            "creator": { "@type": "Organization", "name": "TickerTruth" },
+            "keywords": ["India equity adjustment factors", "NSE split adjusted prices", "NSE price adjustment", "backtesting adjustment factors India", "India quant data"]
+          }
+        ]
+      },
+      {
+        "@type": "FAQPage",
+        "mainEntity": [
+          {
+            "@type": "Question",
+            "name": "What is TickerTruth?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "TickerTruth is a curated India equity reference data product covering NSE and BSE corporate actions, symbol lineage, and price adjustment factors. It publishes monthly versioned CSV and Parquet releases for use in backtesting, quantitative research, and financial data pipelines."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "What NSE corporate actions data is available?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "TickerTruth covers all NSE and BSE corporate action event types: stock splits, bonus issues, rights issues, dividends, mergers, demergers, name changes, and delistings. Each event includes the ex-date, ratio or amount, confidence score, and source provenance."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "How do I get NSE symbol change history?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "TickerTruth's symbol lineage dataset tracks every NSE ticker symbol change with old symbol, new symbol, change date, ISIN bridge, and event type. Available in CSV and Parquet as part of the Starter and Professional plans."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "What file formats are available?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "All datasets are delivered as CSV and Apache Parquet files, compatible with Pandas, Polars, DuckDB, PostgreSQL, and Dolt."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Is there a free tier?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Yes. The Explorer tier is free and includes sample datasets, SQL and Python query examples, and one release snapshot so you can evaluate data quality before purchasing."
+            }
+          }
+        ]
       }
     ]
   }

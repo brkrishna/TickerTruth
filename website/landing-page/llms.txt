@@ -1,0 +1,51 @@
+# TickerTruth
+
+> Clean, versioned reference data for India equity markets — NSE and BSE corporate actions, symbol lineage, and adjustment factors. Built for quantitative researchers, algo traders, and data engineers who need reliable historical data for backtesting.
+
+## What is TickerTruth?
+
+TickerTruth is a data product that normalises and curates India equity reference data from the National Stock Exchange (NSE) and Bombay Stock Exchange (BSE). It publishes monthly versioned releases in CSV and Parquet format, suitable for backtesting, portfolio analytics, and financial research.
+
+## What data is available?
+
+- **Corporate action events** — Stock splits, bonus issues, rights issues, dividends, mergers, demergers, name changes, and delistings for all NSE-listed equities. Each event includes the action type, ex-date, ratio/amount, source confidence score, and provenance.
+- **Symbol lineage** — Full ticker symbol history for every security: when a symbol changed, what it changed to, whether it was a rename vs. a new listing, and the ISIN bridge that links pre- and post-change records.
+- **Adjustment factors** — Cumulative backward price and volume adjustment factors for splits, bonus issues, and reverse splits. Use these to build split-adjusted price series.
+- **Security master / dim_security_master** — Current and historical security metadata: ISIN, symbol, company name, exchange listing date, series, face value, NSE-BSE dual-listing cross-reference.
+- **Issuer master / dim_issuer** — Company-level identity: registered name, ISIN prefix, sector, industry, CIN.
+
+## Who is it for?
+
+- Quant researchers and algo traders who backtest strategies on Indian equities and need accurate corporate action adjustments
+- Data engineers building financial data pipelines for NSE/BSE data
+- Portfolio managers tracking symbol changes and corporate events over time
+- Financial data vendors who need a reliable India equity reference layer
+
+## Problems it solves
+
+NSE and BSE publish corporate actions in inconsistent formats, with gaps, duplicates, and no versioned history. Backtesting engines that rely on raw exchange data silently skip splits or misattribute price jumps to missing adjustments. TickerTruth solves this by:
+1. Normalising all action types to a canonical schema
+2. Attaching confidence scores to each event (based on corroboration across sources)
+3. Linking every event to a security via stable ISIN, not just the current symbol
+4. Publishing immutable monthly snapshots so results are reproducible
+
+## Pricing
+
+- **Explorer (free)** — Sample datasets, SQL/Python query examples, one release snapshot
+- **Starter** — Full NSE corporate actions + symbol lineage history, CSV + Parquet, monthly releases
+- **Professional** — Full NSE + BSE cross-exchange reconciliation, adjustment factors, priority support
+
+See: https://tickertruth.com/pricing.html
+
+## Technical format
+
+- File formats: CSV and Apache Parquet
+- Distribution: direct download via signed URL (Cloudflare R2)
+- Schema documentation: https://tickertruth.com/methodology.html
+- Sample SQL/Python queries: https://tickertruth.com/sample-queries.html
+- Compatible with: Pandas, DuckDB, Polars, PostgreSQL, Dolt
+
+## Contact
+
+connect@tickertruth.com
+https://tickertruth.com/contact.html
