@@ -87,7 +87,7 @@ dolt/                     ← versioned tabular release (tagged)
 Cloudflare R2             ← downloadable bundles (free + paid)
 ```
 
-Pipeline stages: `extract → normalize → lineage → adjust → validate → load → export → manifest → release-notes → website → huggingface`
+Pipeline stages: `extract → normalize → lineage → adjust → validate → load → export → manifest → release-notes → website`
 
 ---
 

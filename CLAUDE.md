@@ -43,7 +43,7 @@ NSE (live) ──► data/raw/          ──► data/staging/        ──►
 ```
 
 Pipeline stages (task names for `--tasks`):
-`extract` → `normalize` → `lineage` → `adjust` → `validate` → `load` → `export` → `manifest` → `release-notes` → `website` → `huggingface`
+`extract` → `normalize` → `lineage` → `adjust` → `validate` → `load` → `export` → `manifest` → `release-notes` → `website`
 
 ## Key classes per module
 
@@ -86,7 +86,6 @@ Detection logic lives in `rules.py` (`LineageRulesEngine`). Confidence threshold
 | `access_manager.py` | `AccessManager` | Buyer registry (flat CSV); signed R2 URLs |
 | `release_notifier.py` | `ReleaseNotifier` | Generates versioned release notes files |
 | `website_updater.py` | `WebsiteUpdater` | Injects release card into `website/landing-page/` |
-| `huggingface_publisher.py` | `HuggingFacePublisher` | Pushes security master to HuggingFace Datasets |
 
 `config.yaml` defines tier contents, R2 bucket, email settings. Buyer state lives in `data/buyers/` (never committed).
 

@@ -43,7 +43,6 @@ ALL_TASKS = [
     "manifest",
     "release-notes",
     "website",
-    "huggingface",
 ]
 
 
@@ -321,17 +320,6 @@ def run_manifest(run_date: date, export_paths: dict) -> bool:
     except Exception as exc:
         logger.error("[manifest] failed: %s", exc)
         return False
-
-
-def run_huggingface(run_date: date, dry_run: bool) -> bool:
-    """Task: push refreshed security master to HuggingFace Datasets."""
-    from pipelines.publish.huggingface_publisher import HuggingFacePublisher
-
-    if dry_run:
-        logger.info("[huggingface] dry-run — skipping HuggingFace publish")
-        return True
-
-    return HuggingFacePublisher().publish(run_date)
 
 
 def run_website(run_date: date) -> bool:
@@ -769,10 +757,7 @@ def main(argv: list[str] | None = None) -> int:
     if "website" in tasks:
         results["website"] = run_website(run_date)
 
-    if "huggingface" in tasks:
-        results["huggingface"] = run_huggingface(run_date, args.dry_run)
-
-    # ── summary ───────────────────────────────────────────────────────────────
+    # ── summary───────────────────────────────────────────────────────────────
     logger.info("─" * 60)
     all_ok = True
     for task, ok in results.items():
