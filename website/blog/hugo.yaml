@@ -3,7 +3,8 @@ locale: en-us
 title: TickerTruth Blog
 publishDir: ../landing-page/blog
 
-paginate: 10
+pagination:
+  pagerSize: 10
 enableRobotsTXT: false
 summarylength: 40
 
