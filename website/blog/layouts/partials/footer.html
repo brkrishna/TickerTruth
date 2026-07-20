@@ -1,0 +1,20 @@
+<footer>
+  &copy; {{ now.Year }} TickerTruth &middot; NSE + BSE reference data for quantitative research
+  &middot; <a href="/blog/index.xml">RSS</a>
+</footer>
+
+<script>
+  const toggle = document.querySelector('.menu-toggle');
+  const mobileNav = document.querySelector('.mobile-nav');
+  toggle.addEventListener('click', () => {
+    const open = toggle.classList.toggle('open');
+    mobileNav.classList.toggle('open', open);
+    toggle.setAttribute('aria-expanded', open);
+  });
+  mobileNav.querySelectorAll('a').forEach(a => {
+    a.addEventListener('click', () => {
+      toggle.classList.remove('open');
+      mobileNav.classList.remove('open');
+    });
+  });
+</script>

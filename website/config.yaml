@@ -2,11 +2,16 @@ site_name: TickerTruth — India Symbol History & Corporate Actions Truth Layer
 site_description: Versioned NSE symbol lineage and corporate action reference data for backtesting.
 site_url: https://tickertruth.pages.dev
 
-# The site is built as plain static HTML — no MkDocs build step required.
+# The landing pages are plain static HTML — no build step for those.
 # Source files: website/landing-page/*.html
 #
+# The /blog/ section is a Hugo site built at deploy time.
+# Source: website/blog/  →  publishDir writes into website/landing-page/blog/
+# (generated, gitignored — never commit website/landing-page/blog/)
+#
 # Cloudflare Pages settings:
-#   Build command:        (leave blank)
+#   Build command:        hugo --source website/blog --minify
 #   Build output dir:     website/landing-page
+#   Env var:               HUGO_VERSION = 0.164.0
 #
 # This file is retained for site metadata only.

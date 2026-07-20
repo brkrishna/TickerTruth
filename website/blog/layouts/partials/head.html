@@ -1,0 +1,135 @@
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{ if .IsHome }}{{ .Site.Title }}{{ else }}{{ .Title }} — {{ .Site.Title }}{{ end }}</title>
+
+<meta name="description" content="{{ if .Description }}{{ .Description }}{{ else }}{{ .Site.Params.description }}{{ end }}">
+<meta name="author" content="TickerTruth">
+<meta name="robots" content="index, follow">
+<link rel="canonical" href="{{ .Permalink }}">
+
+<meta property="og:type" content="{{ if .IsPage }}article{{ else }}website{{ end }}">
+<meta property="og:site_name" content="{{ .Site.Title }}">
+<meta property="og:title" content="{{ if .IsHome }}{{ .Site.Title }}{{ else }}{{ .Title }}{{ end }}">
+<meta property="og:description" content="{{ if .Description }}{{ .Description }}{{ else }}{{ .Site.Params.description }}{{ end }}">
+<meta property="og:url" content="{{ .Permalink }}">
+<meta property="og:image" content="https://tickertruth.com/assets/images/tickertruth_og.png">
+
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="{{ if .IsHome }}{{ .Site.Title }}{{ else }}{{ .Title }}{{ end }}">
+<meta name="twitter:description" content="{{ if .Description }}{{ .Description }}{{ else }}{{ .Site.Params.description }}{{ end }}">
+<meta name="twitter:image" content="https://tickertruth.com/assets/images/tickertruth_og.png">
+
+{{ with .OutputFormats.Get "rss" }}
+<link rel="alternate" type="application/rss+xml" title="{{ $.Site.Title }}" href="{{ .Permalink }}">
+{{ end }}
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="icon" href="/assets/images/tickertruth_favicon.svg" type="image/svg+xml">
+<style>
+  :root {
+    --bg:             #06091a;
+    --surface:        #0c1228;
+    --surface-raised: #101930;
+    --border:         #1a2847;
+    --text:           #dbe8f8;
+    --text-muted:     #6b8db5;
+    --accent:         #3b82f6;
+    --accent-hover:   #2563eb;
+    --accent-glow:    rgba(59,130,246,0.12);
+    --green:          #10b981;
+    --amber:          #f59e0b;
+    --red:            #f87171;
+    --code-bg:        #020712;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 16px; line-height: 1.6; color: var(--text); background: var(--bg);
+  }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 1.25rem 2rem;
+    display: flex; align-items: center; justify-content: space-between;
+    position: sticky; top: 0; z-index: 50;
+  }
+  header .logo { display: flex; align-items: center; gap: 0.45rem; text-decoration: none; }
+  .logo-wordmark { font-family: Georgia, serif; font-size: 1.05rem; font-weight: 700; letter-spacing: 0.01em; line-height: 1; }
+  .logo-ticker { color: var(--text); }
+  .logo-truth  { color: var(--accent); }
+  header nav { display: flex; gap: 1.5rem; font-size: 0.875rem; }
+  header nav a { color: var(--text-muted); }
+  header nav a:hover { color: var(--text); text-decoration: none; }
+  header nav a.active { color: var(--text); }
+
+  .menu-toggle { display: none; background: none; border: none; cursor: pointer; padding: 0.25rem; color: var(--text); }
+  .menu-toggle span { display: block; width: 22px; height: 2px; background: currentColor; margin: 5px 0; transition: transform 0.2s, opacity 0.2s; }
+  .menu-toggle.open span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+  .menu-toggle.open span:nth-child(2) { opacity: 0; }
+  .menu-toggle.open span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+
+  .mobile-nav {
+    display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+    background: var(--surface); z-index: 49;
+    flex-direction: column; align-items: center; justify-content: center; gap: 2rem;
+  }
+  .mobile-nav a { font-size: 1.25rem; color: var(--text); font-weight: 500; }
+  .mobile-nav a:hover { color: var(--accent); text-decoration: none; }
+  .mobile-nav.open { display: flex; }
+
+  .page-header { max-width: 720px; margin: 3rem auto 2rem; padding: 0 2rem; border-bottom: 1px solid var(--border); padding-bottom: 2rem; }
+  .page-header h1 { font-size: 1.75rem; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 0.5rem; color: var(--text); }
+  .page-header p { color: var(--text-muted); }
+
+  section { margin: 2.5rem 0; }
+  h2 { font-size: 1.35rem; font-weight: 700; letter-spacing: -0.01em; color: var(--text); margin: 2rem 0 0.75rem; }
+  h3 { font-size: 1.1rem; font-weight: 600; margin: 1.5rem 0 0.5rem; color: var(--text); }
+  p { color: var(--text-muted); margin-bottom: 1rem; }
+  ul, ol { color: var(--text-muted); margin: 0 0 1rem 1.25rem; }
+  li { margin-bottom: 0.35rem; }
+  blockquote { border-left: 3px solid var(--accent); padding-left: 1rem; color: var(--text-muted); font-style: italic; margin: 1rem 0; }
+  code { font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 0.85em; background: var(--code-bg); color: var(--text); padding: 0.15em 0.4em; border-radius: 4px; }
+  pre { background: var(--code-bg); border: 1px solid var(--border); border-radius: 8px; padding: 1rem; overflow-x: auto; margin-bottom: 1rem; }
+  pre code { background: none; padding: 0; }
+  hr.divider, hr { border: none; border-top: 1px solid var(--border); margin: 2rem 0; }
+  img { max-width: 100%; border-radius: 8px; }
+  table { width: 100%; border-collapse: collapse; font-size: 0.9rem; margin: 1rem 0; }
+  thead th { text-align: left; padding: 0.6rem 0.75rem; background: var(--surface-raised); font-weight: 600; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); }
+  tbody td { padding: 0.6rem 0.75rem; border-top: 1px solid var(--border); color: var(--text-muted); vertical-align: top; }
+
+  /* Post list */
+  .post-list { display: flex; flex-direction: column; gap: 1rem; max-width: 720px; margin: 2rem auto; padding: 0 2rem; }
+  .post-card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 1.25rem 1.5rem; }
+  .post-card h2 { margin: 0 0 0.35rem; font-size: 1.1rem; }
+  .post-card h2 a { color: var(--text); }
+  .post-card h2 a:hover { color: var(--accent); }
+  .post-date { font-size: 0.8rem; color: var(--text-muted); font-family: 'JetBrains Mono', ui-monospace, monospace; margin-bottom: 0.5rem; }
+  .post-summary { color: var(--text-muted); font-size: 0.9rem; }
+  .post-tags { margin-top: 0.75rem; display: flex; gap: 0.5rem; flex-wrap: wrap; }
+  .tag { font-size: 0.75rem; color: var(--accent); background: var(--accent-glow); padding: 0.15rem 0.6rem; border-radius: 999px; }
+
+  /* Single post */
+  .post-header { max-width: 720px; margin: 3rem auto 2rem; padding: 0 2rem; }
+  .post-header h1 { font-size: 1.9rem; font-weight: 700; letter-spacing: -0.02em; color: var(--text); margin-bottom: 0.5rem; }
+  .post-meta { font-size: 0.85rem; color: var(--text-muted); font-family: 'JetBrains Mono', ui-monospace, monospace; }
+  .post-body { max-width: 720px; margin: 0 auto 3rem; padding: 0 2rem; }
+
+  footer {
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    padding: 2rem;
+    text-align: center; font-size: 0.8rem; color: var(--text-muted); margin-top: 4rem;
+  }
+  footer a { color: var(--text-muted); }
+  footer a:hover { color: var(--accent); }
+
+  @media (max-width: 600px) {
+    header nav { display: none; }
+    .menu-toggle { display: block; }
+  }
+</style>

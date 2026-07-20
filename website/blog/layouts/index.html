@@ -1,0 +1,25 @@
+{{ define "main" }}
+<div class="page-header">
+  <h1>{{ .Site.Title }}</h1>
+  <p>{{ .Site.Params.description }}</p>
+</div>
+
+<main>
+  <div class="post-list">
+    {{ range (where .Site.RegularPages "Type" "posts") }}
+    <article class="post-card">
+      <div class="post-date">{{ .Date.Format "2006-01-02" }}</div>
+      <h2><a href="{{ .RelPermalink }}">{{ .Title }}</a></h2>
+      <div class="post-summary">{{ .Summary }}</div>
+      {{ with .Params.tags }}
+      <div class="post-tags">
+        {{ range . }}<span class="tag">{{ . }}</span>{{ end }}
+      </div>
+      {{ end }}
+    </article>
+    {{ else }}
+    <p>No posts yet — check back soon.</p>
+    {{ end }}
+  </div>
+</main>
+{{ end }}
