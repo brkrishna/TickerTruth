@@ -15,6 +15,7 @@ pricing pages, and onboarding guides.
 - `runbook.md` — operational procedures for data refresh and release.
 - `dolt_workflow.md` — Dolt commit, tagging, and point-in-time query procedures.
 - `source-inventory.md` — catalog of all upstream data sources.
+- `publishing.md` — blog authoring/publishing workflow (StackEdit → GitHub PR → Cloudflare Pages) and Substack/Medium/LinkedIn cross-posting.
 
 Note: `schema-reference.md` and `faq.md` are planned but not yet written.
 
