@@ -95,6 +95,15 @@ releases/bundles/
 releases/monthly/
 
 TickerTruth.code-workspace
+
+# Wrangler CLI local cache/auth state
+.wrangler/
+
+# Hugo blog — generated output (Cloudflare Pages builds this at deploy time)
+website/landing-page/blog/
+website/blog/public/
+website/blog/resources/
+website/blog/.hugo_build.lock
 performance/*.xlsx
 performance/*.pdf
 competitor_intelligence_deck_presentation_ready.pdf

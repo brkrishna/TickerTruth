@@ -1,0 +1,23 @@
+baseURL: https://tickertruth.com/blog/
+locale: en-us
+title: TickerTruth Blog
+publishDir: ../landing-page/blog
+
+paginate: 10
+enableRobotsTXT: false
+summarylength: 40
+
+params:
+  description: "Notes on India equity reference data — NSE/BSE symbol lineage, corporate actions, and backtest-correctness engineering."
+
+markup:
+  goldmark:
+    renderer:
+      unsafe: true
+
+taxonomies:
+  tag: tags
+
+outputs:
+  home: [html, rss]
+  section: [html, rss]
