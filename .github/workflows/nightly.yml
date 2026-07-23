@@ -13,7 +13,7 @@ on:
         required: false
         type: string
       dry_run:
-        description: "Dry run — skip Dolt commit and R2 upload"
+        description: "Dry run — skip Dolt commit"
         required: false
         type: boolean
         default: false
@@ -21,15 +21,20 @@ on:
 env:
   PYTHONPATH: .
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-  R2_BUCKET: ${{ secrets.R2_BUCKET }}
 
+# Nightly only keeps the underlying reference data current in Dolt
+# (extract -> ... -> load) on trading days, so corporate-action/lineage
+# issues surface as small daily diffs instead of piling up. The public
+# release — website update, R2 sample publish — happens once a month via
+# release.yml, triggered by a version tag, since that's the actual cadence
+# customers receive.
 jobs:
   refresh:
     name: Data Refresh Pipeline
     runs-on: ubuntu-latest
     timeout-minutes: 120
     permissions:
-      contents: write
+      contents: read
 
     steps:
       - uses: actions/checkout@v4.2.2
@@ -64,79 +69,16 @@ jobs:
           dolt add -A
           dolt commit -m "init schema"
 
-      - name: Run pipeline
+      - name: Run pipeline (data refresh only — no publish)
         env:
           RUN_DATE:  ${{ github.event.inputs.run_date }}
           DRY_RUN:   ${{ github.event.inputs.dry_run }}
-          R2_BUCKET: ${{ secrets.R2_BUCKET }}
-          R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
-          R2_ACCESS_KEY_ID:     ${{ secrets.R2_ACCESS_KEY_ID }}
-          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: |
           python pipelines/run.py \
+            --tasks extract,normalize,lineage,adjust,validate,load \
             ${RUN_DATE:+--date $RUN_DATE} \
             $([[ "$DRY_RUN" == "true" ]] && echo "--dry-run")
-
-      - name: Upload samples to R2
-        if: success() && env.R2_BUCKET != '' && github.event.inputs.dry_run != 'true'
-        env:
-          R2_ENDPOINT:          ${{ secrets.R2_ENDPOINT }}
-          R2_ACCESS_KEY_ID:     ${{ secrets.R2_ACCESS_KEY_ID }}
-          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
-          RUN_DATE:             ${{ github.event.inputs.run_date }}
-        run: |
-          python - <<'EOF'
-          import boto3, os
-          from botocore.config import Config
-          from datetime import date
-          from pathlib import Path
-
-          run_date = os.environ.get("RUN_DATE") or str(date.today())
-
-          s3 = boto3.client(
-              "s3",
-              endpoint_url=os.environ["R2_ENDPOINT"],
-              aws_access_key_id=os.environ["R2_ACCESS_KEY_ID"],
-              aws_secret_access_key=os.environ["R2_SECRET_ACCESS_KEY"],
-              config=Config(
-                  request_checksum_calculation="when_required",
-                  response_checksum_validation="when_required",
-              ),
-          )
-          bucket = os.environ["R2_BUCKET"]
-
-          tiers = ["public", "paid_tier_1", "paid_tier_2"]
-          uploaded = 0
-          for tier in tiers:
-              tier_dir = Path(f"data/samples/{tier}")
-              if not tier_dir.exists():
-                  print(f"  skip {tier}: directory not found")
-                  continue
-              for path in sorted(tier_dir.glob("*")):
-                  key = f"releases/{run_date}/{tier}/{path.name}"
-                  s3.upload_file(str(path), bucket, key)
-                  print(f"  uploaded {key}")
-                  uploaded += 1
-          print(f"Done — {uploaded} files uploaded to R2")
-          EOF
-
-      - name: Commit updated release-notes.html
-        if: always() && github.event.inputs.dry_run != 'true'
-        env:
-          RUN_DATE: ${{ github.event.inputs.run_date }}
-        run: |
-          git config user.name  "TickerTruth Bot"
-          git config user.email "bot@tickertruth.com"
-          if ! git diff --quiet website/landing-page/release-notes.html; then
-            git add website/landing-page/release-notes.html
-            git commit -m "chore(website): update release notes for ${RUN_DATE:-$(date +%Y-%m-%d)} [skip actions]"
-            git pull --rebase origin main
-            git push origin HEAD:main
-            echo "release-notes.html pushed — Cloudflare Pages will redeploy"
-          else
-            echo "release-notes.html unchanged — no commit needed"
-          fi
 
       - name: Upload quality report
         if: always()
@@ -144,12 +86,4 @@ jobs:
         with:
           name: quality-report-${{ github.run_id }}
           path: data/staging/quality_report_*.json
-          if-no-files-found: ignore
-
-      - name: Upload release manifest
-        if: success()
-        uses: actions/upload-artifact@v4.6.2
-        with:
-          name: manifest-${{ github.run_id }}
-          path: data/samples/metadata/manifest_*.md
           if-no-files-found: ignore

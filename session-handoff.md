@@ -21,6 +21,18 @@ All five implementation phases are complete (phases 1–5 committed).
 - `tests/` directory exists but contains no test files yet — test suite is the highest-priority gap.
 - `dolt/migration/` and `dolt/tags/` subdirectories are documented as planned but not yet created.
 - `docs/schema-reference.md` and `docs/faq.md` are planned but not yet written.
+- (2026-07-23) `main` now has branch protection requiring 1 approving review.
+  `release.yml`'s bot push to `main` bypasses this automatically once the
+  `RELEASE_BOT_PAT` repo secret (a fine-grained PAT from an admin account,
+  Contents + Pull requests: write) is added — falls back to opening a PR
+  needing manual merge until then. `nightly.yml` no longer pushes to `main`
+  at all (see below), so it's unaffected.
+- (2026-07-23) `nightly.yml` scope changed: it now only runs
+  `extract,normalize,lineage,adjust,validate,load` (keeps Dolt current daily
+  on trading days). The public release — `export,manifest,release-notes,
+  website` plus R2 sample upload — happens only via `release.yml` on a
+  version tag (monthly cadence), since that's the actual cadence customers
+  receive and it avoids fighting branch protection every night.
 
 ## Next suggested task
 Write the initial test suite. Priority order:
