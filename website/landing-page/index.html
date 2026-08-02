@@ -80,7 +80,12 @@
             "description": "Full ticker symbol change history for NSE-listed equities. Each record captures the old symbol, new symbol, change date, event type (RENAME / LISTING / DELISTING), ISIN bridge, and confidence score.",
             "url": "https://tickertruth.com/",
             "creator": { "@type": "Organization", "name": "TickerTruth" },
-            "keywords": ["NSE symbol change", "NSE ticker history", "NSE symbol rename", "India stock symbol history", "NSE delisting history", "ISIN bridge India"]
+            "license": "https://tickertruth.com/pricing",
+            "keywords": ["NSE symbol change", "NSE ticker history", "NSE symbol rename", "India stock symbol history", "NSE delisting history", "ISIN bridge India"],
+            "distribution": [
+              { "@type": "DataDownload", "encodingFormat": "text/csv", "contentUrl": "https://tickertruth.com/pricing" },
+              { "@type": "DataDownload", "encodingFormat": "application/x-parquet", "contentUrl": "https://tickertruth.com/pricing" }
+            ]
           },
           {
             "@type": "Dataset",
@@ -88,7 +93,12 @@
             "description": "Cumulative backward price and volume adjustment factors for NSE-listed equities, covering stock splits, bonus issues, and reverse splits. Use to build split-adjusted and fully-adjusted price series.",
             "url": "https://tickertruth.com/",
             "creator": { "@type": "Organization", "name": "TickerTruth" },
-            "keywords": ["India equity adjustment factors", "NSE split adjusted prices", "NSE price adjustment", "backtesting adjustment factors India", "India quant data"]
+            "license": "https://tickertruth.com/pricing",
+            "keywords": ["India equity adjustment factors", "NSE split adjusted prices", "NSE price adjustment", "backtesting adjustment factors India", "India quant data"],
+            "distribution": [
+              { "@type": "DataDownload", "encodingFormat": "text/csv", "contentUrl": "https://tickertruth.com/pricing" },
+              { "@type": "DataDownload", "encodingFormat": "application/x-parquet", "contentUrl": "https://tickertruth.com/pricing" }
+            ]
           }
         ]
       },
