@@ -47,17 +47,22 @@ Pushed release `v2026.08.02` (security master only — see
 `releases/monthly/v2026.08.02.md` for full disclosure). While doing this,
 found several real problems that need follow-up:
 
-- **`fetch_nse_corporate_actions()` is broken** (`pipelines/extract/extractor.py`):
-  fails against all three fallback sources — NSE JSON API
-  (timeout/403/empty-body), Playwright (`ERR_HTTP2_PROTOCOL_ERROR`), and no
-  stale cache to fall back to. Confirmed failing both locally and in GitHub
-  Actions CI as of 2026-08-02. Because `run.py` treats extractor failures as
-  non-fatal, `nightly.yml` has been reporting "success" every weekday while
-  silently ingesting **zero corporate actions** for some unknown period —
-  check how far back this goes. This is the highest-priority bug: corp
+- **`fetch_nse_corporate_actions()` is broken** (`pipelines/extract/extractor.py`).
+  Root cause confirmed (2026-08-02, via `curl`/`requests`): `www.nseindia.com`
+  returns HTTP 403 "Access Denied" from Akamai's edge for this network — both
+  locally and in GitHub Actions CI. Not a header/TLS-fingerprint issue, not
+  fixable by retrying. **This is an infrastructure problem (needs a different
+  egress IP/proxy or a licensed NSE data vendor), not a code bug** — so it
+  has NOT been "fixed" in the sense of restoring live data. What *was* fixed
+  (commit `f834588`): the extractor now detects the 403 explicitly, skips
+  the Playwright fallback (which was hitting the same blocked domain and
+  burning 30-60s for nothing), logs at ERROR instead of WARNING, and raises
+  a RuntimeError that names the real cause. Because `run.py` still treats
+  extractor failures as non-fatal, `nightly.yml` has been reporting "success"
+  every weekday while silently ingesting **zero corporate actions** for some
+  unknown period — check how far back this goes. Corp
   actions/lineage/adjustment-factor data has likely been stale/empty in Dolt
-  for a while. Needs real investigation (has NSE changed anti-bot measures?
-  cookie handshake is failing with 403 on the homepage itself).
+  for a while. Next step is the infra decision (proxy/vendor), not more code.
 - **`nightly.yml` never persists Dolt state.** It does `dolt init` fresh
   every run (in the ephemeral CI runner) and never pushes/uploads it — so
   daily "refreshes" were being discarded, not accumulated. Added a
