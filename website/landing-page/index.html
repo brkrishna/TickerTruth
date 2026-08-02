@@ -48,7 +48,7 @@
         "url": "https://tickertruth.com",
         "potentialAction": {
           "@type": "SearchAction",
-          "target": "https://tickertruth.com/sample-queries.html?q={search_term_string}",
+          "target": "https://tickertruth.com/sample-queries?q={search_term_string}",
           "query-input": "required name=search_term_string"
         }
       },
@@ -65,13 +65,13 @@
             "description": "Normalised corporate action events for all NSE and BSE-listed equities: stock splits, bonus issues, rights issues, dividends, mergers, demergers, name changes, and delistings. Includes ex-date, ratio, confidence score, and source provenance.",
             "url": "https://tickertruth.com/",
             "creator": { "@type": "Organization", "name": "TickerTruth" },
-            "license": "https://tickertruth.com/pricing.html",
+            "license": "https://tickertruth.com/pricing",
             "temporalCoverage": "2000-01-01/..",
             "spatialCoverage": "IN",
             "keywords": ["NSE corporate actions", "BSE corporate actions", "India equity data", "stock split India", "bonus issue India", "dividend data India", "NSE ISIN", "India backtesting", "equity reference data", "NSE symbol history", "adjustment factors India", "ticker changes India"],
             "distribution": [
-              { "@type": "DataDownload", "encodingFormat": "text/csv", "contentUrl": "https://tickertruth.com/pricing.html" },
-              { "@type": "DataDownload", "encodingFormat": "application/x-parquet", "contentUrl": "https://tickertruth.com/pricing.html" }
+              { "@type": "DataDownload", "encodingFormat": "text/csv", "contentUrl": "https://tickertruth.com/pricing" },
+              { "@type": "DataDownload", "encodingFormat": "application/x-parquet", "contentUrl": "https://tickertruth.com/pricing" }
             ]
           },
           {
@@ -457,7 +457,7 @@
 <body>
 
 <header>
-  <a href="index.html" class="logo" aria-label="TickerTruth home">
+  <a href="/" class="logo" aria-label="TickerTruth home">
     <svg width="22" height="22" viewBox="-1 0 23 22" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
       <rect x="0" y="10" width="5" height="9" rx="1" fill="#1A6EE8"/>
       <line x1="2.5" y1="9" x2="2.5" y2="10" stroke="#1A6EE8" stroke-width="1"/>
@@ -473,24 +473,24 @@
     <span class="logo-wordmark"><span class="logo-ticker">Ticker</span><span class="logo-truth">Truth</span></span>
   </a>
   <nav>
-    <a href="methodology.html">Methodology</a>
-    <a href="pricing.html">Pricing</a>
-    <a href="sample-queries.html">Sample Queries</a>
-    <a href="release-notes.html">Release Notes</a>
+    <a href="/methodology">Methodology</a>
+    <a href="/pricing">Pricing</a>
+    <a href="/sample-queries">Sample Queries</a>
+    <a href="/release-notes">Release Notes</a>
     <a href="blog/">Blog</a>
-    <a href="contact.html">Contact</a>
+    <a href="/contact">Contact</a>
   </nav>
   <button class="menu-toggle" aria-label="Toggle navigation" aria-expanded="false">
     <span></span><span></span><span></span>
   </button>
 </header>
 <nav class="mobile-nav" aria-label="Mobile navigation">
-  <a href="methodology.html">Methodology</a>
-  <a href="pricing.html">Pricing</a>
-  <a href="sample-queries.html">Sample Queries</a>
-  <a href="release-notes.html">Release Notes</a>
+  <a href="/methodology">Methodology</a>
+  <a href="/pricing">Pricing</a>
+  <a href="/sample-queries">Sample Queries</a>
+  <a href="/release-notes">Release Notes</a>
   <a href="blog/">Blog</a>
-  <a href="contact.html">Contact</a>
+  <a href="/contact">Contact</a>
 </nav>
 
 <main>
@@ -508,8 +508,8 @@
         that flags BSE/NSE date conflicts and reconciles dual-listed securities.
       </p>
       <div class="cta">
-        <a href="pricing.html" class="btn btn-primary">View Pricing</a>
-        <a href="sample-queries.html" class="btn btn-secondary">Sample Queries</a>
+        <a href="/pricing" class="btn btn-primary">View Pricing</a>
+        <a href="/sample-queries" class="btn btn-secondary">Sample Queries</a>
       </div>
     </div>
   </div>
@@ -623,7 +623,7 @@
       bundles. Every record carries provenance metadata and a confidence score.
     </p>
     <div class="footer-links">
-      <a href="methodology.html">See the methodology →</a>
+      <a href="/methodology">See the methodology →</a>
     </div>
   </section>
 
@@ -636,9 +636,9 @@
       No real-time API at launch — monthly versioned files with detailed changelogs.
     </p>
     <div class="footer-links">
-      <a href="pricing.html">View pricing →</a>
-      <a href="sample-queries.html">See sample queries →</a>
-      <a href="release-notes.html">Release notes →</a>
+      <a href="/pricing">View pricing →</a>
+      <a href="/sample-queries">See sample queries →</a>
+      <a href="/release-notes">Release notes →</a>
     </div>
   </section>
 </main>
