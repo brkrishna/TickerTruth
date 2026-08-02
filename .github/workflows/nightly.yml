@@ -87,3 +87,24 @@ jobs:
           name: quality-report-${{ github.run_id }}
           path: data/staging/quality_report_*.json
           if-no-files-found: ignore
+
+      # dolt/.dolt and data/curated are gitignored and only exist inside this
+      # ephemeral runner, so a manual dispatch is otherwise unrecoverable.
+      # Uploading them lets a human pull today's real (non-IP-blocked) NSE
+      # data back down to apply locally. Not run on the scheduled cron to
+      # avoid needless artifact storage every weekday.
+      - name: Package Dolt state and curated data
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          tar -czf dolt-state.tar.gz -C dolt .dolt
+          tar -czf curated-data.tar.gz -C data curated
+
+      - name: Upload Dolt state and curated data
+        if: github.event_name == 'workflow_dispatch'
+        uses: actions/upload-artifact@v4.6.2
+        with:
+          name: dolt-and-curated-${{ github.run_id }}
+          path: |
+            dolt-state.tar.gz
+            curated-data.tar.gz
+          retention-days: 7
