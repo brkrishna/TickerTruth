@@ -16,8 +16,17 @@ from pathlib import Path
 
 import pandas as pd
 import requests
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 
 logger = logging.getLogger(__name__)
+
+# Retry transient failures (connection resets, 5xx, and 429 rate-limiting)
+# with exponential backoff. Does NOT retry 403 — that's Akamai's edge
+# rejecting the request outright, not a transient condition, and hammering
+# it just burns time and risks tightening the block further.
+_RETRY_STATUS_FORCELIST = (429, 500, 502, 503, 504)
+_MAX_RETRIES = 3
 
 # ── constants ────────────────────────────────────────────────────────────────
 
@@ -125,6 +134,11 @@ class RawDataExtractor:
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(parents=True, exist_ok=True)
         self._session: requests.Session | None = None
+        # Set when the NSE homepage handshake gets an explicit 403 from
+        # Akamai's edge — a durable block, not a transient network blip.
+        # Lets callers skip fallbacks (like Playwright) that hit the same
+        # blocked domain and would fail identically.
+        self._homepage_blocked: bool = False
 
     # ── session management ───────────────────────────────────────────────────
 
@@ -141,12 +155,35 @@ class RawDataExtractor:
         session = requests.Session()
         session.headers.update(_BROWSER_HEADERS)
 
+        retry = Retry(
+            total=_MAX_RETRIES,
+            backoff_factor=2,
+            status_forcelist=_RETRY_STATUS_FORCELIST,
+            allowed_methods=("GET",),
+        )
+        adapter = HTTPAdapter(max_retries=retry)
+        session.mount("https://", adapter)
+        session.mount("http://", adapter)
+
         logger.info("Performing NSE cookie handshake...")
         try:
             # Step 1: hit the homepage to receive session cookies
             resp = session.get(NSE_BASE, timeout=15)
             resp.raise_for_status()
             logger.info("Cookie handshake succeeded (HTTP %s)", resp.status_code)
+        except requests.HTTPError as exc:
+            if exc.response is not None and exc.response.status_code == 403:
+                self._homepage_blocked = True
+                logger.error(
+                    "NSE homepage handshake got HTTP 403 (Akamai edge block) — "
+                    "this source IP/network is being rejected outright, not "
+                    "throttled. Session-cookie-dependent endpoints (JSON API, "
+                    "Playwright) will very likely fail too. This needs an "
+                    "infrastructure fix (different egress IP / proxy / vendor "
+                    "API), not a retry."
+                )
+            else:
+                logger.warning("Cookie handshake failed: %s — continuing anyway", exc)
         except requests.RequestException as exc:
             logger.warning("Cookie handshake failed: %s — continuing anyway", exc)
 
@@ -605,15 +642,33 @@ class RawDataExtractor:
             time.sleep(1.5)  # rate limit between chunk calls
 
         if api_failed or not all_frames:
-            logger.warning("Falling back to Playwright for corporate actions")
-            fallback_df = self._fetch_corp_actions_playwright(from_date, to_date)
+            if self._homepage_blocked:
+                # Playwright would hit the same Akamai-blocked domain via the
+                # same egress IP and fail the same way — skip the ~30-60s of
+                # browser navigation and go straight to the stale-cache fallback.
+                logger.error(
+                    "Skipping Playwright fallback — NSE homepage already "
+                    "confirmed blocked (HTTP 403) for this session, so "
+                    "Playwright would hit the same Akamai edge block."
+                )
+                fallback_df = None
+            else:
+                logger.warning("Falling back to Playwright for corporate actions")
+                fallback_df = self._fetch_corp_actions_playwright(from_date, to_date)
             if fallback_df is None or fallback_df.empty:
                 stale_df = self._stale_corp_actions_fallback()
                 if stale_df is not None:
                     return stale_df
+                reason = (
+                    " NSE's edge (Akamai) is returning HTTP 403 for this "
+                    "network — this needs an infrastructure fix (different "
+                    "egress IP, proxy, or a licensed data vendor), not a retry."
+                    if self._homepage_blocked
+                    else ""
+                )
                 raise RuntimeError(
                     f"Failed to fetch corporate actions {from_date} → {to_date} "
-                    "from JSON API, Playwright, and stale cache."
+                    f"from JSON API, Playwright, and stale cache.{reason}"
                 )
             all_frames = [fallback_df]
 

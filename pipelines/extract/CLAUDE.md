@@ -23,6 +23,19 @@ of the ETL pipeline — it fetches raw data and writes it to `data/raw/` and
 - EQUITY_L.csv lists only active EQ-series equities (~2,365 rows as of 2026).
   `STATUS` column is absent and synthesized to "ACTIVE" after load.
 - Corporate actions API returns at most ~30 days per call; longer ranges are chunked.
+- **(2026-08-02) `www.nseindia.com` is currently hard-blocked at Akamai's edge**
+  (HTTP 403 "Access Denied", confirmed via `curl`/`requests` from both this
+  sandbox and GitHub Actions CI — not a header/TLS-fingerprint issue, and not
+  something `extractor.py` can retry its way past). This breaks the cookie
+  handshake, the corporate actions JSON API, and the Playwright fallback (same
+  domain, same edge). `RawDataExtractor` now detects the 403 on the homepage
+  handshake and skips Playwright immediately rather than burning 30-60s on a
+  fallback that's guaranteed to fail the same way, and logs at ERROR (not
+  WARNING) so this doesn't go unnoticed the way it did for ~2 months in
+  `nightly.yml`. Real fix requires an infrastructure change (different egress
+  IP/proxy, or a licensed NSE data vendor) — out of scope for this module.
+  `nsearchives.nseindia.com` (equity master) and `archives.nseindia.com`
+  (bhavcopy) are NOT affected by this block.
 
 ## Output locations
 - `data/raw/` — raw untouched files, one subdirectory per source and date.
