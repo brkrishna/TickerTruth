@@ -143,3 +143,50 @@ Derived from `low-cost-mvp-blueprint.md`. Technical bug details are in `tasks.md
 
 - [ ] `releases/changelogs/` directory (blueprint calls for it alongside `releases/monthly/`).
 - [ ] API-first delivery — deferred until Phase 3 or marketplace migration.
+
+---
+
+## Code optimization & refactor opportunities (review 2026-07-03)
+
+> Findings from a full read-through of `pipelines/` and `tests/`. Not yet implemented — ordered roughly by impact/effort within each bucket. No code was changed as part of this review.
+
+### NSE/BSE duplication
+
+- [ ] **REFACTOR-1 (HIGH impact / medium effort)** — `RawDataExtractor` (`pipelines/extract/extractor.py`) and `BSERawDataExtractor` (`pipelines/extract/bse_extractor.py`) are near-identical: `fetch_*_bhavcopy`, `fetch_*_corporate_actions`, `_extract_bhavcopy_zip`, `_date_chunks`, `_consolidate_source`, `_stale_corp_actions_fallback` all mirror each other. `_extract_bhavcopy_zip` and `_date_chunks` are byte-for-byte duplicates. Extract a shared `BaseExchangeExtractor` parametrized by exchange config (URLs, column aliases, key column).
+- [ ] **REFACTOR-2 (MEDIUM-HIGH impact / medium effort)** — `RawToCanonicalMapper` (`pipelines/normalize/normalizer.py`) and `BSERawToCanonicalMapper` (`pipelines/normalize/bse_normalizer.py`) both do find-column-by-aliases → normalize → dedupe → quality-flag, differing only in NSE `SYMBOL`/`security_id` vs BSE `SCRIP_CODE`/`scrip_id`. `_find_col` is identical in both files. Consolidate into one mapper parametrized by key-column name + exchange_id. Use the adapter pattern already used well in `bse_adjuster.py` (delegates to shared `AdjustmentFactorBuilder` via column rename) as the template.
+- [ ] **REFACTOR-3 (MEDIUM impact / medium effort)** — `pipelines/run.py` has 10 near-identical task-runner pairs (`run_extract`/`run_extract_bse`, `run_normalize`/`run_normalize_bse`, `run_lineage`/`run_lineage_bse`, `run_adjust`/`run_adjust_bse`, `run_validate`/`run_validate_bse`) differing only in module/file names. Replace with one parametrized `run_stage(exchange, stage)` dispatcher driven by a small config table — would shrink `run.py` by roughly a third and stop NSE/BSE task logic from silently drifting apart.
+- [ ] **REFACTOR-4 (LOW-MEDIUM impact / small effort)** — `ISINBridgeBuilder._enrich_with_isin_nse` / `_enrich_with_isin_bse` (`pipelines/lineage/isin_bridge.py:244-275`) are parallel logic for attaching ISIN via bridge lookup; collapse into one helper taking the exchange-key-column name as a parameter.
+
+### Performance — pandas usage
+
+- [ ] **PERF-1 (HIGH impact / small-medium effort)** — `AdjustmentFactorBuilder.build_from_corporate_actions` (`pipelines/adjustments/adjuster.py:92-130`) builds a new single-row DataFrame per event just to call `AdjustmentCalculator.calculate_cumulative_adjustment` (`pipelines/adjustments/calculator.py:109`), which only needs scalar `action_code`/`old_value`. Refactor the calculator to accept scalars (or vectorize with `groupby().cumprod()` over mapped SPLIT/BONUS ratios) and collapse the two together. Runs on every `adjust`/`adjust-bse` stage — scales with total corporate-action row count.
+- [ ] **PERF-2 (MEDIUM-HIGH impact / small effort)** — `quality.py::add_quality_flags` (`pipelines/normalize/quality.py:72`) uses row-wise `df.apply(self._detect_issues, axis=1)`, called from every mapper (dim_issuer, dim_security_master, fact_corporate_action_event × NSE and BSE = touches every normalized row in the whole pipeline). Vectorize with boolean masks per `_CRITICAL_COLUMNS` entry, OR-combined, instead of per-row Python calls.
+- [ ] **PERF-3 (MEDIUM impact / medium effort)** — `SymbolLinker.cross_reference_with_actions` (`pipelines/lineage/linker.py:210-244`) does a nested Python loop with a boolean-mask filter of `actions` per event — O(events × actions). Replace with `merge_asof` or a pre-indexed dict of date arrays by symbol; will worsen as monthly releases accumulate corporate-action history.
+- [ ] **PERF-4 (MEDIUM-HIGH impact / medium effort)** — `consolidate_to_staging()` (`pipelines/extract/extractor.py:1053-1066`, BSE mirror `bse_extractor.py:619-630`) re-reads and re-concats *all* historical raw CSVs from disk on every run rather than incrementally merging only new files — O(total historical raw files) per run, grows unboundedly as `data/raw/` accumulates daily snapshots. Consider a "last consolidated" watermark.
+- [ ] **PERF-5 (LOW-MEDIUM impact / small effort)** — `SymbolLinker.link_across_periods` (`pipelines/lineage/linker.py:89-102`) and `bse_scrip_history.py:244` use `iterrows()` to build ISIN↔symbol dicts; replace with vectorized `.dropna().drop_duplicates().set_index(...)` construction (pattern already used in `isin_bridge.py`).
+
+### I/O inefficiency
+
+- [ ] **IO-1 (HIGH impact / medium effort)** — Every stage reads/writes `.csv` for `data/raw/`, `data/staging/`, `data/curated/` despite `pipelines/extract/CLAUDE.md` stating staging should be Parquet (doc/code mismatch — see also item below). Migrating at least `data/staging/` bhavcopy (largest, highest-volume table) to Parquet would cut file size/parse time and remove the need for scattered explicit `dtype={"SCRIP_CODE": str}` workarounds across ~6 `read_csv` call sites.
+- [ ] **IO-2 (MEDIUM impact / medium effort)** — Within a single `run.py` invocation, each stage function re-reads curated CSVs from disk that a prior stage in the *same process* just wrote (e.g. `dim_security_master.csv` written in `run_normalize`, re-read in `run_lineage` and `run_adjust`). Consider passing DataFrames via an in-memory run context between stages instead of round-tripping through disk every boundary.
+- [ ] **IO-3 (LOW-MEDIUM impact / small effort)** — `collect_stats()` (`pipelines/run.py:350-398`) reads 8 full curated CSVs into memory purely to compute `len(df)`. Store row counts in the manifest/quality-report at the stage that produces each file instead of re-parsing full CSVs at the end.
+
+### Structural / architectural
+
+- [ ] **STRUCT-1 (MEDIUM impact / medium effort)** — `pipelines/run.py` is 794 lines with 18 near-duplicated `run_*` functions plus manual per-task branching in `main()` (lines 718-773). A declarative task table (module + stage → function) driven by a loop would remove ~150 lines and make adding a third exchange additive rather than multiplicative (relates to REFACTOR-3 — do together).
+- [ ] **STRUCT-2 (LOW-MEDIUM impact / medium effort)** — `pipelines/publish/data_validator.py` (621 lines, 18 methods) hand-lists which `check_*` methods to call per `run_curated_checks`/`run_bse_checks`/`run_dolt_checks`, making it easy to add a new check method but forget to register it. Consider a lightweight check-registry/decorator pattern.
+- [ ] **BUG-8 (correctness, small effort, MEDIUM impact)** — `SymbolLinker.cross_reference_with_actions` (`pipelines/lineage/linker.py:204,245`) mutates the caller's `actions` DataFrame in place (`actions["_action_date"] = ...` then `drop(..., inplace=True)`), violating the explicit "never mutate input DataFrames" rule in `pipelines/lineage/CLAUDE.md`. If an exception is raised mid-loop, the caller's original DataFrame is left with a leaked `_action_date` column. Fix: `actions = actions.copy()` at the top, matching how `events` is already handled.
+
+### Config/schema/doc consistency
+
+- [ ] **DOC-1 (trivial fix, MEDIUM impact)** — `pipelines/extract/CLAUDE.md` states staging output is Parquet, but `extractor.py`/`bse_extractor.py` write `.csv` throughout. Either correct the doc now or resolve as part of IO-1's Parquet migration — currently misleads anyone reading the module doc before editing.
+- [ ] **DOC-2 (small effort, LOW impact)** — Action-type vocabulary resolution is split across `field_mappings.yaml` and a 3-step fallback chain hardcoded in `bse_normalizer.py::normalize_bse_action_type` (exact match → substring match → NSE substring match via `FN.normalize_action_type`). Document the fallback chain explicitly in `field_mappings.yaml` comments or in `normalize/CLAUDE.md`.
+
+### Dead code
+
+- [ ] **CLEANUP-1 (trivial effort, LOW impact)** — `run.py::run_extract` (lines ~72-73, 81-82) still catches `NotImplementedError` with a "stub — skipping" warning for `fetch_bhavcopy`/`fetch_nse_corporate_actions`, but neither method raises `NotImplementedError` anymore (both are fully implemented). Safe to remove — leftover from an earlier stub phase.
+
+### Test coverage gaps
+
+- [ ] **TEST-1 (HIGH priority — mandated by CLAUDE.md)** — `pipelines/adjustments/CLAUDE.md` explicitly requires `tests/test_adjustments_factors.py` covering rights issues, face-value changes, duplicate events, and out-of-order recalculation; this file does not exist. BSE has a full test suite (`test_bse_adjustments.py` etc.) but core NSE modules lack equivalents: no `test_normalize_normalizer.py`, no `test_lineage_linker.py`/`test_lineage_rules.py`, and `test_extract_stale_fallback.py` covers only one extractor fallback path (no general `test_extract_extractor.py`).
+- [ ] **TEST-2 (MEDIUM priority)** — `pipelines/publish/dolt_importer.py`'s core `import_all`/`load_table` path is untested beyond `test_dolt_importer_lineage_transform.py` and `test_dolt_importer_seed.py`; `filter_to_schema`, `resolve_action_type_ids`, and the CSV→Dolt row-count reconciliation path have no coverage.
