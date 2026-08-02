@@ -42,3 +42,4 @@ User-agent: CCBot
 Allow: /
 
 Sitemap: https://tickertruth.com/sitemap.xml
+Sitemap: https://tickertruth.com/blog/sitemap.xml
