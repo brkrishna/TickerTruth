@@ -252,6 +252,59 @@
   <section>
     <h2>Latest Releases</h2>
 
+    <!-- release:v2026.08.02 -->
+    <details class="release" open>
+      <summary>
+        <div class="release-header">
+          <div>
+            <h2>Release 2026-08-02</h2>
+            <div class="release-date">Released 2026-08-02</div>
+          </div>
+        </div>
+        <span class="release-toggle"></span>
+      </summary>
+      <div class="release-stats">
+        <div class="stat">
+          <div class="stat-val">2,389</div>
+          <div class="stat-label">Securities</div>
+        </div>
+        <div class="stat">
+          <div class="stat-val">0</div>
+          <div class="stat-label">Corp. Actions</div>
+        </div>
+        <div class="stat">
+          <div class="stat-val">0</div>
+          <div class="stat-label">Lineage Events</div>
+        </div>
+        <div class="stat">
+          <div class="stat-val">0</div>
+          <div class="stat-label">Adj. Factors</div>
+        </div>
+      </div>
+      <div class="release-body">
+        <div class="release-section">
+          <h3>Data Changes</h3>
+          <ul>
+            <li>Added 2,389 new securities to dim_security_master</li>
+          </ul>
+        </div>
+        <div class="release-section known-issues">
+          <h3>Known Issues</h3>
+          <ul>
+            <li><strong>Corporate actions ingestion is currently broken.</strong> `fetch_nse_corporate_actions()` fails against all three sources (NSE JSON API timeout/403, Playwright `ERR_HTTP2_PROTOCOL_ERROR`, and no stale cache to fall back to) — confirmed failing on both this machine and in GitHub Actions CI as of 2026-08-02. As a result this release has 0 corporate actions, 0 lineage events, and 0 adjustment factor rows. This has likely been silently failing in nightly CI runs for some time, since the pipeline treats extractor failures as non-fatal. Needs investigation in `pipelines/extract/extractor.py`.</li>
+            <li><strong>Bhavcopy (EOD price) data is stale.</strong> No bhavcopy has been successfully fetched since 2024-05-10; `fact_equity_eod` is not populated in this or prior releases.</li>
+            <li>This release only refreshes `dim_issuer` / `dim_security_master` (current NSE security master, 2,389 active equities). No corporate-action, lineage, or adjustment-factor data changed from the prior release.</li>
+          </ul>
+        </div>
+        <div class="release-section next-release">
+          <h3>Next Release</h3>
+          <ul>
+            <li>Priority: fix `fetch_nse_corporate_actions()` so corporate actions, lineage, and adjustment factors resume updating.</li>
+          </ul>
+        </div>
+      </div>
+    </details>
+
     <!-- release:v2026.07.17 -->
     <details class="release" open>
       <summary>
