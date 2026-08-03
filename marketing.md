@@ -450,7 +450,7 @@ Continue 2 LinkedIn posts/week, 20 outreach DMs/week, 1 community post/week, 1 G
 >
 > We built TickerTruth to fix this. Versioned reference-data layer for NSE equities: symbol lineage, corporate action events, and adjustment factors — released monthly with a full changelog.
 >
-> Free sample dataset at the link. Founding customer pricing: INR 10,000/month (5 slots, 2 taken).
+> Free sample dataset at the link.
 >
 > [tickertruth.com]
 
@@ -503,7 +503,7 @@ Continue 2 LinkedIn posts/week, 20 outreach DMs/week, 1 community post/week, 1 G
 >
 > [5-min Loom demo link]
 >
-> Full dataset at tickertruth.com. Founding customer pricing (INR 10k/month) still available for 3 more slots.
+> Full dataset at tickertruth.com.
 
 **Hashtags:** #QuantFinance #NSE #AlgoTrading #DataEngineering #IndiaMarkets
 
@@ -548,17 +548,14 @@ Continue 2 LinkedIn posts/week, 20 outreach DMs/week, 1 community post/week, 1 G
 > — Sample corporate action events: 30-day window of bonus, dividend, and rights events
 > — Sample adjustment factors: split and bonus factors for a subset of large-caps
 >
-> What's in the paid release (Starter, INR 15,000/month — or INR 10,000/month for founding customers):
+> What's in the full release:
 > — Full historical lineage from 2000
 > — Full corporate action event table (all action types, all years)
 > — Backtest-ready adjustment factor map
 > — Listing status history including delistings and mergers
 > — Monthly release + changelog delivered to your inbox
 >
-> Founding customer pricing: INR 10,000/month locked for 12 months. 5 slots total. 2 taken.
->
 > Full release notes: tickertruth.com/release-notes
-> Pricing: tickertruth.com/pricing
 
 **Hashtags:** #IndiaData #NSE #QuantFinance #DataProduct #OpenData
 
@@ -644,7 +641,7 @@ Continue 2 LinkedIn posts/week, 20 outreach DMs/week, 1 community post/week, 1 G
 >
 > Subscribers received the full release package by email.
 >
-> Founding customer pricing still available for [N] slots: INR 10,000/month. tickertruth.com/pricing
+> tickertruth.com/release-notes
 
 **Hashtags:** #IndiaData #NSE #DataRelease #QuantFinance #CorporateActions
 
@@ -680,7 +677,7 @@ Continue 2 LinkedIn posts/week, 20 outreach DMs/week, 1 community post/week, 1 G
 > ✓ Full lineage and corporate action taxonomy (NSE + BSE)  
 > ✓ Adjustment factors with event provenance  
 > ✓ Versioned monthly with a full changelog  
-> ✓ INR-priced, India-focused  
+> ✓ Built for India, not adapted from a global feed  
 > ✗ Monthly cadence (not real-time)  
 >
 > We're not the right fit for real-time feeds. We are the right fit for the reference layer underneath your analytics.
@@ -708,9 +705,7 @@ Continue 2 LinkedIn posts/week, 20 outreach DMs/week, 1 community post/week, 1 G
 >
 > The reference data problem is not a data problem. It's an engineering and research reliability problem.
 >
-> TickerTruth Starter: INR 10,000/month (founding pricing). Less than one day of that analyst's time.
->
-> tickertruth.com/pricing
+> tickertruth.com
 
 **Hashtags:** #DataQuality #QuantFinance #CostOfBadData #IndiaEquities #NSE
 
@@ -749,7 +744,7 @@ Continue 2 LinkedIn posts/week, 20 outreach DMs/week, 1 community post/week, 1 G
 >
 > Next quarter: [BSE ISIN bridge / full CA history / API delivery — pick the one most requested by customers]
 >
-> If you've been following along and haven't tried it yet, now's the time. tickertruth.com/pricing
+> If you've been following along and haven't tried it yet, now's the time. tickertruth.com
 
 **Hashtags:** #IndiaData #QuantFinance #NSE #BSE #DataProduct
 

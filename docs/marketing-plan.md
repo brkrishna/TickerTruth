@@ -31,8 +31,9 @@ new ground.
 - Tone: technical, first-person, problem-led, no hype (Section 10.1).
 - Mix: ~50% educational, ~30% product/data updates, ~20% social proof
   (Section 10.1).
-- Every post ends with a link to `tickertruth.com` and, from Day 8
-  onward, the founding-customer pricing line (Section 3).
+- Every post ends with a link to `tickertruth.com`. No pricing or CTA
+  copy in the post text — the goal for this run is interest and reach,
+  not conversion (Section 3).
 - Substack posts are the LinkedIn post **plus 2–3 extra paragraphs of
   depth** (Section "Phase 7 — Substack", `marketing.md` line ~1091) — not
   a rewrite, an expansion. That's the pattern used below for every day.
@@ -54,14 +55,14 @@ new ground.
 | 7 | Sun 2026-08-09 | 12 corporate action types, ranked by how often vendors miss them | `marketing.md` Post 7 | Expanded (§3.7) |
 | 8 | Mon 2026-08-10 | First public release — what's in it | `marketing.md` Post 5 | Expanded (§3.8) |
 | 9 | Tue 2026-08-11 | Announcement date vs ex-date (event studies) | `marketing.md` Post 11 | Expanded (§3.9) |
-| 10 | Wed 2026-08-12 | Week 1 close: founding slots, recap, CTA | New (§3.10) | Expanded (§3.10) |
+| 10 | Wed 2026-08-12 | Week 1 close: recap, what's next | New (§3.10) | Expanded (§3.10) |
 
 Weekday educational posts run Mon–Fri; Day 6 (Saturday) is the lighter
 relatable-ROI post deliberately, and Day 7 (Sunday) is a scannable list
 post — both chosen for lower-attention weekend reading. Day 8 (the
-following Monday) is the product/pricing post, matching the "30%
-product" mix rule even though the cadence is compressed from the
-original 4-week sprint into 10 days.
+following Monday) is the product post, matching the "30% product" mix
+rule even though the cadence is compressed from the original 4-week
+sprint into 10 days.
 
 ---
 
@@ -88,7 +89,7 @@ LinkedIn posts don't need one (feed posts, not articles).
 >
 > We built TickerTruth to fix this. Versioned reference-data layer for NSE equities: symbol lineage, corporate action events, and adjustment factors — released monthly with a full changelog.
 >
-> Free sample dataset at the link. Founding customer pricing: INR 10,000/month (5 slots, 2 taken).
+> Free sample dataset at the link.
 >
 > tickertruth.com
 >
@@ -103,7 +104,7 @@ LinkedIn posts don't need one (feed posts, not articles).
 >
 > The fix isn't "be more careful with joins." It's structural: resolve every price row to a `security_id` that survives the ticker change, before any adjustment or backtest logic runs. That's what a symbol lineage table is for.
 >
-> Free sample dataset, symbol lineage included: tickertruth.com. Founding customer pricing: INR 10,000/month, 5 slots, 2 taken.
+> Free sample dataset, symbol lineage included: tickertruth.com.
 
 ---
 
@@ -252,7 +253,7 @@ LinkedIn posts don't need one (feed posts, not articles).
 > ✓ Full lineage and corporate action taxonomy (NSE + BSE)
 > ✓ Adjustment factors with event provenance
 > ✓ Versioned monthly with a full changelog
-> ✓ INR-priced, India-focused
+> ✓ Built for India, not adapted from a global feed
 > ✗ Monthly cadence (not real-time)
 >
 > We're not the right fit for real-time feeds. We are the right fit for the reference layer underneath your analytics.
@@ -289,9 +290,7 @@ LinkedIn posts don't need one (feed posts, not articles).
 >
 > The reference data problem is not a data problem. It's an engineering and research reliability problem.
 >
-> TickerTruth Starter: INR 10,000/month (founding pricing). Less than one day of that analyst's time.
->
-> tickertruth.com/pricing
+> tickertruth.com
 >
 > #DataQuality #QuantFinance #CostOfBadData #IndiaEquities #NSE
 
@@ -356,17 +355,14 @@ LinkedIn posts don't need one (feed posts, not articles).
 > — Sample corporate action events: 30-day window of bonus, dividend, and rights events
 > — Sample adjustment factors: split and bonus factors for a subset of large-caps
 >
-> What's in the paid release (Starter, INR 15,000/month — or INR 10,000/month for founding customers):
+> What's in the full release:
 > — Full historical lineage from 2000
 > — Full corporate action event table (all action types, all years)
 > — Backtest-ready adjustment factor map
 > — Listing status history including delistings and mergers
 > — Monthly release + changelog delivered to your inbox
 >
-> Founding customer pricing: INR 10,000/month locked for 12 months. 5 slots total. 2 taken.
->
 > Full release notes: tickertruth.com/release-notes
-> Pricing: tickertruth.com/pricing
 >
 > #IndiaData #NSE #QuantFinance #DataProduct #OpenData
 
@@ -377,7 +373,7 @@ LinkedIn posts don't need one (feed posts, not articles).
 >
 > The monthly changelog is the part that's easy to undervalue until you've been burned by its absence. Every release notes entry records exactly what changed since the last one — new symbols, corrected records, added lineage events — so if a number in your pipeline shifts between releases, there's a specific, dated explanation rather than a silent correction you have to discover by diffing files yourself.
 >
-> Free sample: tickertruth.com. Release notes: tickertruth.com/release-notes. Founding customer pricing (INR 10,000/month, locked 12 months): tickertruth.com/pricing.
+> Free sample: tickertruth.com. Release notes: tickertruth.com/release-notes.
 
 ---
 
@@ -418,21 +414,19 @@ LinkedIn posts don't need one (feed posts, not articles).
 >
 > If any of that matched a problem you've actually hit in a backtest, that's the whole reason we're building this in public instead of behind a sales page.
 >
-> Founding customer pricing — INR 10,000/month, locked 12 months — has 2 of 5 slots left. After that it's the standard INR 15,000/month rate.
->
 > Free sample, no signup wall beyond an email: tickertruth.com
 > 20-minute walkthrough if you'd rather talk it through: [Calendly link]
 >
 > #IndiaData #QuantFinance #NSE #DataProduct #Backtesting
 
-**Substack — "One Week In: What We Covered, What's Next, and the Founding Slots":**
+**Substack — "One Week In: What We Covered and What's Next":**
 > [LinkedIn text above]
 >
 > A short version of what's coming next, since a few readers asked in comments this week: BSE symbol master and lineage coverage is the next data expansion (currently NSE-only), and the two most-requested technical pieces for next week are a worked example of the demerger case (parent + child entity creation, one full walkthrough) and a short piece on how the confidence-flag system works — every lineage event and adjustment factor in the dataset carries a confidence score, and it's worth explaining what drives it up or down.
 >
 > If you subscribed this week off one of the daily posts: welcome, and thank you for the early read. The monthly release lands on the first business day of each month with a full changelog, and the archive of this week's posts (with the code and worked examples, not just the feed-length version) stays up on Substack if you want to send a specific one to a colleague.
 >
-> Everything from this week, plus the free sample and the founding-customer pricing, is at tickertruth.com/pricing.
+> Everything from this week, plus the free sample, is at tickertruth.com.
 
 ---
 
