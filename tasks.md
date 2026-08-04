@@ -280,6 +280,33 @@ line explaining the skipped commit so operators know why no tag was created.
 
 ---
 
+## Follow-ups
+
+### FOLLOWUP-1 — Verify Cloudflare Web Analytics is capturing data (opened 2026-08-04)
+
+**Context:** The beacon token previously embedded on all 6 landing pages and the
+blog footer partial (`4cf86be656924547a93bfba532bc23bc`) wasn't showing any
+visits in the Cloudflare Web Analytics dashboard, despite the script tag being
+live in production. Root cause not diagnosed — token may have been stale,
+mistyped, or never actually attached to a live Web Analytics site in the
+dashboard.
+
+**Action taken:** Swapped the token across all 7 files
+(`website/landing-page/{index,pricing,methodology,sample-queries,release-notes,contact}.html`,
+`website/blog/layouts/partials/footer.html`) to `5e7540b0c0d541d59248c1e3f9e3a08f`
+and pushed to `main` (commit `fec069f`) — Cloudflare Pages auto-deployed.
+
+**To check in a few days (by ~2026-08-08):**
+- Confirm visits are showing up in [dash.cloudflare.com](https://dash.cloudflare.com) → Analytics & Logs → Web Analytics → the site matching the new token
+- If still zero after real traffic (e.g. a LinkedIn post from `docs/marketing-plan.md`'s
+  10-day run) has landed, check whether an ad blocker/privacy extension is being used
+  to test, and whether the token is actually registered to a Web Analytics site in
+  the dashboard (Settings → Web Analytics → confirm site status)
+- If confirmed working, update `docs/cloudflare-analytics.md` if any of the "What
+  this doesn't do" caveats turn out to need revision
+
+---
+
 ## Progress tracking notes
 
 - Track failures and manual effort per release
