@@ -14,7 +14,7 @@ The beacon is a single script tag with a site-specific token:
 
 ```html
 <script defer src="https://static.cloudflareinsights.com/beacon.min.js"
-        data-cf-beacon='{"token": "4cf86be656924547a93bfba532bc23bc"}'></script>
+        data-cf-beacon='{"token": "5e7540b0c0d541d59248c1e3f9e3a08f"}'></script>
 ```
 
 It's embedded in two places, both using the same token so all traffic
