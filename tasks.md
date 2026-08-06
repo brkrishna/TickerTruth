@@ -336,6 +336,195 @@ staying as impressions on the platform itself.
 
 ---
 
+## Infrastructure — pipeline release blockers
+
+Both items were blocking a real (non-security-master-only) monthly
+release; see `session-handoff.md` §"(2026-08-02) Data/release catch-up"
+for the original findings. INFRA-1 is fixed (2026-08-06); INFRA-2 is
+still research/options only, no code changes made.
+
+### INFRA-1 — Dolt state has no durable persistence (high, FIXED 2026-08-06)
+
+**Problem:** `nightly.yml` runs `dolt init` fresh on every ephemeral CI
+runner and never pushes the result anywhere. `dolt/.dolt` and
+`data/curated/` are gitignored, so each nightly run's Dolt commits are
+discarded when the runner is torn down. `release.yml` then fails because
+it needs `data/curated` from a prior `load` step but runs on a fresh
+checkout with nothing there — this has been failing since 2026-06-02.
+A stopgap (`workflow_dispatch`-only artifact upload of `dolt/.dolt` +
+`data/curated`, 7-day retention) exists but isn't part of the scheduled
+cron path and isn't a real fix.
+
+**Options considered:**
+
+1. **DoltHub remote (recommended).** DoltHub is a hosted Dolt remote —
+   `dolt remote add origin <dolthub-url>` / `dolt push origin main` /
+   `dolt clone` from CI, the same push/pull model as git. Free tier
+   covers public repos. This is the standard, Dolt-native way to solve
+   exactly this problem, and it doubles as a future subscriber-access
+   mechanism: `todo.md`'s "Commercial delivery" section already lists
+   "Private DoltHub repo access for paying subscribers" as one of the
+   candidate delivery models, so setting this up now solves both the CI
+   persistence gap and gives the private-repo option a real backend to
+   evaluate later. Downside: introduces a dependency on a third-party
+   hosted service and (for a private repo, if the free public tier isn't
+   acceptable for pre-release data) a paid plan.
+2. **Git remote support in Dolt (new, v1.81.10, Feb 2026).** Dolt can now
+   use a plain Git host (GitHub, GitLab, Bitbucket) as a Dolt remote —
+   `dolt remote add origin https://github.com/<org>/<repo>.git` — storing
+   Dolt's chunk data on a custom ref (`refs/dolt/data`) that doesn't
+   touch the normal git history or show up in GitHub's UI. In CI:
+   `dolt clone "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" db`
+   needs no extra secret beyond the default `GITHUB_TOKEN`. This would
+   let the *same* GitHub repo TickerTruth already lives in double as the
+   Dolt remote — no new account/service. Caveats: very new (one DoltHub
+   blog post as the only documentation found), and there's a known bug
+   in v1.81.10 when the local `git` binary needs credentials via STDIN
+   (shouldn't affect GitHub Actions' token-based auth, but worth
+   confirming against whatever Dolt version is actually pinned in CI
+   before relying on it). Worth prototyping before DoltHub given it needs
+   zero new infra, but the newness is a real risk for something a
+   monthly release depends on.
+3. **GitHub Actions cache as a stopgap.** `actions/cache`, keyed on a
+   rolling key, could persist `dolt/.dolt` between nightly runs without
+   any external service. Simple, zero new accounts. But caches are
+   evicted after 7 days of disuse and are capped per-repo (10GB) —
+   acceptable as a bridge, not as the permanent answer, and doesn't help
+   `release.yml` if a cache miss happens to land on release day.
+4. **Self-hosted AWS-backed Dolt remote** (`aws://[dynamo-table:bucket]/db`).
+   Ruled out: needs a real AWS account with both S3 and DynamoDB, more
+   infra to own than DoltHub for no clear benefit here, and the project's
+   existing cloud footprint is Cloudflare (R2), not AWS — R2 is
+   S3-compatible for blob storage but Dolt's AWS remote backend also
+   needs DynamoDB for chunk manifests, so R2 doesn't drop in as a
+   substitute.
+
+**Recommendation (superseded by fix below):** DoltHub was the original
+recommendation, but option 2 (git-remote support) was implemented instead
+after confirming it actually works with the Dolt version installed
+locally (`dolt version` → 2.0.8) — verified end-to-end against a local
+bare git repo before touching CI: `dolt init` → `dolt remote add origin
+<git-url>` → `dolt push origin main` → `dolt clone <git-url>` from a
+second location round-trips correctly, and `dolt push origin <tag-name>`
+propagates tags the same way. No DoltHub account needed for this fix.
+
+**Fix implemented (2026-08-06):**
+- `.github/workflows/nightly.yml` — replaced the unconditional `dolt init`
+  with a restore-or-bootstrap step: `dolt clone` the repo's own git remote
+  (`refs/dolt/data`, via `GITHUB_TOKEN`) to recover the previous run's
+  state, falling back to `dolt init` + schema + initial push only if the
+  remote has no Dolt data yet (first run ever). After the pipeline's
+  `load` step, a new step pushes `main` plus every local tag (nightly
+  tags every successful commit `vYYYY.MM.DD` per
+  `pipelines/run.py::run_load`, so the branch push alone wasn't enough).
+  `permissions: contents: read` → `write` to allow the push.
+- Separately, `data/curated/*.csv` (needed by `release.yml`'s `export`
+  task, also gitignored) is persisted via a plain git branch
+  (`curated-data`) rather than reconstructed from Dolt tables — Dolt's
+  imported schema drops/renames columns relative to the original curated
+  CSVs (`dolt_importer.py`'s `_TABLE_COLUMNS`), so round-tripping through
+  Dolt isn't guaranteed lossless. `nightly.yml` pushes to this branch
+  after every successful run; `.github/workflows/release.yml` now
+  restores it (`git checkout origin/curated-data -- data/curated`) before
+  running `export`, which is the direct fix for the release.yml failures
+  logged since 2026-06-02.
+- Documented the mechanism in `dolt/CLAUDE.md` under a new "CI
+  persistence" section, including why DoltHub was deferred rather than
+  ruled out (still the right call if/when private subscriber-facing Dolt
+  access is needed — see `todo.md`'s "Commercial delivery" section).
+
+**Verified:** YAML validity (`python3 -c "import yaml..."`) and
+`actionlint` (shellcheck-backed) on both workflow files — clean except
+pre-existing warnings in code this change didn't touch. The clone/push/tag
+round-trip and the curated-data branch restore/push logic were both
+dry-run tested locally against throwaway bare git repos before being
+wired into the real workflows (not run against GitHub Actions itself —
+that only happens on the next real `nightly.yml` trigger).
+
+**Left open:** the first real nightly run against GitHub's actual
+`https://` git transport (vs. the `file://` transport used for local
+testing) is unverified — worth a manual `workflow_dispatch` trigger and a
+check of the Action's logs before trusting the next scheduled run.
+
+---
+
+### INFRA-2 — `fetch_nse_corporate_actions()` blocked by Akamai (high)
+
+**Problem:** `www.nseindia.com` returns HTTP 403 "Access Denied" from
+Akamai's edge for every fetch method the extractor tries (cookie
+handshake, JSON API, Playwright), both from this local network and from
+GitHub Actions runners. Confirmed via direct `curl`/`requests` testing
+on 2026-08-02 — not a header/TLS-fingerprint bug, not fixable by
+retrying. No `nse_actions_*.csv` files exist in `data/raw/` at all.
+Bhavcopy fetching is affected the same way (814+ days stale, last
+success 2024-05-10) since it hits the same domain.
+
+**Options considered:**
+
+1. **Residential proxy provider (recommended as the near-term fix).**
+   Akamai's bot detection weighs IP reputation heavily — datacenter IPs
+   (GitHub Actions runners, most home-network egress in some regions)
+   are flagged far more aggressively than residential IPs. Providers
+   with India-specific residential pools: Bright Data, Oxylabs, Decodo
+   (formerly Smartproxy), IPRoyal, DataImpulse, SOAX — 2026 pricing runs
+   roughly $1.75–$8.50/GB depending on tier and volume commitment.
+   Because the actual payload here is tiny (a handful of CSVs per day,
+   likely well under 1GB/month total), even the priciest per-GB tier
+   costs a few dollars a month — this is a cheap fix if it works, and
+   doesn't require any code beyond adding proxy credentials to the
+   existing `requests`/Playwright config. Risk: proxy IPs can themselves
+   get blocklisted over time with sustained scraping, so this needs
+   monitoring, not a one-time setup.
+2. **Licensed NSE data vendor (recommended as the durable fix).** NSE
+   itself sells a paid EOD historical data subscription directly
+   (`nseindia.com/static/market-data/eod-historical-data-subscription`,
+   contact `marketdata@nse.co.in`) — bhavcopy plus, per the page,
+   corporate/security detail. This is the actual authoritative source,
+   delivered through a proper subscription channel rather than scraping,
+   so it sidesteps the Akamai problem entirely rather than working around
+   it. Separately, NSE-authorized redistributors — TrueData and
+   GlobalDatafeeds (GDFL) — offer API access to real-time and historical
+   NSE/BSE/MCX data as licensed vendors; worth a pricing/coverage
+   comparison against NSE's own subscription once actual corporate-action
+   history coverage (not just EOD price) is confirmed for each. This is
+   the more defensible long-term choice for a product whose entire pitch
+   is data trustworthiness/provenance — "sourced via residential proxy
+   scraping" is a worse footnote in `docs/methodology.md` than "licensed
+   subscription."
+3. **Cloud VM in an Indian region (e.g. AWS `ap-south-1`, DigitalOcean
+   Bangalore) instead of GitHub-hosted runners.** Considered but likely
+   insufficient alone: Akamai's block appears to be reputation-based
+   (datacenter vs. residential), not purely geographic, so a datacenter
+   IP in Mumbai is still a datacenter IP and may get flagged the same as
+   a US-based GitHub Actions runner. Would need testing to confirm either
+   way before relying on it, and it adds infra (a VM to keep patched and
+   running) that a proxy subscription avoids.
+4. **Broker API (Zerodha Kite Connect) as a data source.** Kite Connect's
+   data APIs are ~₹500/month, order/account APIs free since March 2025 —
+   but this is an execution/quotes API for a live trading account, not
+   positioned as a corporate-actions/reference-data feed, and typically
+   requires an active demat/trading account tied to a real person, which
+   doesn't fit a backend service cleanly. Not pursued further as a
+   primary source; possibly worth a cross-check for adjustment-factor
+   validation only.
+
+**Recommendation:** short-term, trial a residential proxy (small spend,
+no vendor contract, fast to test) to unblock nightly extraction while
+evaluating; in parallel, get pricing/coverage details from NSE's own
+paid subscription and from TrueData/GlobalDatafeeds, since a licensed
+vendor is the right permanent source for a product whose value
+proposition depends on data provenance being clean.
+
+**Next step (not yet done):** email `marketdata@nse.co.in` for the
+official subscription's actual coverage (does it include corporate
+actions, not just EOD bhavcopy?) and pricing; get quotes/trial access
+from TrueData and GlobalDatafeeds; separately, sign up for a small proxy
+trial (e.g. IPRoyal or DataImpulse, budget tier) and test one fetch cycle
+against `nseindia.com` to confirm the 403 actually clears before
+committing to a subscription either way.
+
+---
+
 ## Progress tracking notes
 
 - Track failures and manual effort per release

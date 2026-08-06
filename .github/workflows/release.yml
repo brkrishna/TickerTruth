@@ -38,6 +38,17 @@ jobs:
       - name: Install Python dependencies
         run: pip install -r requirements.txt
 
+      # data/curated is gitignored on main (derived, daily output) and this
+      # job runs on a fresh checkout of the release tag, so it has to be
+      # restored from the curated-data branch that nightly.yml pushes to
+      # after every successful run — see nightly.yml's "Push curated data to
+      # git branch" step. Without this, `export` below has nothing to read
+      # (the original cause of release.yml failing since 2026-06-02).
+      - name: Restore curated data from git branch
+        run: |
+          git fetch origin curated-data
+          git checkout origin/curated-data -- data/curated
+
       - name: Extract release date from tag
         id: tag
         # Tag format: v2026.06.30 → run_date: 2026-06-30

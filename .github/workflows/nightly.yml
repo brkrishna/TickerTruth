@@ -21,6 +21,12 @@ on:
 env:
   PYTHONPATH: .
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+  # Dolt's git-remote support (see dolt/CLAUDE.md "Persistence") lets this
+  # repo's own GitHub remote double as the Dolt remote — Dolt stores its
+  # chunk data on refs/dolt/data, a custom ref invisible in the GitHub UI
+  # and separate from normal git history. GITHUB_TOKEN is sufficient; no
+  # extra secret needed.
+  DOLT_REMOTE_URL: https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git
 
 # Nightly only keeps the underlying reference data current in Dolt
 # (extract -> ... -> load) on trading days, so corporate-action/lineage
@@ -34,7 +40,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 120
     permissions:
-      contents: read
+      contents: write # needed to push Dolt state + curated data to this repo's refs
 
     steps:
       - uses: actions/checkout@v4.2.2
@@ -61,13 +67,31 @@ jobs:
           dolt config --global --add user.name  "TickerTruth Bot"
           dolt config --global --add user.email "bot@tickertruth.com"
 
-      - name: Initialize Dolt repository
+      # Restores dolt/.dolt from the previous run's pushed state (see "Push
+      # Dolt state" step below). Falls back to a fresh `dolt init` only on
+      # the very first run ever, when the remote has no dolt data yet — a
+      # `dolt clone` against an empty/nonexistent remote data ref fails,
+      # which is how we detect "first run" vs. "restore".
+      - name: Restore or bootstrap Dolt state from git remote
         run: |
-          cd dolt
-          dolt init
-          dolt sql < schema.sql
-          dolt add -A
-          dolt commit -m "init schema"
+          if dolt clone "$DOLT_REMOTE_URL" dolt_remote_state; then
+            echo "Restored existing Dolt state from remote."
+            rm -rf dolt/.dolt
+            mv dolt_remote_state/.dolt dolt/.dolt
+            rm -rf dolt_remote_state
+            cd dolt
+            dolt remote add origin "$DOLT_REMOTE_URL"
+          else
+            echo "No existing Dolt data on remote — bootstrapping fresh."
+            rm -rf dolt_remote_state
+            cd dolt
+            dolt init
+            dolt sql < schema.sql
+            dolt add -A
+            dolt commit -m "init schema"
+            dolt remote add origin "$DOLT_REMOTE_URL"
+            dolt push -u origin main
+          fi
 
       - name: Run pipeline (data refresh only — no publish)
         env:
@@ -88,11 +112,54 @@ jobs:
           path: data/staging/quality_report_*.json
           if-no-files-found: ignore
 
-      # dolt/.dolt and data/curated are gitignored and only exist inside this
-      # ephemeral runner, so a manual dispatch is otherwise unrecoverable.
-      # Uploading them lets a human pull today's real (non-IP-blocked) NSE
-      # data back down to apply locally. Not run on the scheduled cron to
-      # avoid needless artifact storage every weekday.
+      # Pushes whatever `load` committed this run (empty/no-op if the run was
+      # --dry-run or validate failed, since run_load only skips the *commit*
+      # in those cases — nothing new to push). Also pushes any new tag(s)
+      # (run_load tags every successful commit as vYYYY.MM.DD) since `dolt
+      # push origin main` alone does not carry tags.
+      - name: Push Dolt state to git remote
+        if: success()
+        run: |
+          cd dolt
+          dolt push origin main
+          for t in $(dolt tag | awk '{print $1}'); do
+            dolt push origin "$t"
+          done
+
+      # data/curated is gitignored in the main branch (it's derived, daily
+      # output) but release.yml needs today's curated CSVs on a later,
+      # separate checkout — so persist them to a dedicated orphan branch
+      # using plain git, rather than trying to reconstruct them from Dolt's
+      # table schema (which drops/renames columns on import; see
+      # dolt_importer.py's _TABLE_COLUMNS).
+      - name: Push curated data to git branch
+        if: success()
+        run: |
+          git config user.name  "TickerTruth Bot"
+          git config user.email "bot@tickertruth.com"
+          git fetch origin curated-data:curated-data 2>/dev/null || true
+          if git show-ref --verify --quiet refs/heads/curated-data; then
+            git worktree add curated-data-worktree curated-data
+          else
+            git worktree add -B curated-data curated-data-worktree
+          fi
+          rm -rf curated-data-worktree/data
+          mkdir -p curated-data-worktree/data
+          cp -r data/curated curated-data-worktree/data/
+          cd curated-data-worktree
+          git add -A
+          if git diff --cached --quiet; then
+            echo "No curated-data changes"
+          else
+            git commit -m "curated data: ${GITHUB_RUN_ID}"
+          fi
+          git push origin curated-data
+
+      # Belt-and-suspenders manual-recovery copy, kept for workflow_dispatch
+      # runs. With the two push steps above, Dolt state and curated data are
+      # now durably persisted on every successful run — this artifact is a
+      # convenience for pulling one specific run's state locally without
+      # cloning the git-remote refs, not the primary persistence mechanism.
       - name: Package Dolt state and curated data
         if: github.event_name == 'workflow_dispatch'
         run: |

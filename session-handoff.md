@@ -63,15 +63,16 @@ found several real problems that need follow-up:
   unknown period — check how far back this goes. Corp
   actions/lineage/adjustment-factor data has likely been stale/empty in Dolt
   for a while. Next step is the infra decision (proxy/vendor), not more code.
-- **`nightly.yml` never persists Dolt state.** It does `dolt init` fresh
-  every run (in the ephemeral CI runner) and never pushes/uploads it — so
-  daily "refreshes" were being discarded, not accumulated. Added a
-  `workflow_dispatch`-only artifact upload of `dolt/.dolt` + `data/curated`
-  as a stopgap (see `.github/workflows/nightly.yml`), but the real fix needs
-  a persistent Dolt remote (e.g. DoltHub) or committing Dolt state somewhere
-  durable. This also means `release.yml` (export/manifest/release-notes/
-  website) has been failing since 2026-06-02 — it needs `data/curated` from
-  a prior `load` step but runs on a fresh checkout with no way to get it.
+- **`nightly.yml` never persists Dolt state — FIXED 2026-08-06.** It used
+  to do `dolt init` fresh every run and never push/upload it, so daily
+  "refreshes" were being discarded, not accumulated. Fixed using Dolt's
+  git-remote support: `nightly.yml` now clones the repo's own git remote
+  (`refs/dolt/data`) to restore prior state, and pushes `main` + tags back
+  after `load`. `data/curated` (needed by `release.yml`) is separately
+  persisted via a `curated-data` git branch. Full writeup in `tasks.md`
+  INFRA-1 and `dolt/CLAUDE.md`'s "CI persistence" section. Caveat: verified
+  locally against a `file://` git remote, not yet against a real nightly
+  run on GitHub Actions — check the next scheduled/dispatched run's logs.
 - **Bhavcopy is 814+ days stale** (last successful fetch: 2024-05-10).
   `fact_equity_eod` has never been populated via the pipeline.
 - Local Dolt repo's pre-2026-08-02 commit history (May 31–June 2) was lost
@@ -83,6 +84,7 @@ found several real problems that need follow-up:
   `release.yml` being tag-triggered — releases have apparently always been
   done via direct commits to `main`, not tag pushes.
 
-Suggested priority: fix `fetch_nse_corporate_actions()` first (core product
-value), then decide on a real Dolt persistence strategy for `nightly.yml`
-before the next monthly release.
+Suggested priority: Dolt/curated-data persistence is now fixed (see
+INFRA-1 above) — `fetch_nse_corporate_actions()` (INFRA-2 in `tasks.md`,
+options documented but not yet implemented) is the remaining blocker
+before the next real monthly release.

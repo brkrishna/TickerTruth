@@ -27,6 +27,42 @@ New schema changes should be applied as numbered migration files added to a migr
 when that pattern is adopted.
 
 
+## CI persistence
+
+`nightly.yml` and `release.yml` run on ephemeral GitHub Actions runners with
+no local disk that survives between runs, so `dolt/.dolt` (gitignored,
+generated at runtime) needs an external remote to persist across runs —
+otherwise every nightly run starts from `dolt init` and discards the
+previous run's commits/tags.
+
+**Mechanism:** Dolt's git-remote support (`dolt remote add origin
+<git-url>` / `dolt push` / `dolt clone`) uses this repo's own GitHub remote
+as the Dolt remote, storing chunk data on a custom ref (`refs/dolt/data`)
+that doesn't touch normal git history or show up in the GitHub UI. No
+separate DoltHub/DoltLab account or secret is needed — `GITHUB_TOKEN` is
+sufficient.
+
+- `nightly.yml`: clones the existing Dolt state at the start of the job
+  (falls back to `dolt init` + seed only if the remote has no Dolt data
+  yet — i.e. the very first run ever), then pushes `main` plus any new
+  tags after a successful `load` step. Every successful nightly `load`
+  creates a `vYYYY.MM.DD` tag (see `pipelines/run.py::run_load`), so the
+  tag-push loop matters, not just the branch push.
+- `release.yml` does not touch Dolt directly (`--no-dolt-commit`) — its
+  gap was a separate one: `data/curated/*.csv` (also gitignored) needs to
+  exist on its fresh checkout for the `export` task. That's persisted via
+  a plain git branch (`curated-data`, pushed by `nightly.yml`, restored by
+  `release.yml` with `git checkout origin/curated-data -- data/curated`)
+  rather than reconstructed from Dolt tables, since Dolt's imported schema
+  drops/renames columns relative to the original curated CSVs (see
+  `dolt_importer.py`'s `_TABLE_COLUMNS`) and round-tripping that mapping
+  isn't guaranteed lossless.
+
+This was chosen over a DoltHub remote as the primary fix since it needs no
+new third-party account; DoltHub remains a candidate later if/when a
+private subscriber-facing Dolt repo is needed for commercial delivery (see
+`todo.md`'s "Commercial delivery" section).
+
 ## Migration rules
 - All schema changes must be written as numbered migration files in `migration/`.
 - Migration file names must follow: `NNN_short_snake_case_description.sql`
