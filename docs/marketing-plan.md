@@ -639,3 +639,40 @@ After every successful post:
       staged screenshots and reply approve/reject (Section 4.4)
 - [ ] Fill in the two `[GitHub link]` and `[Calendly link]` placeholders
       in Section 3 (Days 3, 9, 10) with the real URLs before Day 1 posts
+
+---
+
+## 6. Analytics check-in (2026-08-06)
+
+Reviewed the Cloudflare Web Analytics dashboard (Core Web Vitals panel,
+date range Jul 30 – Aug 6 2026) to close out `FOLLOWUP-1` in `tasks.md`
+(the beacon-token swap from commit `fec069f`, live since 2026-08-04).
+
+**Finding: the beacon is now firing and capturing real visits.** The
+Core Web Vitals panel shows real-user LCP/INP/CLS samples against actual
+page paths, which only populate when the beacon script successfully
+loads and reports from a real page view — this was empty under the old
+token. Data points appear from Sun Aug 2 through Thu Aug 6, i.e. starting
+before the Day 1–4 LinkedIn/Substack posts went out, so the token itself
+was the fix, not new traffic volume from the content plan.
+
+Pages with recorded visits: `tickertruth.com/`, `/release-notes`,
+`/blog/`, `/pricing`, `/sample-queries`, `/methodology`, three individual
+blog posts (`why-evol…`, `todays-a…`, `the-evol…`), and one
+`tickertruth.pages.dev/` hit (the Pages.dev preview domain, not the
+custom domain — worth noting since that traffic won't be from the
+marketing posts, which all link to `tickertruth.com`).
+
+Core Web Vitals are all in the "Good" band: LCP P50 582ms / P75 676ms /
+P90 840ms / P99 909ms, both INP and CLS at 100% Good. No performance
+concerns from this data.
+
+**What this check-in did *not* confirm**, because the Core Web Vitals
+panel doesn't surface it: absolute visit counts, top referrers (so no
+LinkedIn/Substack attribution yet), or whether `/pricing` visits
+correlate with a specific day's post. See `FOLLOWUP-2` in `tasks.md` for
+the remaining check.
+
+`docs/cloudflare-analytics.md` was reviewed against this finding — its
+"What this doesn't do" caveats are still accurate as written; no update
+needed.

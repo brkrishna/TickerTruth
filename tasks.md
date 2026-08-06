@@ -282,7 +282,7 @@ line explaining the skipped commit so operators know why no tag was created.
 
 ## Follow-ups
 
-### FOLLOWUP-1 — Verify Cloudflare Web Analytics is capturing data (opened 2026-08-04)
+### FOLLOWUP-1 — Verify Cloudflare Web Analytics is capturing data (opened 2026-08-04, RESOLVED 2026-08-06)
 
 **Context:** The beacon token previously embedded on all 6 landing pages and the
 blog footer partial (`4cf86be656924547a93bfba532bc23bc`) wasn't showing any
@@ -296,14 +296,43 @@ dashboard.
 `website/blog/layouts/partials/footer.html`) to `5e7540b0c0d541d59248c1e3f9e3a08f`
 and pushed to `main` (commit `fec069f`) — Cloudflare Pages auto-deployed.
 
-**To check in a few days (by ~2026-08-08):**
-- Confirm visits are showing up in [dash.cloudflare.com](https://dash.cloudflare.com) → Analytics & Logs → Web Analytics → the site matching the new token
-- If still zero after real traffic (e.g. a LinkedIn post from `docs/marketing-plan.md`'s
-  10-day run) has landed, check whether an ad blocker/privacy extension is being used
-  to test, and whether the token is actually registered to a Web Analytics site in
-  the dashboard (Settings → Web Analytics → confirm site status)
-- If confirmed working, update `docs/cloudflare-analytics.md` if any of the "What
-  this doesn't do" caveats turn out to need revision
+**Resolution (2026-08-06):** Confirmed via the Core Web Vitals panel in the
+dashboard — real-user LCP/INP/CLS samples are now populating against actual
+page paths (`/`, `/release-notes`, `/blog/`, `/pricing`, `/sample-queries`,
+`/methodology`, three blog posts), with data points from Aug 2 onward. The
+beacon is firing correctly under the new token. All CWV metrics are in the
+"Good" band (LCP P50 582ms / P75 676ms / P90 840ms / P99 909ms). Full writeup
+in `docs/marketing-plan.md` §6. `docs/cloudflare-analytics.md` was checked
+against this finding — no caveats needed updating.
+
+**Left open, tracked separately:** the Core Web Vitals panel doesn't surface
+visit counts or top referrers, so LinkedIn/Substack attribution for the 10-day
+content run is still unconfirmed — see `FOLLOWUP-2` below.
+
+---
+
+### FOLLOWUP-2 — Confirm referrer attribution for the 10-day content run (opened 2026-08-06)
+
+**Context:** `FOLLOWUP-1` confirmed the Web Analytics beacon is capturing
+real visits (via the Core Web Vitals panel), but that panel doesn't show
+visit counts, top referrers, or top paths — so it's still unconfirmed
+whether the Day 1–4 LinkedIn (`urn:li:activity:7489909231228403712`,
+`...7490250295906779136`, `...7490642030671470592`, `...7491006111534432256`)
+and Substack (`tickertruth.substack.com/p/the-graveyard-problem-survivorship`,
+plus Days 1–3) posts are actually driving click-throughs, as opposed to
+staying as impressions on the platform itself.
+
+**Action needed:**
+- In the Web Analytics dashboard, check the **Top referrers** panel
+  (`dash.cloudflare.com` → Analytics & Logs → Web Analytics → tickertruth.com),
+  filtered to the Aug 3–12 window, for `linkedin.com` and `substack.com`
+  entries
+- Cross-check **Top paths** for a `/pricing` spike correlated with a specific
+  day's post, per the "Reading it against what actually matters here" section
+  of `docs/cloudflare-analytics.md`
+- Once the 10-day run completes (2026-08-12), roll this into the Day-28 sprint
+  review metrics mentioned in `docs/marketing-plan.md` §4.5
+  (`docs/marketing/content-log.csv`)
 
 ---
 

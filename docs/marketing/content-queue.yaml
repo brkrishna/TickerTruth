@@ -1,0 +1,154 @@
+# Content queue for the 10-day LinkedIn + Substack run.
+# See docs/marketing-plan.md for the full plan and post text sourced verbatim
+# from marketing.md. status: pending_review -> approved -> posted -> failed
+# post_url: null means posted but the permalink hasn't been backfilled yet.
+
+- day: 1
+  date: "2026-08-03"
+  platform: linkedin
+  status: posted
+  text: |
+    If you've ever run a backtest on NSE data and seen returns that looked too good, one likely culprit is symbol discontinuity.
+
+    Here's what happens: a company undergoes a merger, a demerger, or a name change. The ticker changes. Most data vendors start a new series. The old series either disappears or stays orphaned.
+
+    Your strategy looks like it traded a company that no longer exists, using a series that stopped being that company years ago.
+
+    Three cases where this silently breaks your analysis:
+    — HDFC Bank absorbed HDFC Ltd in 2023. Two tickers. One merged entity. Most vendors don't map the lineage.
+    — Demergers create new tickers. The parent drops in price at demerger. Naïve backtests misread this as a loss.
+    — Bonus issues and face-value changes shift the price series discontinuously. Unadjusted data makes it look like a crash.
+
+    We built TickerTruth to fix this. Versioned reference-data layer for NSE equities: symbol lineage, corporate action events, and adjustment factors — released monthly with a full changelog.
+
+    Free sample dataset at the link.
+
+    tickertruth.com
+
+    #QuantFinance #AlgoTrading #IndiaMarkets #DataEngineering #NSE #Backtesting
+  post_url: "https://www.linkedin.com/feed/update/urn:li:activity:7489909231228403712"
+
+- day: 1
+  date: "2026-08-03"
+  platform: substack
+  status: posted
+  title: "Why Your India Backtest Is Probably Lying To You"
+  text: |
+    [LinkedIn text as opening, see marketing-plan.md §3.1]
+    Plus 2-3 paragraphs of depth per marketing-plan.md §3.1.
+  post_url: null
+
+- day: 2
+  date: "2026-08-04"
+  platform: linkedin
+  status: posted
+  text: |
+    Most financial data vendors track two corporate action types cleanly: cash dividends and stock splits.
+
+    That's maybe 40% of the problem.
+
+    What they routinely miss or mislabel for India equities:
+
+    — Rights issues (price-adjusting, not just dilutive)
+    — Bonus issues (NOT the same as a stock split, but treated identically by many vendors)
+    — Face-value changes (a split by another name — your price series breaks if this isn't tracked)
+    — Capital reductions (share buyback + cancellation, affects per-share metrics)
+    — Demerger spin-offs (parent price drops; child is a new entity — is it in your universe?)
+    — Amalgamations and scheme-of-arrangements (ticker replaced; most vendors silently drop the old one)
+
+    Each of these requires a different adjustment factor and a different lineage mapping.
+
+    Getting one wrong can corrupt years of price history downstream.
+
+    TickerTruth normalizes all of these into a single corporate action event table with action type, effective date, ex-date, and an adjustment factor — versioned monthly.
+
+    Free sample: tickertruth.com
+
+    #CorporateActions #IndiaEquities #DataQuality #QuantFinance #NSE
+  post_url: "https://www.linkedin.com/feed/update/urn:li:activity:7490250295906779136"
+
+- day: 2
+  date: "2026-08-04"
+  platform: substack
+  status: posted
+  title: "Corporate Actions Are Not Just Dividends and Splits"
+  text: |
+    [LinkedIn text as opening, see marketing-plan.md §3.2]
+    Plus 2-3 paragraphs of depth per marketing-plan.md §3.2.
+  post_url: null
+
+- day: 3
+  date: "2026-08-05"
+  platform: linkedin
+  status: posted
+  text: |
+    The most common question: "How do I actually use the lineage table?"
+
+    Here's the pattern:
+
+    ```python
+    import pandas as pd
+
+    lineage = pd.read_parquet("dim_symbol_alias.parquet")
+    prices  = pd.read_parquet("fact_equity_eod.parquet")
+
+    prices_with_entity = prices.merge(
+        lineage[["symbol", "entity_id", "valid_from", "valid_to"]],
+        on="symbol", how="left"
+    ).query("date >= valid_from and date < valid_to")
+
+    continuous = prices_with_entity.groupby(["entity_id", "date"])["close"].last()
+    ```
+
+    Your backtest now tracks the entity, not the ticker string. Name changes, mergers, and renames don't break the series.
+
+    Full sample notebook: [GitHub link]
+    Full dataset: tickertruth.com
+
+    #Python #Pandas #QuantFinance #NSE #DataEngineering
+  post_url: "https://www.linkedin.com/feed/update/urn:li:activity:7490642030671470592"
+
+- day: 3
+  date: "2026-08-05"
+  platform: substack
+  status: posted
+  title: "The 5-Line Pandas Pattern for Symbol-Stable Backtests"
+  text: |
+    [LinkedIn text as opening, code block included, see marketing-plan.md §3.3]
+    Plus 2-3 paragraphs of depth per marketing-plan.md §3.3.
+  post_url: null
+
+- day: 4
+  date: "2026-08-06"
+  platform: linkedin
+  status: posted
+  text: |
+    A commonly cited stat: most stock market indices look better than average because losers get removed.
+
+    The same problem exists in your data feed, and it's a *data engineering* problem, not a psychology one — it's about what your vendor silently stops updating, not how you think about risk.
+
+    When a company delists — voluntary delisting, regulatory action, merger, or NCLT — most vendors either drop the ticker entirely or stop updating it with no end-date.
+
+    What this means for your analysis:
+    — Universe construction: your "all NSE equities" screen misses the dead ones
+    — Factor backtests: the stocks that went to zero aren't in your universe, so your model looks better
+    — Event studies: delisting announcements are powerful alpha signals — but only if you have them
+
+    TickerTruth maintains a full listing status history for NSE equities — active, suspended, delisted, and merged — with the effective date of each status change.
+
+    The delisted names are part of the product, not a gap in it.
+
+    tickertruth.com
+
+    #SurvivorshipBias #NSE #QuantFinance #AlgoTrading #IndiaMarkets
+  post_url: "https://www.linkedin.com/feed/update/urn:li:activity:7491006111534432256"
+
+- day: 4
+  date: "2026-08-06"
+  platform: substack
+  status: posted
+  title: "The Graveyard Problem: Survivorship Bias in Your Data Feed, Not Your Head"
+  text: |
+    [LinkedIn text as opening, see marketing-plan.md §3.4]
+    Plus 2-3 paragraphs of depth per marketing-plan.md §3.4.
+  post_url: "https://tickertruth.substack.com/p/the-graveyard-problem-survivorship?r=8s8sy5"
