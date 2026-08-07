@@ -152,3 +152,22 @@
     [LinkedIn text as opening, see marketing-plan.md §3.4]
     Plus 2-3 paragraphs of depth per marketing-plan.md §3.4.
   post_url: "https://tickertruth.substack.com/p/the-graveyard-problem-survivorship?r=8s8sy5"
+
+- day: 5
+  date: "2026-08-07"
+  platform: linkedin
+  status: posted
+  text: |
+    [See marketing-plan.md §3.5 — "NSE Data Sources Compared" table:
+    NSE direct downloads / Bloomberg-Refinitiv / free open datasets / TickerTruth]
+  post_url: "https://www.linkedin.com/feed/update/urn:li:activity:7491360978874589184"
+
+- day: 5
+  date: "2026-08-07"
+  platform: substack
+  status: posted
+  title: "NSE Data Sources Compared — What Each Gives You, What Each Misses"
+  text: |
+    [LinkedIn table as opening, see marketing-plan.md §3.5]
+    Plus 2-3 paragraphs of depth per marketing-plan.md §3.5.
+  post_url: "https://tickertruth.substack.com/p/nse-data-sources-compared-what-each?r=8s8sy5"
