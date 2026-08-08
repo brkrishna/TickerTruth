@@ -1,6 +1,6 @@
 site_name: TickerTruth — India Symbol History & Corporate Actions Truth Layer
 site_description: Versioned NSE symbol lineage and corporate action reference data for backtesting.
-site_url: https://tickertruth.pages.dev
+site_url: https://tickertruth.com
 
 # The landing pages are plain static HTML — no build step for those.
 # Source files: website/landing-page/*.html
