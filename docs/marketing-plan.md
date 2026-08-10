@@ -1,7 +1,10 @@
 # 10-Day LinkedIn + Substack Content Plan (Automated via openclaw)
 
-Generated 2026-08-02, for the 10-day run **Monday 2026-08-03 → Wednesday
-2026-08-12**. Sourced from the content already drafted in
+Generated 2026-08-02, for the 10-day run **Monday 2026-08-03 → Friday
+2026-08-14**. Days 6–7 (originally the weekend of 2026-08-08/09) were
+missed and rescheduled to 2026-08-11/12 (see updated calendar below);
+days 9–10 shifted two days later as a result. Sourced from the content
+already drafted in
 [`marketing.md`](../marketing.md) Section 12 and the sprint calendar in
 Section 11, sequenced daily instead of every 3–4 days, and cross-checked
 against what's already live on [tickertruth.com/blog](https://tickertruth.com/blog/)
@@ -44,6 +47,13 @@ new ground.
 
 ## 2. The 10-day calendar
 
+**Updated 2026-08-10:** Days 6–7 were not posted on their original
+weekend dates (2026-08-08/09) and are rescheduled below to 2026-08-11/12,
+the next two available slots after Day 8 (which posted on time,
+2026-08-10, with rewritten copy — see §3.8). Days 9–10 shift two days
+later accordingly, so the run now closes Friday 2026-08-14 instead of
+Wednesday 2026-08-12.
+
 | Day | Date | Theme | LinkedIn source | Substack source |
 |---|---|---|---|---|
 | 1 | Mon 2026-08-03 | Why India backtests silently break | `marketing.md` Post 1 | Expanded (§3.1) |
@@ -51,18 +61,18 @@ new ground.
 | 3 | Wed 2026-08-05 | 5-line pandas lineage join (technical) | `marketing.md` Post 6 | Expanded (§3.3) |
 | 4 | Thu 2026-08-06 | Survivorship bias in the data feed | `marketing.md` Post 4 (reworded) | Expanded (§3.4) |
 | 5 | Fri 2026-08-07 | NSE data sources compared | `marketing.md` Post 9 | Expanded (§3.5) |
-| 6 | Sat 2026-08-08 | The hidden cost of bad reference data | `marketing.md` Post 10 | Expanded (§3.6) |
-| 7 | Sun 2026-08-09 | 12 corporate action types, ranked by how often vendors miss them | `marketing.md` Post 7 | Expanded (§3.7) |
-| 8 | Mon 2026-08-10 | First public release — what's in it | `marketing.md` Post 5 | Expanded (§3.8) |
-| 9 | Tue 2026-08-11 | Announcement date vs ex-date (event studies) | `marketing.md` Post 11 | Expanded (§3.9) |
-| 10 | Wed 2026-08-12 | Week 1 close: recap, what's next | New (§3.10) | Expanded (§3.10) |
+| 8 | Mon 2026-08-10 | Latest release status, honest update *(rewritten)* | `marketing.md` Post 5 (rewritten 2026-08-10) | Expanded (§3.8, rewritten) |
+| 6 | ~~Sat 2026-08-08~~ → Tue 2026-08-11 | The hidden cost of bad reference data | `marketing.md` Post 10 | Expanded (§3.6) |
+| 7 | ~~Sun 2026-08-09~~ → Wed 2026-08-12 | 12 corporate action types, ranked by how often vendors miss them | `marketing.md` Post 7 | Expanded (§3.7) |
+| 9 | ~~Tue 2026-08-11~~ → Thu 2026-08-13 | Announcement date vs ex-date (event studies) | `marketing.md` Post 11 | Expanded (§3.9) |
+| 10 | ~~Wed 2026-08-12~~ → Fri 2026-08-14 | Week close: recap, what's next | New (§3.10) | Expanded (§3.10) |
 
-Weekday educational posts run Mon–Fri; Day 6 (Saturday) is the lighter
-relatable-ROI post deliberately, and Day 7 (Sunday) is a scannable list
-post — both chosen for lower-attention weekend reading. Day 8 (the
-following Monday) is the product post, matching the "30% product" mix
-rule even though the cadence is compressed from the original 4-week
-sprint into 10 days.
+Rows are left in original day-number order (not date order) so the
+content sequencing (§3.1–§3.10) still lines up 1:1 with its section
+number below — only the calendar dates moved. Day 6 and 7's "lighter
+weekend read" framing no longer applies now that they land on weekdays;
+the copy in §3.6/§3.7 doesn't reference specific days of the week, so no
+text changes were needed there, only the date.
 
 ---
 
@@ -275,7 +285,7 @@ LinkedIn posts don't need one (feed posts, not articles).
 
 ---
 
-### 3.6 — Day 6, Sat 2026-08-08
+### 3.6 — Day 6, ~~Sat 2026-08-08~~ Tue 2026-08-11 *(rescheduled — missed original date)*
 
 **LinkedIn:**
 > Back-of-envelope: how much does bad India reference data actually cost a quant team?
@@ -305,7 +315,7 @@ LinkedIn posts don't need one (feed posts, not articles).
 
 ---
 
-### 3.7 — Day 7, Sun 2026-08-09
+### 3.7 — Day 7, ~~Sun 2026-08-09~~ Wed 2026-08-12 *(rescheduled — missed original date)*
 
 **LinkedIn:**
 > In 10 years of India equity data, here's a rough count of corporate action types we've normalized for TickerTruth:
@@ -346,38 +356,42 @@ LinkedIn posts don't need one (feed posts, not articles).
 
 ### 3.8 — Day 8, Mon 2026-08-10
 
+**Rewritten 2026-08-10** — the original draft below claimed a full corporate-action
+event table, backtest-ready adjustment factors, and listing status history in the
+"full release." The actual latest release (`v2026.08.02`) has **0 corporate actions,
+0 lineage events, 0 adjustment factor rows** — ingestion has been broken since before
+that release (see `session-handoff.md`) — and only refreshes the security master.
+Posting the original draft would contradict the website's own release-notes page,
+which already discloses this. Replaced with a version that matches what's actually
+live.
+
 **LinkedIn:**
-> Today we're publishing our first monthly data release at tickertruth.com.
+> Today we're publishing our latest data release at tickertruth.com — and being upfront about where it stands.
 >
-> What's in the public sample:
-> — NSE security master: current active securities with exchange metadata
-> — Symbol alias table: name changes and ticker renames since 2010
-> — Sample corporate action events: 30-day window of bonus, dividend, and rights events
-> — Sample adjustment factors: split and bonus factors for a subset of large-caps
+> What's live in this release:
+> — NSE security master: 2,389 active securities, refreshed from the current NSE listing
+> — Full release notes with exact record counts, published every release: tickertruth.com/release-notes
 >
-> What's in the full release:
-> — Full historical lineage from 2000
-> — Full corporate action event table (all action types, all years)
-> — Backtest-ready adjustment factor map
-> — Listing status history including delistings and mergers
-> — Monthly release + changelog delivered to your inbox
+> What's not live yet: corporate action ingestion is currently broken upstream (NSE is blocking automated access), so corporate actions, symbol lineage, and adjustment factors haven't updated in this release. We're not going to paper over that — the release notes say it plainly, and we'll post again the day it's fixed.
 >
-> Full release notes: tickertruth.com/release-notes
+> If you want to see exactly what changed release over release, including the gaps, that's what the changelog is for.
+>
+> tickertruth.com/release-notes
 >
 > #IndiaData #NSE #QuantFinance #DataProduct #OpenData
 
-**Substack — "TickerTruth First Public Release — What's In It":**
+**Substack — "Where the Latest TickerTruth Release Actually Stands":**
 > [LinkedIn text above]
 >
-> Why a public sample at all, rather than gating everything: the sample is deliberately structured so it's *useful but incomplete* in a way that's obvious, not hidden. The 30-day corporate-action window is enough to validate the schema and run the pandas join pattern from Day 3 against real data; it's not enough to run a multi-year backtest, because the lineage and adjustment history behind it goes back to 2000 and that's the paid tier. That's an intentional line, not an arbitrary one — the sample should let you verify the methodology works before paying for the years of history a real backtest needs.
+> We'd rather ship an honest partial release than sit on one until it's polished. The security master refresh is real and useful on its own — it's the base table every lineage and adjustment calculation joins against, so keeping it current matters even in a release where nothing else moved.
 >
-> The monthly changelog is the part that's easy to undervalue until you've been burned by its absence. Every release notes entry records exactly what changed since the last one — new symbols, corrected records, added lineage events — so if a number in your pipeline shifts between releases, there's a specific, dated explanation rather than a silent correction you have to discover by diffing files yourself.
+> The corporate-actions gap is an infrastructure problem, not a data-quality one: NSE's edge is returning 403s to the extractor's requests, both locally and in CI, and there's no stale cache old enough to substitute. The fix is either a different egress path or a licensed data source — not a code patch — so we're not going to promise a date we can't back.
 >
-> Free sample: tickertruth.com. Release notes: tickertruth.com/release-notes.
+> Every release note going forward will say exactly what updated and what didn't, with row counts, not adjectives. If corporate actions come back next release, you'll see the count go from 0 to whatever it actually is. Free sample and full changelog: tickertruth.com/release-notes.
 
 ---
 
-### 3.9 — Day 9, Tue 2026-08-11
+### 3.9 — Day 9, ~~Tue 2026-08-11~~ Thu 2026-08-13 *(shifted two days due to Day 6/7 reschedule)*
 
 **LinkedIn:**
 > A common pattern in quant research: measure abnormal returns around a corporate event.
@@ -405,7 +419,7 @@ LinkedIn posts don't need one (feed posts, not articles).
 
 ---
 
-### 3.10 — Day 10, Wed 2026-08-12 *(new)*
+### 3.10 — Day 10, ~~Wed 2026-08-12~~ Fri 2026-08-14 *(new; shifted two days due to Day 6/7 reschedule)*
 
 **LinkedIn:**
 > One week since the first public release, so a quick, honest update.

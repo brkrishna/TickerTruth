@@ -171,3 +171,164 @@
     [LinkedIn table as opening, see marketing-plan.md §3.5]
     Plus 2-3 paragraphs of depth per marketing-plan.md §3.5.
   post_url: "https://tickertruth.substack.com/p/nse-data-sources-compared-what-each?r=8s8sy5"
+
+# Days 6-7 were not posted on their original weekend dates (2026-08-08/09)
+# and are rescheduled below to 2026-08-11/12. Day 8 posted on time
+# (2026-08-10) but with rewritten copy — see marketing-plan.md §3.8 for why.
+# Days 9-10 shifted two days later as a result. See marketing-plan.md §2.
+
+- day: 8
+  date: "2026-08-10"
+  platform: linkedin
+  status: posted
+  text: |
+    Today we're publishing our latest data release at tickertruth.com — and being upfront about where it stands.
+
+    What's live in this release:
+    — NSE security master: 2,389 active securities, refreshed from the current NSE listing
+    — Full release notes with exact record counts, published every release: tickertruth.com/release-notes
+
+    What's not live yet: corporate action ingestion is currently broken upstream (NSE is blocking automated access), so corporate actions, symbol lineage, and adjustment factors haven't updated in this release. We're not going to paper over that — the release notes say it plainly, and we'll post again the day it's fixed.
+
+    If you want to see exactly what changed release over release, including the gaps, that's what the changelog is for.
+
+    tickertruth.com/release-notes
+
+    #IndiaData #NSE #QuantFinance #DataProduct #OpenData
+  post_url: "https://www.linkedin.com/feed/update/urn:li:activity:7492456406680412160"
+
+- day: 8
+  date: "2026-08-10"
+  platform: substack
+  status: posted
+  title: "Where the Latest TickerTruth Release Actually Stands"
+  text: |
+    [LinkedIn text above, see marketing-plan.md §3.8]
+    Plus 2-3 paragraphs of depth per marketing-plan.md §3.8.
+  post_url: "https://tickertruth.substack.com/p/where-the-latest-tickertruth-release"
+
+- day: 6
+  date: "2026-08-11"
+  platform: linkedin
+  status: pending_review
+  text: |
+    Back-of-envelope: how much does bad India reference data actually cost a quant team?
+
+    Scenario: a 5-person quant team at a mid-sized AIF.
+
+    — 1 analyst spends 3 days per quarter reconciling corporate action dates and adjustment factors: 12 days/year
+    — 1 engineer spends 2 days per quarter cleaning symbol continuity issues in the data pipeline: 8 days/year
+    — 1 strategy has 18 months of live history contaminated by survivorship bias: backtest P&L was overstated by ~15%
+
+    Conservative cost: 20 person-days of senior talent + an overfit strategy that underperformed its backtest.
+
+    The reference data problem is not a data problem. It's an engineering and research reliability problem.
+
+    tickertruth.com
+
+    #DataQuality #QuantFinance #CostOfBadData #IndiaEquities #NSE
+  post_url: null
+
+- day: 6
+  date: "2026-08-11"
+  platform: substack
+  status: pending_review
+  title: "The Hidden Cost of Bad Reference Data"
+  text: |
+    [LinkedIn text above, see marketing-plan.md §3.6]
+    Plus 2-3 paragraphs of depth per marketing-plan.md §3.6.
+  post_url: null
+
+- day: 7
+  date: "2026-08-12"
+  platform: linkedin
+  status: pending_review
+  text: |
+    In 10 years of India equity data, here's a rough count of corporate action types we've normalized for TickerTruth:
+
+    ✓ Cash dividend
+    ✓ Stock split (forward and reverse)
+    ✓ Bonus issue
+    ✓ Rights issue
+    ✓ Face-value change
+    ✓ Capital reduction / buyback + cancellation
+    ✓ Demerger (parent record + child entity creation)
+    ✓ Amalgamation / merger (target record closure + acquirer mapping)
+    ✓ Scheme of arrangement
+    ✓ NCLT-ordered restructuring
+    ✓ Name change (no price impact, but breaks ticker continuity)
+    ✓ ISIN change
+
+    Most data vendors handle the first two cleanly. Some handle the next three. Very few handle everything below that.
+
+    The ones at the bottom of the list are rare. But when they happen, they're catastrophic for any model using historical price or event data.
+
+    Full taxonomy and methodology: tickertruth.com/methodology
+
+    #CorporateActions #NSE #DataEngineering #IndiaMarkets #QuantFinance
+  post_url: null
+
+- day: 7
+  date: "2026-08-12"
+  platform: substack
+  status: pending_review
+  title: "12 Corporate Action Types, Ranked by How Often Vendors Miss Them"
+  text: |
+    [LinkedIn list above, see marketing-plan.md §3.7]
+    Plus 2-3 paragraphs of depth per marketing-plan.md §3.7.
+  post_url: null
+
+- day: 9
+  date: "2026-08-13"
+  platform: linkedin
+  status: pending_review
+  text: |
+    A common pattern in quant research: measure abnormal returns around a corporate event.
+
+    The silent killer: most teams use the *announcement date* when they should use the *ex-date* (or record date). For some event types, these differ by weeks.
+
+    TickerTruth provides both dates for every event: announced_date, ex_date, record_date, payment_date — whichever are available from NSE filings.
+
+    The difference in CAR[-5,+5] between announcement-date and ex-date alignment is often 3–4% on a typical bonus issue. That's not noise — it's a measurement error that corrupts your strategy.
+
+    Sample notebook: [GitHub link]
+
+    #EventStudy #QuantFinance #NSE #CorporateActions #AlgoTrading
+  post_url: null
+
+- day: 9
+  date: "2026-08-13"
+  platform: substack
+  status: pending_review
+  title: "Event-Study Methodology Using the Correct Corporate Action Date"
+  text: |
+    [LinkedIn text above, see marketing-plan.md §3.9]
+    Plus 2-3 paragraphs of depth per marketing-plan.md §3.9.
+  post_url: null
+
+- day: 10
+  date: "2026-08-14"
+  platform: linkedin
+  status: pending_review
+  text: |
+    One week since the first public release, so a quick, honest update.
+
+    This week we covered: symbol discontinuity at mergers and renames, the corporate-action types most vendors miss, how to do the lineage join in 5 lines of pandas, survivorship bias from delisted tickers, how NSE data sources compare, the real cost of bad reference data, and why announcement-date vs ex-date matters for event studies.
+
+    If any of that matched a problem you've actually hit in a backtest, that's the whole reason we're building this in public instead of behind a sales page.
+
+    Free sample, no signup wall beyond an email: tickertruth.com
+    20-minute walkthrough if you'd rather talk it through: [Calendly link]
+
+    #IndiaData #QuantFinance #NSE #DataProduct #Backtesting
+  post_url: null
+
+- day: 10
+  date: "2026-08-14"
+  platform: substack
+  status: pending_review
+  title: "One Week In: What We Covered and What's Next"
+  text: |
+    [LinkedIn text above, see marketing-plan.md §3.10]
+    Plus 2-3 paragraphs of depth per marketing-plan.md §3.10.
+  post_url: null
