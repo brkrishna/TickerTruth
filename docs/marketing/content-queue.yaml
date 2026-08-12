@@ -242,7 +242,7 @@
 - day: 7
   date: "2026-08-12"
   platform: linkedin
-  status: pending_review
+  status: posted
   text: |
     In 10 years of India equity data, here's a rough count of corporate action types we've normalized for TickerTruth:
 
@@ -266,17 +266,17 @@
     Full taxonomy and methodology: tickertruth.com/methodology
 
     #CorporateActions #NSE #DataEngineering #IndiaMarkets #QuantFinance
-  post_url: null
+  post_url: "https://www.linkedin.com/feed/update/urn:li:activity:7493157243044122624"
 
 - day: 7
   date: "2026-08-12"
   platform: substack
-  status: pending_review
+  status: posted
   title: "12 Corporate Action Types, Ranked by How Often Vendors Miss Them"
   text: |
     [LinkedIn list above, see marketing-plan.md §3.7]
     Plus 2-3 paragraphs of depth per marketing-plan.md §3.7.
-  post_url: null
+  post_url: "https://tickertruth.substack.com/p/12-corporate-action-types-ranked"
 
 - day: 9
   date: "2026-08-13"
