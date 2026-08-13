@@ -281,7 +281,7 @@
 - day: 9
   date: "2026-08-13"
   platform: linkedin
-  status: pending_review
+  status: posted
   text: |
     A common pattern in quant research: measure abnormal returns around a corporate event.
 
@@ -294,17 +294,34 @@
     Sample notebook: [GitHub link]
 
     #EventStudy #QuantFinance #NSE #CorporateActions #AlgoTrading
-  post_url: null
+  post_url: "https://www.linkedin.com/feed/update/urn:li:activity:7493512667886837760"
 
 - day: 9
   date: "2026-08-13"
   platform: substack
-  status: pending_review
+  status: posted
   title: "Event-Study Methodology Using the Correct Corporate Action Date"
   text: |
-    [LinkedIn text above, see marketing-plan.md §3.9]
-    Plus 2-3 paragraphs of depth per marketing-plan.md §3.9.
-  post_url: null
+    A common pattern in quant research: measure abnormal returns around a corporate event.
+
+    The silent killer: most teams use the *announcement date* when they should use the *ex-date* (or record date). For some event types, these differ by weeks.
+
+    TickerTruth provides both dates for every event: announced_date, ex_date, record_date, payment_date — whichever are available from NSE filings.
+
+    The difference in CAR[-5,+5] between announcement-date and ex-date alignment is often 3–4% on a typical bonus issue. That's not noise — it's a measurement error that corrupts your strategy.
+
+    Sample notebook: [GitHub link]
+
+    #EventStudy #QuantFinance #NSE #CorporateActions #AlgoTrading
+
+    The gap between announcement and ex-date exists because Indian corporate actions typically go through board approval, shareholder approval, and a regulatory filing window before the ex-date is fixed — and each of those stages can generate its own "announcement" in a news feed or vendor API, which is where the ambiguity creeps in. If your event-study code pulls the first announcement-type record it finds for a given action, it's picking up the board-approval date more often than the market-relevant ex-date, and those can be three to six weeks apart for a bonus or rights issue.
+
+    Why this specifically corrupts a CAR window: cumulative abnormal return calculations are sensitive to exactly *when* the event window starts, because the price reaction to a bonus or rights announcement is front-loaded around the date the market can actually act on it — which is the ex-date, not the announcement. Anchor the window three weeks early and you're measuring pre-event drift as if it were the event reaction, which inflates or deflates the CAR depending on which way the stock was already moving.
+
+    This is a one-line fix once you have the right field — swap `announced_date` for `ex_date` in the window calculation — but it requires the underlying data to actually carry both dates distinctly, which most vendor feeds collapse into a single ambiguous "action date."
+
+    Sample notebook with a worked CAR example: github.com/[org]/tickertruth-samples.
+  post_url: "https://tickertruth.substack.com/p/one-week-in-what-we-covered-and-whats"
 
 - day: 10
   date: "2026-08-14"
