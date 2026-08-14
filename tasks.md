@@ -467,6 +467,46 @@ that only happens on the next real `nightly.yml` trigger).
 testing) is unverified — worth a manual `workflow_dispatch` trigger and a
 check of the Action's logs before trusting the next scheduled run.
 
+**REGRESSION found 2026-08-14 — the "left open" verification above never
+happened, and the real-world result is a currently-broken nightly
+pipeline (high, being fixed now).** Checked `gh run list
+--workflow=nightly.yml` for the first time since the 2026-08-06 fix:
+nightly ran successfully once (2026-08-07 00:55 UTC), then **every run
+since has failed** (2026-08-07 21:06, 08-10, 08-11, 08-12, 08-13 — 5
+consecutive failures). Confirmed via `gh run view <id> --log-failed`:
+
+```
+Restored existing Dolt state from remote.
+error: Unable to add remote.
+cause: remote already exists
+##[error]Process completed with exit code 1.
+```
+
+**Root cause:** in the "Restore or bootstrap Dolt state from git remote"
+step of `.github/workflows/nightly.yml`, the success branch runs `dolt
+clone "$DOLT_REMOTE_URL" dolt_remote_state` and then, after moving
+`.dolt` into place, redundantly runs `dolt remote add origin
+"$DOLT_REMOTE_URL"` again — but `dolt clone` already configures `origin`
+automatically as part of the clone. The second call fails outright
+(`remote already exists`), which aborts the job with no fallback. This
+line is only needed in the bootstrap (`else`) branch, where `dolt init`
+creates a repo with no remote configured yet — it was almost certainly
+copy-pasted into the wrong branch.
+
+**Impact:** Dolt has not been refreshed via the nightly pipeline since
+2026-08-07. Corp-actions/lineage/adjustment-factor data in Dolt has been
+stale for a week, even though the INFRA-2 extract fix (below) now works
+correctly when run manually. This was not caught by any of the "FIXED"
+documentation above because the local dry-run testing used a `file://`
+git transport where this failure mode doesn't reproduce identically
+(needs confirming why, but likely dolt's clone-then-remote-add behavior
+differs slightly by transport, or the local test never exercised the
+restore-then-remote-add sequence exactly as CI does).
+
+**Fix:** delete the redundant `dolt remote add origin "$DOLT_REMOTE_URL"`
+line from the restore-success (`if`) branch — `dolt clone` already sets
+it up. Being implemented now; see commit for details.
+
 ---
 
 ### INFRA-2 — `fetch_nse_corporate_actions()` blocked by Akamai (FIXED 2026-08-14 — original diagnosis was wrong)

@@ -79,8 +79,11 @@ jobs:
             rm -rf dolt/.dolt
             mv dolt_remote_state/.dolt dolt/.dolt
             rm -rf dolt_remote_state
-            cd dolt
-            dolt remote add origin "$DOLT_REMOTE_URL"
+            # No `dolt remote add origin` here — `dolt clone` already
+            # configures `origin` pointing at $DOLT_REMOTE_URL. Adding it
+            # again fails with "remote already exists" (regression found
+            # 2026-08-14, broke every nightly run since 2026-08-07 — see
+            # tasks.md INFRA-1).
           else
             echo "No existing Dolt data on remote — bootstrapping fresh."
             rm -rf dolt_remote_state
