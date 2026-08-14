@@ -671,8 +671,7 @@ test file (`test_normalize_normalizer.py` doesn't exist), which is also
 how the `quality.py` empty-DataFrame bug (see the `map_to_fact_equity_eod`
 writeup above) went unnoticed until now.
 
-**lineage/adjustments FIXED 2026-08-14** (normalize's `test_normalize_normalizer.py`
-gap is still open — only the two highest-priority modules were tackled).
+**lineage/adjustments FIXED 2026-08-14 (first pass).**
 Added `tests/test_lineage_rules.py`, `tests/test_lineage_linker.py`,
 `tests/test_adjustments_calculator.py`, `tests/test_adjustments_adjuster.py`
 (84 new tests total). Two real bugs surfaced and fixed while writing to
@@ -726,6 +725,56 @@ neither had been exercised by any test before:
 Full suite (289 tests) passes with `pytest tests/ -q -m "not integration"
 -W error::UserWarning`; `ruff check pipelines/lineage/ pipelines/adjustments/`
 clean.
+
+**normalize FIXED 2026-08-14 (second pass, same day).** Added
+`tests/test_normalize_normalizers.py` (`FieldNormalizer` pure functions —
+`normalize_ticker`, `normalize_company_name`, `normalize_date`,
+`normalize_action_type`, `normalize_numeric`), `tests/test_normalize_quality.py`
+(`QualityMetadata`), and `tests/test_normalize_normalizer.py`
+(`RawToCanonicalMapper.map_to_dim_issuer`, `map_to_dim_security_master`,
+`map_to_fact_corporate_action_event` — `map_to_fact_equity_eod` already had
+its own file). 105 new tests. This closes the module's test gap entirely —
+every public function in `normalizers.py`, `quality.py`, and `normalizer.py`
+now has at least a happy-path, an edge-case, and an invalid-input test per
+`pipelines/normalize/CLAUDE.md`'s testing rules.
+
+Two more real bugs found and fixed by the required empty-DataFrame test
+case, on top of the one already found in `quality.py` while building
+`map_to_fact_equity_eod` (see above):
+
+- **Three more `.loc[:, col] = scalar`-on-empty-DataFrame crashes**, the
+  same pandas-version quirk as the `quality.py` bug — in
+  `map_to_dim_issuer` (`pd.DataFrame(rows)` with `rows=[]` produced a
+  zero-*column* DataFrame, not just zero rows, so `df["issuer_name"]`
+  raised `KeyError` before the scalar-assignment issue even came up —
+  fixed by constructing with explicit `columns=[...]`), and in
+  `map_to_dim_security_master`/`map_to_fact_corporate_action_event`
+  (`active_flag`, `record_date`, etc.). Rather than patch each call site,
+  did a systematic pass converting every `df.loc[:, "col"] = ...` in
+  `normalizer.py` (28 occurrences) to plain `df["col"] = ...` — behaviorally
+  identical for populated DataFrames (verified: full suite + a live
+  end-to-end run against real NSE data, 2,403 issuers / 2,406 securities,
+  still pass), and immune to the empty-DataFrame crash. Row-indexed
+  partial assignments (`df.loc[mask, "col"] = value`, e.g. the
+  `active_flag` inactive-status override) were left untouched — only the
+  whole-column `.loc[:, "col"]` pattern was affected.
+- **`UNKNOWN_ACTION_TYPE` quality flag was dead code for every corporate
+  action row, NSE and BSE, since this pipeline's inception.**
+  `quality.py::_detect_issues` checked `row["ACTION_TYPE"]`, but neither
+  `RawToCanonicalMapper.map_to_fact_corporate_action_event` nor
+  `BSERawToCanonicalMapper.map_to_fact_bse_corporate_action_event` has
+  ever produced a column by that name — both output `action_code`
+  (confirmed via `grep`). So corporate action rows with an unrecognized
+  action type were always scored as if clean (`_confidence_score = 1.0`,
+  `confidence_flag = HIGH`) instead of being penalized 0.15 and flagged
+  for review. Fixed by checking `action_code` instead. This is a genuine,
+  silent data-quality gap that's been live in every release to date —
+  worth a follow-up query against Dolt's `fact_corporate_action_event`
+  for `action_code = 'UNKNOWN'` rows to see how many past releases were
+  affected (not done as part of this fix).
+
+Full suite (389 tests) passes with the same `-W error::UserWarning`
+flag; `ruff check pipelines/normalize/` clean.
 
 ### BUG-8 — `SymbolLinker.cross_reference_with_actions` mutates caller's input (FIXED 2026-08-14)
 
