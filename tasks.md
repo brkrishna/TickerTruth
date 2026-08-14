@@ -671,14 +671,76 @@ test file (`test_normalize_normalizer.py` doesn't exist), which is also
 how the `quality.py` empty-DataFrame bug (see the `map_to_fact_equity_eod`
 writeup above) went unnoticed until now.
 
-**Not yet started.**
+**lineage/adjustments FIXED 2026-08-14** (normalize's `test_normalize_normalizer.py`
+gap is still open — only the two highest-priority modules were tackled).
+Added `tests/test_lineage_rules.py`, `tests/test_lineage_linker.py`,
+`tests/test_adjustments_calculator.py`, `tests/test_adjustments_adjuster.py`
+(84 new tests total). Two real bugs surfaced and fixed while writing to
+the CLAUDE.md-required "determinism" and "no mutation" test cases —
+neither had been exercised by any test before:
 
-### BUG-8 — `SymbolLinker.cross_reference_with_actions` mutates caller's input (medium)
+- **Lineage non-determinism (found via the required "same inputs →
+  identical event list" test case).** `SymbolLinker.link_across_periods()`
+  built its event list by iterating Python `set` differences
+  (`current_syms - historical_syms`, etc.), whose iteration order for
+  strings depends on the interpreter's hash seed (`PYTHONHASHSEED`,
+  randomized per-process by default). Events sharing the same
+  `event_date` — the common case, since a single run assigns one
+  `period_date` to every inferred event — could therefore come out in a
+  different relative row order across separate process runs (e.g. two
+  different `nightly.yml` invocations) despite identical input snapshots.
+  Confirmed empirically: running the same inputs under
+  `PYTHONHASHSEED=1/2/3` produced three different row orderings before
+  the fix. Fixed by adding a full deterministic tiebreaker to the final
+  sort (`event_date`, `event_type`, `symbol_from`, `symbol_to` instead of
+  `event_date` alone) in `pipelines/lineage/linker.py`. Verified fixed
+  across the same three hash seeds, and covered by
+  `test_link_across_periods_deterministic_across_hash_seeds` (spawns
+  subprocesses with different `PYTHONHASHSEED` and diffs the output).
+- Also found: renaming a symbol currently emits **two** events, not one —
+  a RENAME (via the ISIN-match path on the removed side) and a LISTING
+  (since the new symbol is, correctly, absent from the historical
+  snapshot and the new-listing detector doesn't special-case rename
+  targets). Not a bug per se — both events are individually accurate —
+  but worth knowing about if a downstream consumer assumes one lineage
+  event per real-world change. Documented via test, not changed.
+- BUG-8 (below) fixed in the same pass, since it's in the same file and
+  directly relevant to the "never mutate input DataFrames" test case.
+- `pipelines/adjustments/adjuster.py` also got a one-line fix: its
+  `pd.to_datetime(..., errors="coerce")` call raised a `UserWarning` on
+  mixed/invalid date formats (surfaced by the new
+  "unparseable event_date is dropped, not error" test) — switched to
+  `format="mixed"` for the same coercion behavior with no warning, so
+  `pytest -W error::UserWarning` now passes clean.
+- Also confirmed and documented (not fixed — a design decision, not a
+  bug) in the new test files' docstrings: `pipelines/adjustments/`'s
+  actual implementation is narrower than its CLAUDE.md's aspirational
+  spec — no RIGHTS, FACE_VALUE_CHANGE, MERGER/DEMERGER factor handling,
+  no `confidence_flag` column, no `duplicate_group_id` dedup logic. The
+  CLAUDE.md-required test cases that depend on those unimplemented
+  features (Rights, Face value change, missing-date → UNRESOLVED flag,
+  duplicate-event dedup) were not faked; only what's actually implemented
+  is tested. Worth a decision later: implement the missing action types,
+  or trim the spec to match reality.
 
-Logged in `todo.md` (opened 2026-07-03), not yet fixed. Mutates the
-input DataFrame in place, violating `pipelines/lineage/CLAUDE.md`'s
-explicit no-mutation rule for pure functions. Low complexity fix (`.copy()`
-before mutating), but not yet done.
+Full suite (289 tests) passes with `pytest tests/ -q -m "not integration"
+-W error::UserWarning`; `ruff check pipelines/lineage/ pipelines/adjustments/`
+clean.
+
+### BUG-8 — `SymbolLinker.cross_reference_with_actions` mutates caller's input (FIXED 2026-08-14)
+
+Logged in `todo.md` (opened 2026-07-03). `cross_reference_with_actions()`
+assigned `actions["_action_date"] = ...` directly onto the caller's
+`actions` DataFrame (later dropped via `actions.drop(..., inplace=True)`,
+but a real mutation of the input in the interim — visible to any other
+code holding the same reference, and left stray if an exception hit
+between the assignment and the drop). Fixed by computing the parsed
+dates into a local `action_dates` Series instead of assigning a column
+onto `actions` at all — no functional change, `actions` is never
+touched. Covered by
+`test_cross_reference_does_not_mutate_actions_input` and
+`test_cross_reference_does_not_mutate_lineage_events_input` in
+`tests/test_lineage_linker.py`.
 
 ### Stale documentation found during the survey (low, but misleading)
 
