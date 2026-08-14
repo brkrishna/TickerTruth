@@ -139,7 +139,20 @@ class SymbolLinker:
                 ]
             )
 
-        df = pd.DataFrame(events).sort_values("event_date").reset_index(drop=True)
+        # Sort on event_date plus deterministic tiebreakers. `events` was built
+        # by iterating Python sets of symbols (current_syms - historical_syms,
+        # etc.), whose iteration order depends on the interpreter's string
+        # hash seed — without a full tiebreaker key, rows sharing the same
+        # event_date would sort in a different relative order across process
+        # runs, violating this module's determinism requirement.
+        df = (
+            pd.DataFrame(events)
+            .sort_values(
+                ["event_date", "event_type", "symbol_from", "symbol_to"],
+                na_position="first",
+            )
+            .reset_index(drop=True)
+        )
         return df
 
     # ── cross-reference with corporate actions ────────────────────────────────
@@ -197,13 +210,13 @@ class SymbolLinker:
             events.loc[needs_corroboration, "manual_review_required"] = True
             return events
 
-        # Convert dates for comparison
+        # Convert dates for comparison. `actions` is the caller's DataFrame —
+        # keep the parsed dates in a local Series rather than assigning a
+        # column onto `actions` itself (never mutate input DataFrames).
         events["_event_date_parsed"] = pd.to_datetime(
             events["event_date"], errors="coerce"
         )
-        actions["_action_date"] = pd.to_datetime(
-            actions[action_date_col], errors="coerce"
-        )
+        action_dates = pd.to_datetime(actions[action_date_col], errors="coerce")
 
         window = timedelta(days=_CORROBORATION_WINDOW_DAYS)
 
@@ -223,8 +236,8 @@ class SymbolLinker:
                     .str.upper()
                     .isin({c.upper() for c in _CORROBORATING_ACTION_CODES})
                 )
-                & (actions["_action_date"] >= ev_date - window)
-                & (actions["_action_date"] <= ev_date + window)
+                & (action_dates >= ev_date - window)
+                & (action_dates <= ev_date + window)
             ]
 
             if not matching.empty:
@@ -242,7 +255,6 @@ class SymbolLinker:
                 events.loc[idx, "manual_review_required"] = True
 
         events.drop(columns=["_event_date_parsed"], inplace=True)
-        actions.drop(columns=["_action_date"], inplace=True, errors="ignore")
         return events
 
     # ── helpers ───────────────────────────────────────────────────────────────

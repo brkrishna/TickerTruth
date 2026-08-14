@@ -80,9 +80,11 @@ class AdjustmentFactorBuilder:
                 ]
             )
 
-        # Parse dates and sort
+        # Parse dates and sort. format="mixed" avoids a UserWarning pandas
+        # raises when it falls back to per-element parsing on mixed/invalid
+        # formats — same coercion behavior, just silent.
         adjustable["event_date"] = pd.to_datetime(
-            adjustable["event_date"], errors="coerce"
+            adjustable["event_date"], format="mixed", errors="coerce"
         )
         adjustable = adjustable.dropna(subset=["event_date"])
         adjustable = adjustable.sort_values(["security_id", "event_date"])
