@@ -22,9 +22,9 @@ from urllib3.util.retry import Retry
 logger = logging.getLogger(__name__)
 
 # Retry transient failures (connection resets, 5xx, and 429 rate-limiting)
-# with exponential backoff. Does NOT retry 403 — that's Akamai's edge
-# rejecting the request outright, not a transient condition, and hammering
-# it just burns time and risks tightening the block further.
+# with exponential backoff. Does NOT retry 403 — NSE's homepage returns a
+# 403 that still sets a usable anti-bot cookie (see _get_session), so a
+# 403 here isn't a signal to retry, just a non-fatal quirk to log past.
 _RETRY_STATUS_FORCELIST = (429, 500, 502, 503, 504)
 _MAX_RETRIES = 3
 
@@ -134,11 +134,6 @@ class RawDataExtractor:
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(parents=True, exist_ok=True)
         self._session: requests.Session | None = None
-        # Set when the NSE homepage handshake gets an explicit 403 from
-        # Akamai's edge — a durable block, not a transient network blip.
-        # Lets callers skip fallbacks (like Playwright) that hit the same
-        # blocked domain and would fail identically.
-        self._homepage_blocked: bool = False
 
     # ── session management ───────────────────────────────────────────────────
 
@@ -173,14 +168,20 @@ class RawDataExtractor:
             logger.info("Cookie handshake succeeded (HTTP %s)", resp.status_code)
         except requests.HTTPError as exc:
             if exc.response is not None and exc.response.status_code == 403:
-                self._homepage_blocked = True
-                logger.error(
-                    "NSE homepage handshake got HTTP 403 (Akamai edge block) — "
-                    "this source IP/network is being rejected outright, not "
-                    "throttled. Session-cookie-dependent endpoints (JSON API, "
-                    "Playwright) will very likely fail too. This needs an "
-                    "infrastructure fix (different egress IP / proxy / vendor "
-                    "API), not a retry."
+                # Confirmed 2026-08-14: Akamai's edge returns 403 for the
+                # homepage itself, but its Set-Cookie header (AKA_A2) still
+                # lands in the session — `requests` stores cookies from a
+                # response regardless of status code. That cookie alone is
+                # sufficient to authenticate the JSON API below. Do NOT treat
+                # this as a hard block; the real failure mode that was
+                # mistaken for one was a missing `brotli` dependency (NSE's
+                # API responses are Brotli-compressed) making .json() raise
+                # on valid 200 responses. See pipelines/extract/CLAUDE.md.
+                logger.warning(
+                    "NSE homepage handshake got HTTP 403 — unusual but not "
+                    "necessarily fatal; the edge still sets an anti-bot "
+                    "cookie that session-cookie-dependent endpoints can use. "
+                    "Continuing with the JSON API attempt."
                 )
             else:
                 logger.warning("Cookie handshake failed: %s — continuing anyway", exc)
@@ -399,9 +400,15 @@ class RawDataExtractor:
         NSE publishes a ZIP file after market close (~6 PM IST) containing a CSV
         with OHLCV data for all traded securities.
 
-        URL pattern:
-            https://archives.nseindia.com/content/historical/EQUITIES/
-            {YYYY}/{MMM}/cm{DD}{MMM}{YYYY}bhav.csv.zip
+        NSE migrated bhavcopy to a new "UDiFF" URL/format at some point in
+        2024 (exact cutover date unconfirmed) — the old URL now 404s for
+        current dates but still serves old archive dates. Tries the new
+        format first (current NSE default), falling back to the legacy URL
+        for historical dates the new format doesn't have:
+            New: https://nsearchives.nseindia.com/content/cm/
+                 BhavCopy_NSE_CM_0_0_0_{YYYYMMDD}_F_0000.csv.zip
+            Legacy: https://archives.nseindia.com/content/historical/EQUITIES/
+                    {YYYY}/{MMM}/cm{DD}{MMM}{YYYY}bhav.csv.zip
 
         Args:
             trading_date: The trading date to fetch. Must be a weekday when
@@ -423,30 +430,39 @@ class RawDataExtractor:
             logger.info("Using cached bhavcopy: %s", out_path)
             return pd.read_csv(out_path)
 
-        url = self._bhavcopy_url(trading_date)
-        logger.info("Downloading bhavcopy from %s", url)
-
-        # archives.nseindia.com does not require cookie authentication
-        try:
-            resp = requests.get(
-                url,
-                headers={"User-Agent": _BROWSER_HEADERS["User-Agent"]},
-                timeout=30,
-            )
-            resp.raise_for_status()
-        except requests.HTTPError as exc:
-            if exc.response.status_code == 404:
+        resp = None
+        last_exc: requests.HTTPError | None = None
+        for url in self._bhavcopy_urls(trading_date):
+            logger.info("Downloading bhavcopy from %s", url)
+            try:
+                # neither archives host requires cookie authentication
+                candidate = requests.get(
+                    url,
+                    headers={"User-Agent": _BROWSER_HEADERS["User-Agent"]},
+                    timeout=30,
+                )
+                candidate.raise_for_status()
+                resp = candidate
+                break
+            except requests.HTTPError as exc:
+                last_exc = exc
+                if exc.response.status_code == 404:
+                    logger.info("Bhavcopy not found at %s (HTTP 404)", url)
+                    continue
                 raise RuntimeError(
-                    f"Bhavcopy not found for {trading_date} (HTTP 404). "
-                    "Likely a market holiday, weekend, or the file is not yet published."
+                    f"Failed to download bhavcopy for {trading_date}: {exc}"
                 ) from exc
+            except requests.RequestException as exc:
+                raise RuntimeError(
+                    f"Failed to download bhavcopy for {trading_date}: {exc}"
+                ) from exc
+
+        if resp is None:
             raise RuntimeError(
-                f"Failed to download bhavcopy for {trading_date}: {exc}"
-            ) from exc
-        except requests.RequestException as exc:
-            raise RuntimeError(
-                f"Failed to download bhavcopy for {trading_date}: {exc}"
-            ) from exc
+                f"Bhavcopy not found for {trading_date} (HTTP 404 from all known "
+                "URL formats). Likely a market holiday, weekend, or the file is "
+                "not yet published."
+            ) from last_exc
 
         df = self._extract_bhavcopy_zip(resp.content, trading_date)
         df = self._normalize_bhavcopy_columns(df)
@@ -456,16 +472,25 @@ class RawDataExtractor:
         logger.info("Saved %d rows bhavcopy → %s", len(df), out_path)
         return df
 
-    def _bhavcopy_url(self, trading_date: date) -> str:
-        """Build the NSE archives URL for a given trading date."""
+    def _bhavcopy_urls(self, trading_date: date) -> list[str]:
+        """
+        Candidate NSE bhavcopy URLs for a trading date, new format first.
+        """
         yyyy = trading_date.strftime("%Y")
         mmm = trading_date.strftime("%b").upper()  # e.g. MAY, JAN
         dd = trading_date.strftime("%d")  # zero-padded day
-        filename = f"cm{dd}{mmm}{yyyy}bhav.csv.zip"
-        return (
-            f"https://archives.nseindia.com/content/historical/"
-            f"EQUITIES/{yyyy}/{mmm}/{filename}"
+        yyyymmdd = trading_date.strftime("%Y%m%d")
+
+        new_url = (
+            f"https://nsearchives.nseindia.com/content/cm/"
+            f"BhavCopy_NSE_CM_0_0_0_{yyyymmdd}_F_0000.csv.zip"
         )
+        legacy_filename = f"cm{dd}{mmm}{yyyy}bhav.csv.zip"
+        legacy_url = (
+            f"https://archives.nseindia.com/content/historical/"
+            f"EQUITIES/{yyyy}/{mmm}/{legacy_filename}"
+        )
+        return [new_url, legacy_url]
 
     def _extract_bhavcopy_zip(self, content: bytes, trading_date: date) -> pd.DataFrame:
         """Extract the CSV from the downloaded ZIP bytes and parse into DataFrame."""
@@ -496,10 +521,12 @@ class RawDataExtractor:
         return pd.read_csv(zf.open(csv_name))
 
     def _normalize_bhavcopy_columns(self, df: pd.DataFrame) -> pd.DataFrame:
-        """Uppercase and strip all column names; rename legacy header variants."""
+        """Uppercase and strip all column names; rename legacy/new header variants."""
         df.columns = [c.strip().upper() for c in df.columns]
 
-        # Handle older bhavcopy formats that used different column names
+        # Handle older bhavcopy formats, and NSE's newer "UDiFF" format
+        # (BhavCopy_NSE_CM_*.csv, live since 2026-08-14 investigation —
+        # see pipelines/extract/CLAUDE.md) that uses different column names.
         bhavcopy_aliases = {
             "TOTTRDQTY": "TOTTRDQTY",  # already standard
             "VOLUME": "TOTTRDQTY",
@@ -507,6 +534,19 @@ class RawDataExtractor:
             "VALUE": "TOTTRDVAL",
             "TOTALTRADES": "TOTALTRADES",
             "NO_OF_TRADES": "TOTALTRADES",
+            # UDiFF format (uppercased column names)
+            "TCKRSYMB": "SYMBOL",
+            "SCTYSRS": "SERIES",
+            "OPNPRIC": "OPEN",
+            "HGHPRIC": "HIGH",
+            "LWPRIC": "LOW",
+            "CLSPRIC": "CLOSE",
+            "LASTPRIC": "LAST",
+            "PRVSCLSGPRIC": "PREVCLOSE",
+            "TTLTRADGVOL": "TOTTRDQTY",
+            "TTLTRFVAL": "TOTTRDVAL",
+            "TTLNBOFTXSEXCTD": "TOTALTRADES",
+            "TRADDT": "TIMESTAMP",
         }
         rename_map = {
             k: v for k, v in bhavcopy_aliases.items() if k in df.columns and k != v
@@ -642,33 +682,15 @@ class RawDataExtractor:
             time.sleep(1.5)  # rate limit between chunk calls
 
         if api_failed or not all_frames:
-            if self._homepage_blocked:
-                # Playwright would hit the same Akamai-blocked domain via the
-                # same egress IP and fail the same way — skip the ~30-60s of
-                # browser navigation and go straight to the stale-cache fallback.
-                logger.error(
-                    "Skipping Playwright fallback — NSE homepage already "
-                    "confirmed blocked (HTTP 403) for this session, so "
-                    "Playwright would hit the same Akamai edge block."
-                )
-                fallback_df = None
-            else:
-                logger.warning("Falling back to Playwright for corporate actions")
-                fallback_df = self._fetch_corp_actions_playwright(from_date, to_date)
+            logger.warning("Falling back to Playwright for corporate actions")
+            fallback_df = self._fetch_corp_actions_playwright(from_date, to_date)
             if fallback_df is None or fallback_df.empty:
                 stale_df = self._stale_corp_actions_fallback()
                 if stale_df is not None:
                     return stale_df
-                reason = (
-                    " NSE's edge (Akamai) is returning HTTP 403 for this "
-                    "network — this needs an infrastructure fix (different "
-                    "egress IP, proxy, or a licensed data vendor), not a retry."
-                    if self._homepage_blocked
-                    else ""
-                )
                 raise RuntimeError(
                     f"Failed to fetch corporate actions {from_date} → {to_date} "
-                    f"from JSON API, Playwright, and stale cache.{reason}"
+                    f"from JSON API, Playwright, and stale cache."
                 )
             all_frames = [fallback_df]
 

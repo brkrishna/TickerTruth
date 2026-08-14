@@ -49,7 +49,7 @@ Pipeline stages (task names for `--tasks`):
 
 ### `pipelines/extract/extractor.py` — `RawDataExtractor`
 - `fetch_nse_symbols()`: downloads `EQUITY_L.csv` from NSE archives (no auth needed); falls back to NSE JSON API (requires session cookie), then legacy CSV
-- `fetch_bhavcopy(date)`: downloads daily EOD zip from archives.nseindia.com
+- `fetch_bhavcopy(date)`: downloads daily EOD zip — tries NSE's current "UDiFF" format first (`nsearchives.nseindia.com`), falls back to the legacy `archives.nseindia.com` URL for older dates
 - `fetch_nse_corporate_actions()`: calls NSE JSON API in 30-day chunks; falls back to Playwright headless scraper; then stale-cache fallback
 - `consolidate_to_staging()`: merges all daily raw files, deduplicates, writes consolidated CSVs and a `quality_report_{date}.json`
 

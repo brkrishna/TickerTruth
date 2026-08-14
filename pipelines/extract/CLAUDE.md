@@ -23,19 +23,30 @@ of the ETL pipeline — it fetches raw data and writes it to `data/raw/` and
 - EQUITY_L.csv lists only active EQ-series equities (~2,365 rows as of 2026).
   `STATUS` column is absent and synthesized to "ACTIVE" after load.
 - Corporate actions API returns at most ~30 days per call; longer ranges are chunked.
-- **(2026-08-02) `www.nseindia.com` is currently hard-blocked at Akamai's edge**
-  (HTTP 403 "Access Denied", confirmed via `curl`/`requests` from both this
-  sandbox and GitHub Actions CI — not a header/TLS-fingerprint issue, and not
-  something `extractor.py` can retry its way past). This breaks the cookie
-  handshake, the corporate actions JSON API, and the Playwright fallback (same
-  domain, same edge). `RawDataExtractor` now detects the 403 on the homepage
-  handshake and skips Playwright immediately rather than burning 30-60s on a
-  fallback that's guaranteed to fail the same way, and logs at ERROR (not
-  WARNING) so this doesn't go unnoticed the way it did for ~2 months in
-  `nightly.yml`. Real fix requires an infrastructure change (different egress
-  IP/proxy, or a licensed NSE data vendor) — out of scope for this module.
-  `nsearchives.nseindia.com` (equity master) and `archives.nseindia.com`
-  (bhavcopy) are NOT affected by this block.
+- **(2026-08-14) CORRECTION — the "Akamai hard block" diagnosed 2026-08-02 was
+  wrong.** `www.nseindia.com/` does return HTTP 403 for the homepage on every
+  network tested, but that response still sets a working Akamai anti-bot
+  cookie (`AKA_A2`) — `requests.Session` stores cookies from a response
+  regardless of status code, and that cookie alone is enough to authenticate
+  `NSE_CORP_ACTIONS_API`. Verified live 2026-08-14: 525 real corporate-action
+  rows fetched in one call despite the homepage 403. The actual root cause of
+  `fetch_nse_corporate_actions()` returning zero rows for ~2 months was a
+  **missing `brotli` package** — NSE's API responses are Brotli-compressed,
+  and without `brotli`/`brotlicffi` installed, `requests` silently receives
+  undecoded bytes and `.json()` raises `JSONDecodeError`, which looked
+  identical to a network/auth failure. Fixed by pinning `brotli==1.2.0` in
+  `requirements.txt`. `_get_session()` and `fetch_nse_corporate_actions()` no
+  longer treat a homepage 403 as fatal or use it to skip the Playwright
+  fallback — see `tasks.md` INFRA-2 for the full writeup.
+- **(2026-08-14) Bhavcopy URL/format migration — FIXED.** NSE retired the
+  old `archives.nseindia.com/content/historical/EQUITIES/...` bhavcopy URL
+  for current dates (still works for old archive dates) in favor of a new
+  "UDiFF" format at `nsearchives.nseindia.com/content/cm/BhavCopy_NSE_CM_0_0_0_{YYYYMMDD}_F_0000.csv.zip`,
+  with different column names (`TckrSymb`, `ClsPric`, etc.).
+  `fetch_bhavcopy()` now tries the new URL first and falls back to the
+  legacy one on 404; `_normalize_bhavcopy_columns()` maps both formats to
+  the same canonical columns. See `tasks.md` INFRA-2 and
+  `tests/test_extract_bhavcopy.py`.
 
 ## Output locations
 - `data/raw/` — raw untouched files, one subdirectory per source and date.

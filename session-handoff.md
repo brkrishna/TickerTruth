@@ -88,3 +88,19 @@ Suggested priority: Dolt/curated-data persistence is now fixed (see
 INFRA-1 above) — `fetch_nse_corporate_actions()` (INFRA-2 in `tasks.md`,
 options documented but not yet implemented) is the remaining blocker
 before the next real monthly release.
+
+## (2026-08-14) INFRA-2 — corrected, FIXED, not what it looked like
+
+The "Akamai hard block" diagnosis above was wrong — no proxy or vendor
+needed. Root cause was a missing `brotli` package causing `.json()` to
+fail on NSE's Brotli-compressed API responses, which looked identical to
+a network block in the logs. Full writeup and fix in `tasks.md` INFRA-2.
+`fetch_nse_corporate_actions()` is live-verified working
+(525 rows fetched for a 6-week window). Also found and fixed: the local
+`.venv` was stale, pointing at a pre-rename `ICASHTL` path, so `pip
+install` was silently landing in system Python — recreated, no repo
+impact since `.venv/` is gitignored.
+
+**Still open:** `fetch_bhavcopy()` — separate issue, NSE migrated to a
+new bhavcopy URL/format ("UDiFF") that the extractor doesn't support
+yet. Not an Akamai/brotli issue. See `tasks.md` INFRA-2 residual note.

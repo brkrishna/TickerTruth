@@ -6,6 +6,10 @@ pyarrow==24.0.0
 # Web scraping and HTTP
 requests==2.32.3
 beautifulsoup4==4.12.3
+# NSE's API serves Brotli-compressed JSON; without this, requests silently
+# receives undecoded bytes and .json() fails with a JSONDecodeError that
+# looks identical to a network/auth failure. See pipelines/extract/CLAUDE.md.
+brotli==1.2.0
 
 # Database ORM
 # greenlet>=3.1.1 is required for Python 3.14; pulled automatically by playwright below.

@@ -448,80 +448,98 @@ check of the Action's logs before trusting the next scheduled run.
 
 ---
 
-### INFRA-2 — `fetch_nse_corporate_actions()` blocked by Akamai (high)
+### INFRA-2 — `fetch_nse_corporate_actions()` blocked by Akamai (FIXED 2026-08-14 — original diagnosis was wrong)
 
-**Problem:** `www.nseindia.com` returns HTTP 403 "Access Denied" from
-Akamai's edge for every fetch method the extractor tries (cookie
-handshake, JSON API, Playwright), both from this local network and from
-GitHub Actions runners. Confirmed via direct `curl`/`requests` testing
-on 2026-08-02 — not a header/TLS-fingerprint bug, not fixable by
-retrying. No `nse_actions_*.csv` files exist in `data/raw/` at all.
-Bhavcopy fetching is affected the same way (814+ days stale, last
-success 2024-05-10) since it hits the same domain.
+**Original problem (2026-08-02, since corrected):** `www.nseindia.com`
+was believed to be hard-blocked at Akamai's edge for every fetch method
+(cookie handshake, JSON API, Playwright), on the theory that a 403 on
+the homepage meant the network/IP was rejected outright, not fixable by
+retrying, and needed proxy/vendor infrastructure to work around.
 
-**Options considered:**
+**Actual root cause (found 2026-08-14 while troubleshooting):** the 403
+diagnosis on the homepage was real, but the conclusion drawn from it was
+wrong. `requests.Session` stores `Set-Cookie` headers from a response
+regardless of status code — the homepage 403 still sets Akamai's
+anti-bot cookie (`AKA_A2`), and that cookie alone is sufficient to
+authenticate `NSE_CORP_ACTIONS_API`. Manual `curl` and a live Python
+repro both confirmed this: the API returns real, current corporate
+action data (525 rows for a Jul 1 – Aug 13 2026 window) using nothing
+but that cookie.
 
-1. **Residential proxy provider (recommended as the near-term fix).**
-   Akamai's bot detection weighs IP reputation heavily — datacenter IPs
-   (GitHub Actions runners, most home-network egress in some regions)
-   are flagged far more aggressively than residential IPs. Providers
-   with India-specific residential pools: Bright Data, Oxylabs, Decodo
-   (formerly Smartproxy), IPRoyal, DataImpulse, SOAX — 2026 pricing runs
-   roughly $1.75–$8.50/GB depending on tier and volume commitment.
-   Because the actual payload here is tiny (a handful of CSVs per day,
-   likely well under 1GB/month total), even the priciest per-GB tier
-   costs a few dollars a month — this is a cheap fix if it works, and
-   doesn't require any code beyond adding proxy credentials to the
-   existing `requests`/Playwright config. Risk: proxy IPs can themselves
-   get blocklisted over time with sustained scraping, so this needs
-   monitoring, not a one-time setup.
-2. **Licensed NSE data vendor (recommended as the durable fix).** NSE
-   itself sells a paid EOD historical data subscription directly
-   (`nseindia.com/static/market-data/eod-historical-data-subscription`,
-   contact `marketdata@nse.co.in`) — bhavcopy plus, per the page,
-   corporate/security detail. This is the actual authoritative source,
-   delivered through a proper subscription channel rather than scraping,
-   so it sidesteps the Akamai problem entirely rather than working around
-   it. Separately, NSE-authorized redistributors — TrueData and
-   GlobalDatafeeds (GDFL) — offer API access to real-time and historical
-   NSE/BSE/MCX data as licensed vendors; worth a pricing/coverage
-   comparison against NSE's own subscription once actual corporate-action
-   history coverage (not just EOD price) is confirmed for each. This is
-   the more defensible long-term choice for a product whose entire pitch
-   is data trustworthiness/provenance — "sourced via residential proxy
-   scraping" is a worse footnote in `docs/methodology.md` than "licensed
-   subscription."
-3. **Cloud VM in an Indian region (e.g. AWS `ap-south-1`, DigitalOcean
-   Bangalore) instead of GitHub-hosted runners.** Considered but likely
-   insufficient alone: Akamai's block appears to be reputation-based
-   (datacenter vs. residential), not purely geographic, so a datacenter
-   IP in Mumbai is still a datacenter IP and may get flagged the same as
-   a US-based GitHub Actions runner. Would need testing to confirm either
-   way before relying on it, and it adds infra (a VM to keep patched and
-   running) that a proxy subscription avoids.
-4. **Broker API (Zerodha Kite Connect) as a data source.** Kite Connect's
-   data APIs are ~₹500/month, order/account APIs free since March 2025 —
-   but this is an execution/quotes API for a live trading account, not
-   positioned as a corporate-actions/reference-data feed, and typically
-   requires an active demat/trading account tied to a real person, which
-   doesn't fit a backend service cleanly. Not pursued further as a
-   primary source; possibly worth a cross-check for adjustment-factor
-   validation only.
+The actual reason `fetch_nse_corporate_actions()` was returning zero
+rows for ~2 months: **the `brotli` package was never installed.** NSE's
+API responses are Brotli-compressed (`Content-Encoding: br`); without
+`brotli`/`brotlicffi` present, `requests` silently hands back undecoded
+compressed bytes, and `.json()` raises `JSONDecodeError`
+("Expecting value: line 1 column 1"). That error is indistinguishable
+from a network/auth failure in the logs, which is exactly what led to
+the original "hard block" conclusion.
 
-**Recommendation:** short-term, trial a residential proxy (small spend,
-no vendor contract, fast to test) to unblock nightly extraction while
-evaluating; in parallel, get pricing/coverage details from NSE's own
-paid subscription and from TrueData/GlobalDatafeeds, since a licensed
-vendor is the right permanent source for a product whose value
-proposition depends on data provenance being clean.
+A second, unrelated problem was also found in the same session: the
+project's local `.venv` was stale — its `pip`/`python3` shebangs still
+pointed at `/Users/ramarkrishna/apps/ICASHTL/.venv/...`, a path from
+before the repo was renamed from ICASHTL to TickerTruth. `pip install`
+commands were silently succeeding against system Python instead of the
+venv (violates the global venv-only rule in `~/.claude/CLAUDE.md`).
+Recreated via `rm -rf .venv && python3 -m venv .venv` — since `.venv/`
+is gitignored, this was a local-only fix with no repo impact.
 
-**Next step (not yet done):** email `marketdata@nse.co.in` for the
-official subscription's actual coverage (does it include corporate
-actions, not just EOD bhavcopy?) and pricing; get quotes/trial access
-from TrueData and GlobalDatafeeds; separately, sign up for a small proxy
-trial (e.g. IPRoyal or DataImpulse, budget tier) and test one fetch cycle
-against `nseindia.com` to confirm the 403 actually clears before
-committing to a subscription either way.
+**Fix implemented (2026-08-14):**
+- `requirements.txt` — pinned `brotli==1.2.0`, with a comment explaining
+  why (NSE's Brotli-compressed responses silently failing `.json()`).
+- `pipelines/extract/extractor.py` — `_get_session()` no longer treats a
+  homepage 403 as a fatal/blocking condition (removed the
+  `_homepage_blocked` flag entirely); it logs a warning and continues,
+  since the session's cookies work regardless. `fetch_nse_corporate_actions()`
+  no longer skips the Playwright fallback based on that flag — Playwright
+  and the stale-cache fallback now always run on a JSON API failure, same
+  as any other failure reason.
+- `tests/test_extract_corp_actions_blocking.py` — rewritten to test the
+  corrected behavior (403 doesn't prevent a usable session; Playwright is
+  always attempted on API failure) instead of the old, incorrect
+  block-detection behavior. Full suite passes (`pytest tests/ -q -m "not integration"`).
+- `pipelines/extract/CLAUDE.md` — source-access notes corrected.
+- Local venv recreated (see above); not a repo change.
+
+**Live-verified 2026-08-14:** `fetch_nse_corporate_actions(from_date=2026-07-01, to_date=2026-08-13)`
+returns 525 real rows end to end (cookie handshake → JSON API → validation → save).
+
+**Residual bhavcopy issue — also FIXED (2026-08-14).** `fetch_bhavcopy()`
+was failing for current dates (tested 2026-08-13 → HTTP 404) for a
+reason unrelated to Akamai or brotli: NSE retired the old bhavcopy URL
+pattern (`archives.nseindia.com/content/historical/EQUITIES/{YYYY}/{MMM}/cm{DD}{MMM}{YYYY}bhav.csv.zip`)
+for new dates — it still 200s for the old 2024-05-10 file, confirming a
+URL/format migration, not a block. NSE moved to a new "UDiFF" bhavcopy
+format at `nsearchives.nseindia.com/content/cm/BhavCopy_NSE_CM_0_0_0_{YYYYMMDD}_F_0000.csv.zip`,
+with a different column schema (`TckrSymb`, `ClsPric`, `Sgmt`,
+`FinInstrmTp`, etc. instead of `SYMBOL`, `CLOSE`).
+
+Fix implemented in `pipelines/extract/extractor.py`:
+- `_bhavcopy_url()` → `_bhavcopy_urls()`: now returns the new-format URL
+  first, falling back to the legacy URL on a 404 (covers both current
+  dates on the new format and older archive dates still only on the
+  legacy one — live-tested, both 2026-08-13 new-format and 2024-05-10
+  both actually resolve via the new URL, with the legacy URL as a
+  defensive fallback for any date the new archive doesn't have).
+- `_normalize_bhavcopy_columns()`: added UDiFF → canonical column
+  aliases (`TCKRSYMB`→`SYMBOL`, `SCTYSRS`→`SERIES`, `OPNPRIC`→`OPEN`,
+  `CLSPRIC`→`CLOSE`, `TTLTRADGVOL`→`TOTTRDQTY`, `TRADDT`→`TIMESTAMP`,
+  etc.) — no filtering of non-equity segments, matching the existing
+  (non-)filtering behavior for the legacy format.
+- `tests/test_extract_bhavcopy.py` (new): covers URL ordering, the
+  new→legacy fallback, the 404-from-both-formats failure path, and the
+  UDiFF column mapping. All mocked, no live network calls.
+
+**Live-verified 2026-08-14:** `fetch_bhavcopy(2026-08-13)` → 3,503 rows
+via the new URL; `fetch_bhavcopy(2024-05-10)` → 2,710 rows, both through
+the same code path with correct canonical columns.
+
+Note: `fact_equity_eod` still won't populate end-to-end yet — there is
+no `normalize` mapper from raw bhavcopy to `fact_equity_eod` in
+`pipelines/normalize/normalizer.py` (only `dim_issuer`,
+`dim_security_master`, and `fact_corporate_action_event` mappers exist
+today). That's a separate, not-yet-scoped gap in the normalize stage,
+not part of INFRA-2 (extract only).
 
 ---
 
