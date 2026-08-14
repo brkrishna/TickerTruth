@@ -642,6 +642,68 @@ expected). Full suite passes (`pytest tests/ -q -m "not integration"`),
 
 ---
 
+## Open items — 2026-08-14 deep-dive survey
+
+Broader repo survey done after the INFRA-2/fact_equity_eod work above,
+looking for anything else open or stale. Findings not already covered
+by a dedicated section:
+
+### Test coverage gap — narrower than `session-handoff.md` implies (medium)
+
+`session-handoff.md`'s "Open items" still frames the test suite as
+starting near zero, which is stale — 14 test files exist today and BSE
+is well-covered (`test_bse_extract.py`, `test_bse_normalize.py`,
+`test_bse_lineage.py`, `test_bse_adjustments.py`, `test_bse_validator.py`).
+The actual gap is **NSE core pure-function logic**:
+- `pipelines/lineage/` (rename/merger/demerger/delisting detection,
+  confidence scoring in `rules.py`/`linker.py`) — **zero NSE tests**.
+- `pipelines/adjustments/` (split/bonus/reverse-split factor chains in
+  `calculator.py`/`adjuster.py`) — **zero NSE tests**, despite
+  `pipelines/adjustments/CLAUDE.md` explicitly requiring them.
+
+These are two of the most correctness-critical modules in the product —
+a wrong adjustment factor silently corrupts every backtest built on the
+data — and neither has a single test today. `pipelines/normalize/` also
+has a gap: only `test_normalize_equity_eod.py` exists for NSE; the core
+`RawToCanonicalMapper` (`map_to_dim_issuer`, `map_to_dim_security_master`,
+`map_to_fact_corporate_action_event`) and `quality.py` have no dedicated
+test file (`test_normalize_normalizer.py` doesn't exist), which is also
+how the `quality.py` empty-DataFrame bug (see the `map_to_fact_equity_eod`
+writeup above) went unnoticed until now.
+
+**Not yet started.**
+
+### BUG-8 — `SymbolLinker.cross_reference_with_actions` mutates caller's input (medium)
+
+Logged in `todo.md` (opened 2026-07-03), not yet fixed. Mutates the
+input DataFrame in place, violating `pipelines/lineage/CLAUDE.md`'s
+explicit no-mutation rule for pure functions. Low complexity fix (`.copy()`
+before mutating), but not yet done.
+
+### Stale documentation found during the survey (low, but misleading)
+
+- Top-level `CLAUDE.md`'s "Open work (as of 2026-06-15)" section still
+  says "BSE Symbol Master & Lineage expansion — phases B1–B8 defined in
+  `todo.md`; nothing implemented yet." This is wrong: `todo.md` and
+  `git log --oneline -- '*bse*'` confirm phases B1–B7 are complete (7
+  commits, dedicated `bse_extractor.py`, `bse_normalizer.py`,
+  `bse_scrip_history.py`, `isin_bridge.py`, `bse_adjuster.py` modules
+  plus 5 BSE test files). Only B8 (commercial packaging — pricing SKU,
+  entitlement gating) is genuinely incomplete. Worth correcting so a
+  future session doesn't waste time re-discovering BSE work that already
+  exists, or re-reads a stale "not started" note as current.
+- `dolt/CLAUDE.md`'s "CI persistence" section describes the git-remote
+  mechanism as working with no caveat — now inconsistent with the
+  INFRA-1 regression documented above until that's fixed and re-verified.
+- `session-handoff.md`'s "Next suggested task" (write the initial test
+  suite) is stale in framing, even though its underlying point (test
+  coverage gap) is still correct in substance — see above.
+
+**Not yet started** (doc corrections only, no code risk — low priority
+relative to INFRA-1 regression and the lineage/adjustments test gap).
+
+---
+
 ## Progress tracking notes
 
 - Track failures and manual effort per release
