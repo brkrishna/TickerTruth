@@ -192,5 +192,20 @@ Derived from `low-cost-mvp-blueprint.md`. Technical bug details are in `tasks.md
 
   Same day, second pass: added `tests/test_normalize_normalizers.py`, `test_normalize_quality.py`, `test_normalize_normalizer.py` (105 tests) covering `FieldNormalizer`, `QualityMetadata`, and the core `RawToCanonicalMapper` methods — closes the normalize module's test gap entirely. Found and fixed two more real bugs via the required empty-DataFrame test case: three more `.loc[:, col] = scalar`-on-empty-DataFrame crashes in `normalizer.py` (same pandas-version quirk as the `quality.py` bug found earlier the same day while adding `map_to_fact_equity_eod` — fixed by converting all 28 whole-column `.loc[:, "col"] =` assignments in the file to plain `df["col"] =`), and a dead `UNKNOWN_ACTION_TYPE` quality check that had checked a column name (`ACTION_TYPE`) neither the NSE nor BSE mapper has ever produced (both emit `action_code`) — meaning that quality flag has never fired for any corporate action row in this pipeline's history. Full suite: 389 tests, `ruff check pipelines/normalize/` clean.
 
-  **Still open:** `test_extract_extractor.py` (general extractor coverage beyond the stale-fallback path).
+  Third pass, same day: added `tests/test_extract_symbols.py` (`fetch_nse_symbols()`'s
+  three-tier fallback chain, `_normalize_symbol_columns`, `_validate_symbols`),
+  `tests/test_extract_corp_actions_normalize.py` (`_date_chunks`,
+  `_fetch_corp_actions_api`, `_normalize_corp_actions_columns`,
+  `_validate_corp_actions`), and `tests/test_extract_consolidate.py`
+  (`consolidate_to_staging`, `_consolidate_source`, `_write_quality_report`,
+  `_quality_warnings` — includes the CLAUDE.md-required idempotency test:
+  re-running consolidation on the same raw files doesn't duplicate rows).
+  39 tests, no bugs found this pass. `pipelines/extract/`'s Playwright
+  scraping fallback (`_fetch_corp_actions_playwright`,
+  `_pw_fill_date_filter`, `_pw_extract_table_rows`) remains untested — would
+  need a headless-browser test harness, judged not worth the setup cost
+  given it's a last-resort fallback already exercised indirectly by
+  `test_extract_corp_actions_blocking.py`'s control-flow tests. **TEST-1 is
+  now fully closed** — lineage, adjustments, normalize, and extract (short
+  of Playwright) all have real coverage. Full suite: 428 tests.
 - [ ] **TEST-2 (MEDIUM priority)** — `pipelines/publish/dolt_importer.py`'s core `import_all`/`load_table` path is untested beyond `test_dolt_importer_lineage_transform.py` and `test_dolt_importer_seed.py`; `filter_to_schema`, `resolve_action_type_ids`, and the CSV→Dolt row-count reconciliation path have no coverage.

@@ -776,6 +776,32 @@ case, on top of the one already found in `quality.py` while building
 Full suite (389 tests) passes with the same `-W error::UserWarning`
 flag; `ruff check pipelines/normalize/` clean.
 
+**extract FIXED 2026-08-14 (third and final pass, same day).** Added
+`tests/test_extract_symbols.py` (`fetch_nse_symbols()`'s archives → JSON
+API → legacy CSV fallback chain, `_normalize_symbol_columns`,
+`_validate_symbols`), `tests/test_extract_corp_actions_normalize.py`
+(`_date_chunks`, `_fetch_corp_actions_api`, `_normalize_corp_actions_columns`,
+`_validate_corp_actions` — lower-level helpers not already covered by
+`test_extract_corp_actions_blocking.py`'s control-flow tests), and
+`tests/test_extract_consolidate.py` (`consolidate_to_staging`,
+`_consolidate_source`, `_write_quality_report`, `_quality_warnings`,
+including the `pipelines/extract/CLAUDE.md`-required idempotency test —
+re-running consolidation on unchanged raw files produces identical
+output). 39 tests, no new bugs found this pass.
+
+Not covered: the Playwright browser-scraping fallback
+(`_fetch_corp_actions_playwright`, `_pw_fill_date_filter`,
+`_pw_extract_table_rows`) — would need a headless-browser test harness;
+judged not worth the setup cost for a last-resort fallback whose
+surrounding control flow (`fetch_nse_corporate_actions`'s decision to
+call it, skip it, or fall through to stale-cache) is already exercised
+by `test_extract_corp_actions_blocking.py`.
+
+**This closes `TEST-1` (`todo.md`) entirely** — lineage, adjustments,
+normalize, and extract (short of Playwright internals) all have real
+test coverage as of today. Full suite: 428 tests, `ruff check
+pipelines/extract/` clean.
+
 ### BUG-8 — `SymbolLinker.cross_reference_with_actions` mutates caller's input (FIXED 2026-08-14)
 
 Logged in `todo.md` (opened 2026-07-03). `cross_reference_with_actions()`
