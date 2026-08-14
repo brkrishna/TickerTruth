@@ -103,9 +103,15 @@ class QualityMetadata:
                 if pd.isna(val) or str(val).strip() in ("", "N/A", "NA", "NULL"):
                     issues.append(issue_code)
 
-        # Flag rows where action type normalization returned UNKNOWN
-        if "ACTION_TYPE" in row.index:
-            if str(row["ACTION_TYPE"]).strip().upper() == "UNKNOWN":
+        # Flag rows where action type normalization returned UNKNOWN. Checks
+        # "action_code" — the actual column name both RawToCanonicalMapper
+        # and BSERawToCanonicalMapper emit (see their map_to_fact_*_action_event
+        # methods). Previously checked "ACTION_TYPE", a column neither mapper
+        # has ever produced, so this flag never fired for any NSE or BSE
+        # corporate action row — found 2026-08-14 while adding the first
+        # test coverage for this method.
+        if "action_code" in row.index:
+            if str(row["action_code"]).strip().upper() == "UNKNOWN":
                 issues.append("UNKNOWN_ACTION_TYPE")
 
         # Flag unresolved symbol (set by RawToCanonicalMapper when JOIN fails)
