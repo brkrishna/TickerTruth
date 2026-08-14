@@ -60,6 +60,7 @@ Maps raw staging DataFrames → canonical schema tables in `data/curated/`:
 - `map_to_dim_issuer(raw_symbols)` → `dim_issuer.csv`
 - `map_to_dim_security_master(raw_symbols, dim_issuer)` → `dim_security_master.csv`
 - `map_to_fact_corporate_action_event(raw_actions, dim_security)` → `fact_corporate_action_event.csv`
+- `map_to_fact_equity_eod(raw_bhavcopy, dim_security)` → `fact_equity_eod.csv`
 
 Depends on `FieldNormalizer` (field-level pure functions in `normalizers.py`) and `QualityMetadata` (confidence scoring + `score_to_flag()` in `quality.py`). Canonical action types and field aliases are in `field_mappings.yaml`. All normalize functions must be pure (no I/O).
 

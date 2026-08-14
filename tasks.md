@@ -541,6 +541,44 @@ no `normalize` mapper from raw bhavcopy to `fact_equity_eod` in
 today). That's a separate, not-yet-scoped gap in the normalize stage,
 not part of INFRA-2 (extract only).
 
+**Follow-up — FIXED 2026-08-14.** Added `RawToCanonicalMapper.map_to_fact_equity_eod()`
+in `pipelines/normalize/normalizer.py`, following the same
+symbol-join-and-flag pattern as `map_to_fact_corporate_action_event()`.
+Wired into the normal pipeline flow in `pipelines/run.py::run_normalize`
+(Task 6) — reads `data/staging/bhavcopy_consolidated.csv`, writes
+`data/curated/fact_equity_eod.csv`, which `DoltImporter` already had a
+declared column mapping for (it was defined but never populated) and
+loads last in `_IMPORT_ORDER`, after the other facts. `collect_stats()`
+now reports `eod_rows` for release notes.
+
+Per this module's null-handling rule (never drop rows silently), rows
+with an unresolvable symbol or an unparseable trading date are retained
+and flagged (`_quality_issues` / `normalization_error`) rather than
+dropped — Dolt's `dolt table import --continue` (already used by
+`DoltImporter.load_table`) skips rows violating NOT NULL/unique
+constraints at import time, same as it already does for other facts.
+
+Also fixed a related latent bug found while adding the empty-DataFrame
+test required by `pipelines/normalize/CLAUDE.md`'s testing rules:
+`QualityMetadata.add_quality_flags()` in `quality.py` used
+`df.loc[:, col] = scalar` to add new columns, which raises `ValueError:
+cannot set a frame with no defined index and a scalar` on a zero-row
+DataFrame in the pandas version this project pins. This affected every
+mapper (`map_to_dim_issuer`, `map_to_dim_security_master`,
+`map_to_fact_corporate_action_event` too), not just the new one — none
+of them had an empty-DataFrame test before now, so it went unnoticed.
+Fixed by switching to plain column assignment (`df[col] = scalar`).
+
+New tests: `tests/test_normalize_equity_eod.py` (happy path, empty
+DataFrame, unresolved symbol, unparseable date, missing required
+columns). Live-verified end-to-end against real NSE data
+(`fetch_nse_symbols()` → `fetch_bhavcopy()` → `map_to_dim_security_master()`
+→ `map_to_fact_equity_eod()`): 2,400 rows, 2,399 resolved to a
+`security_id` (the one unresolved row is a non-equity instrument in the
+bhavcopy — e.g. a gold bond — not present in `EQUITY_L.csv`, which is
+expected). Full suite passes (`pytest tests/ -q -m "not integration"`),
+`ruff check` clean.
+
 ---
 
 ## Progress tracking notes

@@ -357,6 +357,132 @@ class RawToCanonicalMapper:
         ]
         return df[[c for c in out_cols if c in df.columns]]
 
+    # ── fact_equity_eod ──────────────────────────────────────────────────────
+
+    def map_to_fact_equity_eod(
+        self,
+        raw_bhavcopy: pd.DataFrame,
+        dim_security_master: pd.DataFrame,
+    ) -> pd.DataFrame:
+        """
+        Build fact_equity_eod from raw bhavcopy + dim_security_master.
+
+        Resolves security_id via symbol join, same pattern as
+        map_to_fact_corporate_action_event(). Rows with unresolvable
+        symbols are retained but flagged as quality issues. Rows with an
+        unparseable trading date are also retained (never dropped
+        silently, per this module's null-handling rules) and marked with
+        a `normalization_error` column instead — Dolt's `dolt table
+        import --continue` (used by DoltImporter.load_table) skips rows
+        that violate the schema's NOT NULL/unique constraints at import
+        time rather than failing the whole load, same as it already does
+        for unresolved security_id.
+
+        Output columns (match fact_equity_eod in schema.sql):
+            security_id, trading_date, open_price, high_price, low_price,
+            close_price, volume
+
+        Args:
+            raw_bhavcopy:        consolidated bhavcopy staging DataFrame
+                                  (data/staging/bhavcopy_consolidated.csv).
+            dim_security_master: output of map_to_dim_security_master().
+
+        Returns:
+            fact_equity_eod DataFrame, one row per (security_id, trading_date).
+        """
+        df = raw_bhavcopy.copy()
+
+        symbol_col = self._find_col(df, ["SYMBOL"])
+        date_col = self._find_col(df, ["TIMESTAMP", "TRADDT", "TRADE_DATE"])
+        open_col = self._find_col(df, ["OPEN"])
+        high_col = self._find_col(df, ["HIGH"])
+        low_col = self._find_col(df, ["LOW"])
+        close_col = self._find_col(df, ["CLOSE"])
+        volume_col = self._find_col(df, ["TOTTRDQTY", "VOLUME"])
+
+        if symbol_col is None or date_col is None or close_col is None:
+            raise ValueError(
+                "raw_bhavcopy missing required columns. "
+                f"Need SYMBOL, TIMESTAMP, CLOSE. Got: {list(df.columns)}"
+            )
+
+        # Normalise ticker and resolve security_id
+        df.loc[:, "_norm_symbol"] = df[symbol_col].apply(FN.normalize_ticker)
+        security_lookup = dim_security_master.set_index("nse_symbol")["security_id"]
+        df.loc[:, "security_id"] = df["_norm_symbol"].map(security_lookup)
+
+        unresolved = df["security_id"].isna()
+        if unresolved.any():
+            df = QualityMetadata.flag_unresolved_symbols(df, unresolved)
+
+        # Normalise trading date — retain rows with an unparseable date
+        # (never drop silently) and flag them instead.
+        df.loc[:, "trading_date"] = (
+            df[date_col]
+            .apply(FN.normalize_date)
+            .apply(lambda d: d.isoformat() if d else None)
+        )
+        df.loc[:, "normalization_error"] = (
+            df["trading_date"].isna().map({True: "UNPARSEABLE_TRADE_DATE", False: None})
+        )
+
+        # Normalise OHLCV. Assign via pd.Series (not a bare scalar) so this
+        # also works on an empty input DataFrame.
+        df.loc[:, "open_price"] = (
+            df[open_col].apply(FN.normalize_numeric)
+            if open_col
+            else pd.Series(None, index=df.index, dtype="float64")
+        )
+        df.loc[:, "high_price"] = (
+            df[high_col].apply(FN.normalize_numeric)
+            if high_col
+            else pd.Series(None, index=df.index, dtype="float64")
+        )
+        df.loc[:, "low_price"] = (
+            df[low_col].apply(FN.normalize_numeric)
+            if low_col
+            else pd.Series(None, index=df.index, dtype="float64")
+        )
+        df.loc[:, "close_price"] = df[close_col].apply(FN.normalize_numeric)
+        df.loc[:, "volume"] = (
+            df[volume_col].apply(FN.normalize_numeric).astype("Int64")
+            if volume_col
+            else pd.Series(None, index=df.index, dtype="Int64")
+        )
+
+        # Confidence score comes from QualityMetadata
+        df = self._qm.add_quality_flags(df)
+
+        # Drop working columns
+        df.drop(
+            columns=["_norm_symbol", "_unresolved_symbol"],
+            errors="ignore",
+            inplace=True,
+        )
+
+        # One row per (security_id, trading_date) — schema's unique key
+        df.drop_duplicates(
+            subset=["security_id", "trading_date"], keep="last", inplace=True
+        )
+        df.reset_index(drop=True, inplace=True)
+
+        out_cols = [
+            "security_id",
+            "trading_date",
+            "open_price",
+            "high_price",
+            "low_price",
+            "close_price",
+            "volume",
+            "normalization_error",
+            "_source_file",
+            "_extracted_date",
+            "_quality_issues",
+            "_confidence_score",
+            "_manual_review_required",
+        ]
+        return df[[c for c in out_cols if c in df.columns]]
+
     # ── helpers ───────────────────────────────────────────────────────────────
 
     @staticmethod

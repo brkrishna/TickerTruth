@@ -66,15 +66,22 @@ class QualityMetadata:
         """
         df = df.copy()
 
-        df.loc[:, "_source_file"] = self.source_file
-        df.loc[:, "_extracted_date"] = self.extracted_date
+        # Plain column assignment (not .loc[:, col] = scalar), which raises
+        # "cannot set a frame with no defined index and a scalar" on an
+        # empty (zero-row) DataFrame in this pandas version.
+        df["_source_file"] = self.source_file
+        df["_extracted_date"] = self.extracted_date
 
-        issues_series = df.apply(self._detect_issues, axis=1)
-        df.loc[:, "_quality_issues"] = issues_series.apply(
-            lambda codes: ",".join(codes) if codes else ""
-        )
-        df.loc[:, "_confidence_score"] = issues_series.apply(self._score)
-        df.loc[:, "_manual_review_required"] = (
+        if df.empty:
+            df["_quality_issues"] = pd.Series(dtype="object")
+            df["_confidence_score"] = pd.Series(dtype="float64")
+        else:
+            issues_series = df.apply(self._detect_issues, axis=1)
+            df["_quality_issues"] = issues_series.apply(
+                lambda codes: ",".join(codes) if codes else ""
+            )
+            df["_confidence_score"] = issues_series.apply(self._score)
+        df["_manual_review_required"] = (
             df["_confidence_score"] < _MANUAL_REVIEW_THRESHOLD
         )
 

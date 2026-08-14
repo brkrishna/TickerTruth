@@ -107,6 +107,7 @@ def run_normalize(run_date: date) -> bool:
 
     symbols_path = staging_dir / "nse_symbols_consolidated.csv"
     actions_path = staging_dir / "nse_actions_consolidated.csv"
+    bhavcopy_path = staging_dir / "bhavcopy_consolidated.csv"
 
     if not symbols_path.exists():
         logger.warning("[normalize] nse_symbols_consolidated.csv not found — skipping")
@@ -137,6 +138,16 @@ def run_normalize(run_date: date) -> bool:
         else:
             logger.warning(
                 "[normalize] nse_actions_consolidated.csv not found — skipping actions"
+            )
+
+        if bhavcopy_path.exists():
+            raw_bhavcopy = pd.read_csv(bhavcopy_path)
+            fact_eod = mapper.map_to_fact_equity_eod(raw_bhavcopy, dim_security)
+            fact_eod.to_csv(curated_dir / "fact_equity_eod.csv", index=False)
+            logger.info("[normalize] fact_equity_eod: %d rows", len(fact_eod))
+        else:
+            logger.warning(
+                "[normalize] bhavcopy_consolidated.csv not found — skipping equity EOD"
             )
 
         return True
@@ -354,6 +365,7 @@ def collect_stats(run_date: date) -> dict:
         "new_actions": csv_rows(curated / "fact_corporate_action_event.csv"),
         "lineage_events": csv_rows(curated / "fact_symbol_lineage_event.csv"),
         "adjustment_rows": csv_rows(curated / "fact_adjustment_factor.csv"),
+        "eod_rows": csv_rows(curated / "fact_equity_eod.csv"),
         "bse_scrips": csv_rows(curated / "dim_bse_scrip_master.csv"),
         "bse_actions": csv_rows(curated / "bse_fact_corporate_action_event.csv"),
         "isin_bridge_rows": csv_rows(curated / "fact_exchange_security_map.csv"),
