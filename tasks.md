@@ -334,6 +334,27 @@ staying as impressions on the platform itself.
   review metrics mentioned in `docs/marketing-plan.md` §4.5
   (`docs/marketing/content-log.csv`)
 
+**Partial check (2026-08-14):** User pulled a PDF export of the Web
+Analytics dashboard for the Aug 3–12 window, but it was the **Core Web
+Vitals** panel (same one FOLLOWUP-1 already used) — not the Top
+referrers / Top paths panel this follow-up actually needs. Those live on
+the separate Traffic view of the same dashboard. Still open — no
+referrer or path data collected yet.
+
+One real observation surfaced anyway: the Core Web Vitals sample size
+for the window is very thin — every chart's counts axis tops out at 10,
+and only two URLs appear at all (`tickertruth.com/` and
+`tickertruth.com/methodology`). That's a low real-user sample for a
+10-day window with daily posts, so whatever Top referrers eventually
+shows, expect small absolute numbers, not large ones.
+
+**Still needed:** re-check the dashboard's Traffic/Top-referrers view
+(not Core Web Vitals) for `linkedin.com` / `substack.com` rows and a
+`/pricing` spike, per the original action items above. The 10-day run
+also closed on 2026-08-14 (not 08-12 as originally scoped here — see
+Day 9/10 reschedule in `docs/marketing-plan.md` §2) so the window to
+check should extend through 08-14.
+
 ---
 
 ## Infrastructure — pipeline release blockers
