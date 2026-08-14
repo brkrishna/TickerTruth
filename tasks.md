@@ -98,7 +98,7 @@ This document tracks progress across phases, checkpoints, and deliverables for t
 
 Bugs discovered from `run.log` on 2026-06-01. Fix each and commit separately.
 
-### BUG-1 — `fact_symbol_lineage_event` column name mismatch (critical)
+### BUG-1 — `fact_symbol_lineage_event` column name mismatch (critical, FIXED — confirmed 2026-08-14)
 
 **Symptom:** `[load] fact_symbol_lineage_event: error` on every run.
 
@@ -131,9 +131,15 @@ The two sides were never reconciled.
 
 **Files to change:** `pipelines/publish/dolt_importer.py`, possibly `dolt/schema.sql`.
 
+**Confirmed fixed (2026-08-14, during the doc-cleanup pass):**
+`dolt_importer.py::transform_lineage_events()` exists and does exactly this
+column-rename mapping. Undated in the codebase's own history — no commit
+reference found — but the fix is live and covered by
+`tests/test_dolt_importer_lineage_transform.py`.
+
 ---
 
-### BUG-2 — pandas ChainedAssignment FutureWarnings in normalizer (medium)
+### BUG-2 — pandas ChainedAssignment FutureWarnings in normalizer (medium, FIXED — confirmed 2026-08-14)
 
 **Symptom:** 8 `FutureWarning: ChainedAssignmentError` messages during `[normalize]` on every run.
 
@@ -149,9 +155,18 @@ or assign to a new DataFrame. Run `pytest` and verify no values are silently dro
 
 **Files to change:** `pipelines/normalize/normalizer.py`, `pipelines/normalize/quality.py`.
 
+**Confirmed fixed (2026-08-14):** `grep -n 'df\["[A-Za-z_]*"\]\['
+pipelines/normalize/normalizer.py pipelines/normalize/quality.py` returns
+no matches — the chained-indexing pattern this bug describes is gone.
+(Separately, today's normalize test-coverage pass found and fixed a
+*different* bug in the same two files — `.loc[:, col] = scalar` raising on
+empty DataFrames — see the "normalize FIXED 2026-08-14" section further
+down. Not a regression of BUG-2; a different pandas footgun in the same
+files.)
+
 ---
 
-### BUG-3 — `dim_exchange` and `dim_corporate_action_type` never populated (medium)
+### BUG-3 — `dim_exchange` and `dim_corporate_action_type` never populated (medium, FIXED — confirmed 2026-08-14)
 
 **Symptom:** Dolt importer logs `Skipping dim_exchange — curated file not found` and
 `Skipping dim_corporate_action_type — curated file not found` on every run.
@@ -170,9 +185,14 @@ that are never generated. The normalize stage has no step that writes
 **Files to change:** `pipelines/normalize/normalizer.py` or `pipelines/publish/dolt_importer.py`,
 and `dolt/seed_corporate_actions.sql`.
 
+**Confirmed fixed (2026-08-14):** went with the second option —
+`dolt_importer.py::ensure_exchange_seeded()` and
+`ensure_action_types_seeded()` exist and are called unconditionally at the
+top of `import_all()`, before any table import.
+
 ---
 
-### BUG-4 — Corporate actions fetch fails with no cached fallback (medium)
+### BUG-4 — Corporate actions fetch fails with no cached fallback (medium, FIXED — confirmed 2026-08-14)
 
 **Symptom:** `[extract] fetch_nse_corporate_actions failed (non-fatal)` on every run
 where NSE is unreachable or blocking, leaving `fact_corporate_action_event.csv` and
@@ -194,6 +214,11 @@ run on stale-but-present data rather than failing the validate check entirely.
 
 **Files to change:** `pipelines/extract/extractor.py` (add stale-cache fallback in
 `fetch_nse_corporate_actions`).
+
+**Confirmed fixed (2026-08-14):** `_stale_corp_actions_fallback()` exists
+in `extractor.py` and is called from `fetch_nse_corporate_actions()` after
+both the JSON API and Playwright fail — covered by
+`tests/test_extract_stale_fallback.py`.
 
 ---
 

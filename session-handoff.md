@@ -18,7 +18,10 @@ All five implementation phases are complete (phases 1–5 committed).
 - First release tagged: `v2026.06.01`
 
 ## Open items
-- `tests/` directory exists but contains no test files yet — test suite is the highest-priority gap.
+- (2026-08-14) Test suite is no longer a gap — see the dated section at the
+  bottom of this file. `dolt_importer.py`'s core import path and the
+  Playwright scraping fallback are the remaining coverage holes
+  (`todo.md` TEST-2 and the extract test writeup in `tasks.md`).
 - `dolt/migration/` and `dolt/tags/` subdirectories are documented as planned but not yet created.
 - `docs/schema-reference.md` and `docs/faq.md` are planned but not yet written.
 - (2026-07-23) `main` now has branch protection requiring 1 approving review.
@@ -34,12 +37,15 @@ All five implementation phases are complete (phases 1–5 committed).
   version tag (monthly cadence), since that's the actual cadence customers
   receive and it avoids fighting branch protection every night.
 
-## Next suggested task
-Write the initial test suite. Priority order:
-1. `tests/test_normalize_*.py` — normalizer pure functions are the easiest entry point.
-2. `tests/test_adjustments_factors.py` — parametrized ratio variants.
-3. `tests/test_lineage_*.py` — rename, suspension/relisting, merger cases.
-4. `tests/test_extract_*.py` — mocked network, consolidation idempotency.
+## Next suggested task (updated 2026-08-14 — the version below is stale)
+~~Write the initial test suite...~~ Done — see the 2026-08-14 section at
+the bottom. Next real priorities, in order: (1) confirm tonight's
+`nightly.yml` run actually goes green (`gh run list --workflow=nightly.yml`
+— it's been failing since 2026-08-07, fixed today but unverified against a
+real scheduled trigger), (2) `todo.md` TEST-2
+(`dolt_importer.py::import_all`/`load_table` core path is still untested),
+(3) whatever `todo.md`'s REFACTOR-*/PERF-*/IO-*/STRUCT-* backlog items look
+highest-value once (1) and (2) are settled.
 
 ## (2026-08-02) Data/release catch-up — findings and open bugs
 
@@ -73,8 +79,7 @@ found several real problems that need follow-up:
   INFRA-1 and `dolt/CLAUDE.md`'s "CI persistence" section. Caveat: verified
   locally against a `file://` git remote, not yet against a real nightly
   run on GitHub Actions — check the next scheduled/dispatched run's logs.
-- **Bhavcopy is 814+ days stale** (last successful fetch: 2024-05-10).
-  `fact_equity_eod` has never been populated via the pipeline.
+- ~~**Bhavcopy is 814+ days stale**~~ — FIXED 2026-08-14, see below.
 - Local Dolt repo's pre-2026-08-02 commit history (May 31–June 2) was lost
   during this session (accidental `rm -rf dolt/.dolt` before confirming) —
   low impact since it only held dimension-table snapshots, no unique fact
@@ -101,6 +106,41 @@ a network block in the logs. Full writeup and fix in `tasks.md` INFRA-2.
 install` was silently landing in system Python — recreated, no repo
 impact since `.venv/` is gitignored.
 
-**Still open:** `fetch_bhavcopy()` — separate issue, NSE migrated to a
-new bhavcopy URL/format ("UDiFF") that the extractor doesn't support
-yet. Not an Akamai/brotli issue. See `tasks.md` INFRA-2 residual note.
+`fetch_bhavcopy()` — separate issue, NSE migrated to a new bhavcopy
+URL/format ("UDiFF") that the extractor didn't support. Not an
+Akamai/brotli issue. **Also FIXED 2026-08-14**, same session: tries the
+new URL first, falls back to the legacy one. Live-verified: 3,503 rows
+for 2026-08-13, 2,710 rows for the old 2024-05-10 archive date, both
+through the same code path. `fact_equity_eod` also went from
+never-populated to live: added `RawToCanonicalMapper.map_to_fact_equity_eod()`
+and wired it into `run.py::run_normalize`. Full writeup in `tasks.md`
+INFRA-2.
+
+## (2026-08-14) Test coverage + a broken nightly pipeline, same day
+
+Three things happened in this session, in order:
+
+1. **INFRA-2 fixed** (corp actions + bhavcopy, see above and `tasks.md`).
+2. **Found `nightly.yml` had been silently failing every run since
+   2026-08-07** — a leftover `dolt remote add origin` after `dolt clone`
+   (which already sets it up) failed with `remote already exists` and
+   aborted the job. Fixed; not yet verified against a real scheduled run
+   (next one fires ~20:30 UTC tonight — check `gh run list
+   --workflow=nightly.yml`). Full writeup: `tasks.md` INFRA-1.
+3. **Closed the entire test-suite gap** this file used to call the
+   highest-priority open item. `pipelines/lineage/`, `pipelines/adjustments/`,
+   `pipelines/normalize/`, and `pipelines/extract/` (NSE) all went from
+   zero-or-thin coverage to real tests across four passes — 428 tests
+   total, up from 214 at the start of the day. Found and fixed five real
+   bugs along the way purely by writing the test cases each module's own
+   `CLAUDE.md` already required: a hash-seed-dependent non-determinism bug
+   in `SymbolLinker`, a DataFrame-mutation bug (BUG-8, `todo.md`), two
+   classes of empty-DataFrame crashes, and a dead `UNKNOWN_ACTION_TYPE`
+   quality check that's never fired for any corporate action row in this
+   pipeline's history (checked a column name neither the NSE nor BSE
+   mapper has ever produced). Full writeup per module in `tasks.md`; BSE
+   status and BUG-1 through BUG-4 were also confirmed fixed and marked as
+   such in `tasks.md`/`todo.md` (they'd been fixed in earlier sessions but
+   never marked). Also corrected two stale docs: top-level `CLAUDE.md`'s
+   BSE "nothing implemented" note (phases B1–B7 are done) and
+   `pipelines/extract/CLAUDE.md`'s Parquet-vs-CSV claim (`todo.md` DOC-1).

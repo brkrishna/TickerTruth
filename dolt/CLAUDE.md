@@ -63,6 +63,17 @@ new third-party account; DoltHub remains a candidate later if/when a
 private subscriber-facing Dolt repo is needed for commercial delivery (see
 `todo.md`'s "Commercial delivery" section).
 
+**(2026-08-14) Outage note.** This mechanism was live-broken for a week
+(every `nightly.yml` run failed 2026-08-07 through 2026-08-13) due to a
+one-line bug: the restore-path branch ran `dolt remote add origin
+<url>` after `dolt clone`, which already configures `origin` itself, so
+the second call failed with `remote already exists` and aborted the job.
+Fixed in `nightly.yml` (see `tasks.md` INFRA-1 for the full writeup and
+root-cause log excerpt) — not yet re-verified against a real scheduled
+run as of this note, since the fix landed between scheduled triggers.
+Worth checking `gh run list --workflow=nightly.yml` before trusting this
+section's description of the mechanism as currently working.
+
 ## Migration rules
 - All schema changes must be written as numbered migration files in `migration/`.
 - Migration file names must follow: `NNN_short_snake_case_description.sql`

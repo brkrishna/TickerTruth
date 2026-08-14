@@ -9,7 +9,7 @@ of the ETL pipeline — it fetches raw data and writes it to `data/raw/` and
 - NSE equity master (symbol list) via `nsearchives.nseindia.com` archives mirror.
 - NSE daily bhavcopy (EOD prices) zip files.
 - NSE corporate actions via the NSE JSON API (with Playwright fallback for bot challenges).
-- Consolidation of daily raw files into staging parquet.
+- Consolidation of daily raw files into staging CSVs.
 
 ## Files
 - `extractor.py` — `RawDataExtractor` class implementing all four fetch steps.
@@ -50,7 +50,11 @@ of the ETL pipeline — it fetches raw data and writes it to `data/raw/` and
 
 ## Output locations
 - `data/raw/` — raw untouched files, one subdirectory per source and date.
-- `data/staging/` — consolidated parquet files merged from daily raw files.
+- `data/staging/` — consolidated CSV files merged from daily raw files
+  (DOC-1, `todo.md`: this doc previously said "parquet" — code has always
+  written CSV throughout `data/raw/`, `data/staging/`, and `data/curated/`;
+  corrected 2026-08-14. A Parquet migration is tracked separately as
+  `todo.md`'s IO-1, not done).
 
 ## Rules
 - This module performs I/O only. No normalization, type casting, or business logic here.

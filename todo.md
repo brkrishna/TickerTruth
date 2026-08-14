@@ -179,12 +179,12 @@ Derived from `low-cost-mvp-blueprint.md`. Technical bug details are in `tasks.md
 
 ### Config/schema/doc consistency
 
-- [ ] **DOC-1 (trivial fix, MEDIUM impact)** — `pipelines/extract/CLAUDE.md` states staging output is Parquet, but `extractor.py`/`bse_extractor.py` write `.csv` throughout. Either correct the doc now or resolve as part of IO-1's Parquet migration — currently misleads anyone reading the module doc before editing.
-- [ ] **DOC-2 (small effort, LOW impact)** — Action-type vocabulary resolution is split across `field_mappings.yaml` and a 3-step fallback chain hardcoded in `bse_normalizer.py::normalize_bse_action_type` (exact match → substring match → NSE substring match via `FN.normalize_action_type`). Document the fallback chain explicitly in `field_mappings.yaml` comments or in `normalize/CLAUDE.md`.
+- [x] **DOC-1 (trivial fix, MEDIUM impact) — FIXED 2026-08-14** — `pipelines/extract/CLAUDE.md` stated staging output is Parquet, but `extractor.py`/`bse_extractor.py` write `.csv` throughout. Corrected the doc to say CSV. The actual Parquet migration is still tracked separately as IO-1 below (not done).
+- [x] **DOC-2 (small effort, LOW impact) — FIXED 2026-08-14** — Action-type vocabulary resolution is split across `field_mappings.yaml` and a 3-step fallback chain hardcoded in `bse_normalizer.py::normalize_bse_action_type` (exact match → substring match → NSE substring match via `FN.normalize_action_type`). Documented explicitly in `pipelines/normalize/CLAUDE.md`'s "Canonical mapping rules" section.
 
 ### Dead code
 
-- [ ] **CLEANUP-1 (trivial effort, LOW impact)** — `run.py::run_extract` (lines ~72-73, 81-82) still catches `NotImplementedError` with a "stub — skipping" warning for `fetch_bhavcopy`/`fetch_nse_corporate_actions`, but neither method raises `NotImplementedError` anymore (both are fully implemented). Safe to remove — leftover from an earlier stub phase.
+- [x] **CLEANUP-1 (trivial effort, LOW impact) — FIXED 2026-08-14** — `run.py::run_extract` caught `NotImplementedError` with a "stub — skipping" warning for `fetch_bhavcopy`/`fetch_nse_corporate_actions`, but neither method raises `NotImplementedError` anymore. Removed both catches; the generic `except Exception` below already handles real failures.
 
 ### Test coverage gaps
 

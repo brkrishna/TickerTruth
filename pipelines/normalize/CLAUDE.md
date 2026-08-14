@@ -65,6 +65,15 @@ This module does not write to any database or file system directly.
 - Unrecognized action types must map to UNKNOWN and emit a warning log.
 - Payer/issuer names must be whitespace-stripped, title-cased,
   and suffix-normalized (Ltd → Limited, Pvt → Private).
+- **BSE action-type resolution chain** (`bse_normalizer.py::normalize_bse_action_type`,
+  documented 2026-08-14, DOC-2 in `todo.md`): a raw BSE `purpose` string is
+  resolved in three steps, in order — (1) exact lowercase match against
+  `_BSE_ACTION_MAP` (sourced from `field_mappings.yaml`'s
+  `bse_action_type_mapping`); (2) substring match against the same map, for
+  decorated strings like `"Interim Dividend - Rs.5.00"`; (3) fallback to
+  NSE's `FieldNormalizer.normalize_action_type` (`normalizers.py`), since
+  BSE and NSE `purpose`/`subject` vocabularies overlap substantially. Only
+  if all three miss does the result become `UNKNOWN`.
 
 ## Testing rules
 - Tests live in `tests/test_normalize_<module>.py`.

@@ -68,8 +68,6 @@ def run_extract(run_date: date, dry_run: bool) -> bool:
     try:
         df = extractor.fetch_bhavcopy(run_date)
         logger.info("[extract] Bhavcopy: %d rows", len(df))
-    except NotImplementedError:
-        logger.warning("[extract] fetch_bhavcopy is a stub — skipping")
     except Exception as exc:
         logger.warning("[extract] fetch_bhavcopy failed (non-fatal): %s", exc)
 
@@ -77,8 +75,6 @@ def run_extract(run_date: date, dry_run: bool) -> bool:
     try:
         df = extractor.fetch_nse_corporate_actions()
         logger.info("[extract] Corporate actions: %d rows", len(df))
-    except NotImplementedError:
-        logger.warning("[extract] fetch_nse_corporate_actions is a stub — skipping")
     except Exception as exc:
         logger.warning(
             "[extract] fetch_nse_corporate_actions failed (non-fatal): %s", exc

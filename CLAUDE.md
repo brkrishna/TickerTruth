@@ -38,7 +38,7 @@ NSE (live) ──► data/raw/          ──► data/staging/        ──►
                nse_actions_*.csv       bhavcopy_               fact_corp_action_event.csv
                                        consolidated.csv        fact_symbol_lineage_event.csv
                                        nse_actions_            fact_adjustment_factor.csv
-                                       consolidated.csv
+                                       consolidated.csv        fact_equity_eod.csv
                                        quality_report_*.json
 ```
 
@@ -118,6 +118,6 @@ Each module has its own `CLAUDE.md` with detailed rules — read them before edi
 ## Done criteria
 A task is complete only if code, tests, and any affected docs are updated together.
 
-## Open work (as of 2026-06-15)
-- BSE Symbol Master & Lineage expansion — phases B1–B8 defined in `todo.md`; nothing implemented yet
-- Test suite exists but has limited coverage; `session-handoff.md` has priority order for new tests
+## Open work (as of 2026-08-14)
+- BSE Symbol Master & Lineage expansion — phases B1–B7 complete (extract, normalize, lineage, ISIN bridge, adjustments, validation/QA all implemented and tested; see `todo.md` for commit hashes). Phase B8 (commercial packaging & go-to-market) is partial — pricing SKU, entitlement gating, and outreach are still open.
+- Test suite: `pipelines/lineage/`, `pipelines/adjustments/`, `pipelines/normalize/`, and `pipelines/extract/` (NSE) all have real coverage as of today (428 tests total). Remaining gaps are tracked in `todo.md`'s "Test coverage gaps" section (e.g. `dolt_importer.py`'s core import path).
