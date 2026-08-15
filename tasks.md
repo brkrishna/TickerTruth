@@ -842,6 +842,35 @@ touched. Covered by
 `test_cross_reference_does_not_mutate_lineage_events_input` in
 `tests/test_lineage_linker.py`.
 
+### BUG-9 — Release notes summary always shows `Dolt Commit: N/A` (low)
+
+Opened 2026-08-15, found while verifying the first real `release.yml`
+run after BUG/INFRA fixes below (`v2026.08.15`, `releases/monthly/v2026.08.15.md`).
+The release notes template's `**Dolt Commit:**` field never resolves to
+an actual commit hash — it's hardcoded or falls through to `N/A` in
+every release generated so far, including this one. Per `dolt/CLAUDE.md`
+and `docs/CLAUDE.md`'s release-notes format rules, this field exists so
+a subscriber can pin to a specific Dolt commit for point-in-time
+queries; as `N/A` it's dead weight. Needs `pipelines/publish/release_notifier.py`
+(or wherever the template is rendered) wired up to read the actual Dolt
+commit hash produced by the `load` stage. Not yet investigated further
+— no root cause identified, just confirmed the field is empty on a real
+release.
+
+### BUG-10 — `fact_symbol_lineage_event` showed 0 new events on a release with 777 corporate actions (low, needs verification)
+
+Opened 2026-08-15, same `v2026.08.15` release as BUG-9. The release
+summary reported "Lineage events detected: 0" alongside 777 ingested
+corporate actions and 19 adjustment factor rows — plausible if none of
+those actions were renames/mergers/delistings, but not yet confirmed
+either way. Needs a spot-check against `fact_symbol_lineage_event.csv`
+on the `curated-data` branch (or a rerun of `SymbolLinker.link_across_periods`
+against the same input) to confirm 0 is correct and not a silent
+pipeline gap — e.g. `lineage` task not receiving the right prior-period
+snapshot to diff against now that `curated-data` persistence actually
+works (see INFRA-1 and the `nightly.yml`/`release.yml` gitignore fixes
+the same day). Not yet investigated.
+
 ### Stale documentation found during the survey (low, but misleading)
 
 - Top-level `CLAUDE.md`'s "Open work (as of 2026-06-15)" section still
