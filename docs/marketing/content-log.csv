@@ -18,3 +18,4 @@ date,platform,day,post_url,status,notes
 2026-08-13,linkedin,9,https://www.linkedin.com/feed/update/urn:li:activity:7493512667886837760,posted,
 2026-08-13,substack,9,https://tickertruth.substack.com/p/one-week-in-what-we-covered-and-whats,posted,"Substack URL slug reads as Day 10's title but confirmed by user as Day 9's post"
 2026-08-14,linkedin,10,https://www.linkedin.com/feed/update/urn:li:activity:7493866509358809089,posted,
+2026-08-14,substack,10,https://tickertruth.substack.com/p/one-week-in-what-we-covered-and-whats-8fd,posted,Verified 200 via curl

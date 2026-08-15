@@ -326,7 +326,7 @@
 - day: 10
   date: "2026-08-14"
   platform: linkedin
-  status: pending_review
+  status: posted
   text: |
     One week since the first public release, so a quick, honest update.
 
@@ -335,17 +335,19 @@
     If any of that matched a problem you've actually hit in a backtest, that's the whole reason we're building this in public instead of behind a sales page.
 
     Free sample, no signup wall beyond an email: tickertruth.com
-    20-minute walkthrough if you'd rather talk it through: [Calendly link]
+    20-minute walkthrough if you'd rather talk it through: https://calendly.com/ramkybodi/30min
 
     #IndiaData #QuantFinance #NSE #DataProduct #Backtesting
-  post_url: null
+  post_url: "https://www.linkedin.com/feed/update/urn:li:activity:7493866509358809089"
+  note: "Placeholder issue CLOSED 2026-08-15 — user manually edited the live LinkedIn post to add the real Calendly link. Not independently re-verified (LinkedIn is auth-walled from this session, fetch returns no post body at all) — closed on user's confirmation."
 
 - day: 10
   date: "2026-08-14"
   platform: substack
-  status: pending_review
+  status: posted
   title: "One Week In: What We Covered and What's Next"
   text: |
     [LinkedIn text above, see marketing-plan.md §3.10]
     Plus 2-3 paragraphs of depth per marketing-plan.md §3.10.
-  post_url: null
+  post_url: "https://tickertruth.substack.com/p/one-week-in-what-we-covered-and-whats-8fd"
+  note: "Placeholder issue CLOSED 2026-08-15 — user manually edited the live Substack post; re-verified via fetch, live post now shows the real https://calendly.com/ramkybodi/30min link in place of the '[your Calendly URL here]' placeholder."

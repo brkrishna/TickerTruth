@@ -429,7 +429,7 @@ live.
 > If any of that matched a problem you've actually hit in a backtest, that's the whole reason we're building this in public instead of behind a sales page.
 >
 > Free sample, no signup wall beyond an email: tickertruth.com
-> 20-minute walkthrough if you'd rather talk it through: [Calendly link]
+> 20-minute walkthrough if you'd rather talk it through: https://calendly.com/ramkybodi/30min
 >
 > #IndiaData #QuantFinance #NSE #DataProduct #Backtesting
 
@@ -651,8 +651,14 @@ After every successful post:
       4.3)
 - [ ] Confirm the approval-gate channel — where you want to see the
       staged screenshots and reply approve/reject (Section 4.4)
-- [ ] Fill in the two `[GitHub link]` and `[Calendly link]` placeholders
-      in Section 3 (Days 3, 9, 10) with the real URLs before Day 1 posts
+- [x] Fill in the `[Calendly link]` placeholder in Section 3 (Day 10)
+      with the real URL: https://calendly.com/ramkybodi/30min (done
+      2026-08-15, after the fact — Day 10 posted 2026-08-14 with the
+      placeholder still literal on both LinkedIn and Substack; Substack
+      confirmed live with `[your Calendly URL here]` unresolved, needs a
+      manual edit on the published post; LinkedIn unverified, auth-walled)
+- [ ] Fill in the `[GitHub link]` placeholder in Section 3 (Days 3, 9)
+      with the real URL
 
 ---
 
