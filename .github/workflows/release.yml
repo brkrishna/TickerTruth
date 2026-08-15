@@ -77,8 +77,13 @@ jobs:
 
           BRANCH="release-bot/website-${TAG}"
           git checkout -b "${BRANCH}" origin/main
-          git add website/landing-page/release-notes.html \
-                  releases/monthly/${TAG}.md
+          # -f on the second path: releases/monthly/ is gitignored (it's a
+          # derived local output elsewhere in the pipeline), but the
+          # per-release notes file under it is a real deliverable that must
+          # be committed here. Plain `git add` errors out (exit 1) on an
+          # explicitly-named ignored path instead of silently skipping it.
+          git add website/landing-page/release-notes.html
+          git add -f releases/monthly/${TAG}.md
 
           # Nothing staged means the card was already injected on a prior run
           if git diff --cached --quiet; then
