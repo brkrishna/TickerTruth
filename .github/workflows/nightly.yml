@@ -150,7 +150,13 @@ jobs:
           mkdir -p curated-data-worktree/data
           cp -r data/curated curated-data-worktree/data/
           cd curated-data-worktree
-          git add -A
+          # -f is required: data/curated/ is gitignored (it's a derived,
+          # daily output on `main`), and that .gitignore is present on this
+          # branch too since it's checked out from the same repo. Plain
+          # `git add -A` silently no-ops on everything under data/curated/
+          # here — found 2026-08-15, this step had never actually committed
+          # any curated CSVs since it was added.
+          git add -f -A data/curated
           if git diff --cached --quiet; then
             echo "No curated-data changes"
           else
