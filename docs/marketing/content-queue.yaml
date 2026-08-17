@@ -102,7 +102,7 @@
 
     Your backtest now tracks the entity, not the ticker string. Name changes, mergers, and renames don't break the series.
 
-    Full sample notebook: [GitHub link]
+    Full sample notebook: https://github.com/brkrishna/TickerTruth/blob/main/notebooks/sample_lineage_walkthrough.ipynb
     Full dataset: tickertruth.com
 
     #Python #Pandas #QuantFinance #NSE #DataEngineering
@@ -113,10 +113,12 @@
   platform: substack
   status: posted
   title: "The 5-Line Pandas Pattern for Symbol-Stable Backtests"
+  tags: ["symbol-lineage", "python", "backtesting"]
   text: |
     [LinkedIn text as opening, code block included, see marketing-plan.md §3.3]
     Plus 2-3 paragraphs of depth per marketing-plan.md §3.3.
-  post_url: null
+  post_url: "https://tickertruth.substack.com/p/the-5-line-pandas-pattern-for-symbol"
+  note: "Never actually posted on the original 2026-08-05 date despite prior status; actually published 2026-08-17 with the corrected GitHub link."
 
 - day: 4
   date: "2026-08-06"
@@ -287,14 +289,15 @@
 
     The silent killer: most teams use the *announcement date* when they should use the *ex-date* (or record date). For some event types, these differ by weeks.
 
-    TickerTruth provides both dates for every event: announced_date, ex_date, record_date, payment_date — whichever are available from NSE filings.
+    TickerTruth's corporate action table sources `event_date` directly from NSE's ex-date field — not a scraped news-announcement date — plus `record_date` and `payment_date` where NSE provides them. No separate announcement-date field, by design: the ex-date is the one that actually determines the price reaction.
 
     The difference in CAR[-5,+5] between announcement-date and ex-date alignment is often 3–4% on a typical bonus issue. That's not noise — it's a measurement error that corrupts your strategy.
 
-    Sample notebook: [GitHub link]
+    Sample notebook: https://github.com/brkrishna/TickerTruth/blob/main/notebooks/action_event_examples.ipynb
 
     #EventStudy #QuantFinance #NSE #CorporateActions #AlgoTrading
   post_url: "https://www.linkedin.com/feed/update/urn:li:activity:7493512667886837760"
+  note: "Live post edited 2026-08-17 to match this corrected text. Confirmed via og:description meta tag — zero announced_date occurrences left. Notebook link on the live post is a lnkd.in short link (https://lnkd.in/dAFEebZS); couldn't resolve it directly (LinkedIn 403s bot requests), user confirmed it redirects to action_event_examples.ipynb. Closed."
 
 - day: 9
   date: "2026-08-13"
@@ -306,11 +309,11 @@
 
     The silent killer: most teams use the *announcement date* when they should use the *ex-date* (or record date). For some event types, these differ by weeks.
 
-    TickerTruth provides both dates for every event: announced_date, ex_date, record_date, payment_date — whichever are available from NSE filings.
+    TickerTruth's corporate action table sources `event_date` directly from NSE's ex-date field — not a scraped news-announcement date — plus `record_date` and `payment_date` where NSE provides them. No separate announcement-date field, by design: the ex-date is the one that actually determines the price reaction.
 
     The difference in CAR[-5,+5] between announcement-date and ex-date alignment is often 3–4% on a typical bonus issue. That's not noise — it's a measurement error that corrupts your strategy.
 
-    Sample notebook: [GitHub link]
+    Sample notebook: https://github.com/brkrishna/TickerTruth/blob/main/notebooks/action_event_examples.ipynb
 
     #EventStudy #QuantFinance #NSE #CorporateActions #AlgoTrading
 
@@ -318,10 +321,11 @@
 
     Why this specifically corrupts a CAR window: cumulative abnormal return calculations are sensitive to exactly *when* the event window starts, because the price reaction to a bonus or rights announcement is front-loaded around the date the market can actually act on it — which is the ex-date, not the announcement. Anchor the window three weeks early and you're measuring pre-event drift as if it were the event reaction, which inflates or deflates the CAR depending on which way the stock was already moving.
 
-    This is a one-line fix once you have the right field — swap `announced_date` for `ex_date` in the window calculation — but it requires the underlying data to actually carry both dates distinctly, which most vendor feeds collapse into a single ambiguous "action date."
+    The fix requires your data source to give you the ex-date directly rather than a scraped "announcement" string from a news feed or vendor API — which is why `event_date` in TickerTruth's corporate action table is sourced straight from NSE's own ex-date field, not inferred from filing text.
 
-    Sample notebook with a worked CAR example: github.com/[org]/tickertruth-samples.
+    Sample notebook: https://github.com/brkrishna/TickerTruth/blob/main/notebooks/action_event_examples.ipynb.
   post_url: "https://tickertruth.substack.com/p/one-week-in-what-we-covered-and-whats"
+  note: "Live post edited 2026-08-17 to match this corrected text. Confirmed by reading the rendered post body HTML directly (not just HTTP status) — zero announced_date occurrences, notebook link points directly to action_event_examples.ipynb with no shortener. Closed."
 
 - day: 10
   date: "2026-08-14"

@@ -4,7 +4,7 @@ date,platform,day,post_url,status,notes
 2026-08-04,linkedin,2,https://www.linkedin.com/feed/update/urn:li:activity:7490250295906779136,posted,Backfilled retroactively 2026-08-06
 2026-08-04,substack,2,,posted,"Published per user, permalink not yet backfilled"
 2026-08-05,linkedin,3,https://www.linkedin.com/feed/update/urn:li:activity:7490642030671470592,posted,Backfilled retroactively 2026-08-06
-2026-08-05,substack,3,,posted,"Published per user, permalink not yet backfilled"
+2026-08-05,substack,3,https://tickertruth.substack.com/p/the-5-line-pandas-pattern-for-symbol,posted,"Previous note was wrong — this was never actually posted on 2026-08-05. Actually published 2026-08-17, using the corrected GitHub link from marketing-plan.md §3.3. Verified 200 via curl."
 2026-08-06,linkedin,4,https://www.linkedin.com/feed/update/urn:li:activity:7491006111534432256,posted,
 2026-08-06,substack,4,https://tickertruth.substack.com/p/the-graveyard-problem-survivorship?r=8s8sy5,posted,Verified 200 via curl
 2026-08-07,linkedin,5,https://www.linkedin.com/feed/update/urn:li:activity:7491360978874589184,posted,
@@ -15,7 +15,7 @@ date,platform,day,post_url,status,notes
 2026-08-11,substack,6,https://tickertruth.substack.com/p/the-hidden-cost-of-bad-reference,posted,
 2026-08-12,linkedin,7,https://www.linkedin.com/feed/update/urn:li:activity:7493157243044122624,posted,
 2026-08-12,substack,7,https://tickertruth.substack.com/p/12-corporate-action-types-ranked,posted,
-2026-08-13,linkedin,9,https://www.linkedin.com/feed/update/urn:li:activity:7493512667886837760,posted,
-2026-08-13,substack,9,https://tickertruth.substack.com/p/one-week-in-what-we-covered-and-whats,posted,"Substack URL slug reads as Day 10's title but confirmed by user as Day 9's post"
+2026-08-13,linkedin,9,https://www.linkedin.com/feed/update/urn:li:activity:7493512667886837760,posted,"Edited 2026-08-17 to remove the false announced_date claim — confirmed via og:description meta tag, text now matches marketing-plan.md §3.9 exactly, zero announced_date occurrences left. Notebook link uses a lnkd.in short link (https://lnkd.in/dAFEebZS); couldn't resolve it directly (LinkedIn 403s bot requests) but user confirmed it redirects to notebooks/action_event_examples.ipynb. Closed."
+2026-08-13,substack,9,https://tickertruth.substack.com/p/one-week-in-what-we-covered-and-whats,posted,"Substack URL slug reads as Day 10's title but confirmed by user as Day 9's post. Edited 2026-08-17 to remove the false announced_date claim (both occurrences) and fixed the notebook link to point directly to github.com/brkrishna/TickerTruth/blob/main/notebooks/action_event_examples.ipynb (no shortener). Confirmed by reading the rendered post body HTML directly — text matches marketing-plan.md §3.9 verbatim, zero announced_date occurrences left. Closed."
 2026-08-14,linkedin,10,https://www.linkedin.com/feed/update/urn:li:activity:7493866509358809089,posted,
 2026-08-14,substack,10,https://tickertruth.substack.com/p/one-week-in-what-we-covered-and-whats-8fd,posted,Verified 200 via curl

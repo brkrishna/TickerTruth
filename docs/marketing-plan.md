@@ -180,7 +180,7 @@ LinkedIn posts don't need one (feed posts, not articles).
 >
 > Your backtest now tracks the entity, not the ticker string. Name changes, mergers, and renames don't break the series.
 >
-> Full sample notebook: [GitHub link]
+> Full sample notebook: https://github.com/brkrishna/TickerTruth/blob/main/notebooks/sample_lineage_walkthrough.ipynb
 > Full dataset: tickertruth.com
 >
 > #Python #Pandas #QuantFinance #NSE #DataEngineering
@@ -194,7 +194,7 @@ LinkedIn posts don't need one (feed posts, not articles).
 >
 > This is the same join pattern the Loom demo walks through end to end, including what the "before" price series looks like with the discontinuity still in it.
 >
-> Full sample notebook: github.com/[org]/tickertruth-samples. Full dataset: tickertruth.com.
+> Full sample notebook: https://github.com/brkrishna/TickerTruth/blob/main/notebooks/sample_lineage_walkthrough.ipynb. Full dataset: tickertruth.com.
 
 ---
 
@@ -393,29 +393,49 @@ live.
 
 ### 3.9 — Day 9, ~~Tue 2026-08-11~~ Thu 2026-08-13 *(shifted two days due to Day 6/7 reschedule)*
 
-**LinkedIn:**
+**Accuracy problem found 2026-08-17, already live — needs a decision, not just
+a link fill-in.** This post (both LinkedIn and Substack, already published
+2026-08-13) claims: *"TickerTruth provides both dates for every event:
+announced_date, ex_date, record_date, payment_date."* Checked against the
+actual schema (`dolt/schema.sql`, `fact_corporate_action_event`) and the
+normalizer (`pipelines/normalize/normalizer.py`): the table has `event_date`
+(populated from NSE's `EX_DATE` column), `record_date`, and `payment_date`.
+**There is no `announced_date` field anywhere in the schema or pipeline** —
+grep confirms zero hits for `announced_date`/`ANNOUNCED` outside this post.
+The post also promises "a worked CAR example" in the sample notebook; the
+closest existing notebook (`notebooks/action_event_examples.ipynb`) shows
+`ex_date`, `action_type`, and `confidence_flag` but has no
+announcement-vs-ex-date comparison and no CAR calculation at all. This is the
+same class of problem Day 8 was rewritten for (§3.8) — the difference is Day 8
+was caught and rewritten *before* publishing; this one was caught after.
+**User decision 2026-08-17: edit the live LinkedIn and Substack posts
+directly** (both platforms support in-place edits, same fix already applied
+to the Day 10 Calendly link). Corrected text below — replace the live posts
+with this, not the original draft above the line.
+
+**LinkedIn (corrected 2026-08-17 — replace live post with this):**
 > A common pattern in quant research: measure abnormal returns around a corporate event.
 >
 > The silent killer: most teams use the *announcement date* when they should use the *ex-date* (or record date). For some event types, these differ by weeks.
 >
-> TickerTruth provides both dates for every event: announced_date, ex_date, record_date, payment_date — whichever are available from NSE filings.
+> TickerTruth's corporate action table sources `event_date` directly from NSE's ex-date field — not a scraped news-announcement date — plus `record_date` and `payment_date` where NSE provides them. No separate announcement-date field, by design: the ex-date is the one that actually determines the price reaction.
 >
 > The difference in CAR[-5,+5] between announcement-date and ex-date alignment is often 3–4% on a typical bonus issue. That's not noise — it's a measurement error that corrupts your strategy.
 >
-> Sample notebook: [GitHub link]
+> Sample notebook: https://github.com/brkrishna/TickerTruth/blob/main/notebooks/action_event_examples.ipynb
 >
 > #EventStudy #QuantFinance #NSE #CorporateActions #AlgoTrading
 
-**Substack — "Event-Study Methodology Using the Correct Corporate Action Date":**
+**Substack — "Event-Study Methodology Using the Correct Corporate Action Date" (corrected 2026-08-17 — replace live post with this):**
 > [LinkedIn text above]
 >
 > The gap between announcement and ex-date exists because Indian corporate actions typically go through board approval, shareholder approval, and a regulatory filing window before the ex-date is fixed — and each of those stages can generate its own "announcement" in a news feed or vendor API, which is where the ambiguity creeps in. If your event-study code pulls the first announcement-type record it finds for a given action, it's picking up the board-approval date more often than the market-relevant ex-date, and those can be three to six weeks apart for a bonus or rights issue.
 >
 > Why this specifically corrupts a CAR window: cumulative abnormal return calculations are sensitive to exactly *when* the event window starts, because the price reaction to a bonus or rights announcement is front-loaded around the date the market can actually act on it — which is the ex-date, not the announcement. Anchor the window three weeks early and you're measuring pre-event drift as if it were the event reaction, which inflates or deflates the CAR depending on which way the stock was already moving.
 >
-> This is a one-line fix once you have the right field — swap `announced_date` for `ex_date` in the window calculation — but it requires the underlying data to actually carry both dates distinctly, which most vendor feeds collapse into a single ambiguous "action date."
+> The fix requires your data source to give you the ex-date directly rather than a scraped "announcement" string from a news feed or vendor API — which is why `event_date` in TickerTruth's corporate action table is sourced straight from NSE's own ex-date field, not inferred from filing text.
 >
-> Sample notebook with a worked CAR example: github.com/[org]/tickertruth-samples.
+> Sample notebook: https://github.com/brkrishna/TickerTruth/blob/main/notebooks/action_event_examples.ipynb.
 
 ---
 
@@ -657,8 +677,38 @@ After every successful post:
       placeholder still literal on both LinkedIn and Substack; Substack
       confirmed live with `[your Calendly URL here]` unresolved, needs a
       manual edit on the published post; LinkedIn unverified, auth-walled)
-- [ ] Fill in the `[GitHub link]` placeholder in Section 3 (Days 3, 9)
-      with the real URL
+- [x] Fill in the `[GitHub link]` placeholder in Section 3 Day 3 with the
+      real URL: https://github.com/brkrishna/TickerTruth/blob/main/notebooks/sample_lineage_walkthrough.ipynb
+      (done 2026-08-17. Turned out Day 3 Substack was never actually posted
+      on 2026-08-05 despite the tracking files saying so — published for the
+      first time 2026-08-17 with the corrected link, confirmed 200 via curl:
+      https://tickertruth.substack.com/p/the-5-line-pandas-pattern-for-symbol.
+      Day 3 **LinkedIn** post was genuinely posted 2026-08-05 and still has
+      the literal `[GitHub link]` placeholder live — still needs a manual
+      edit, same as the Day 10 Calendly fix)
+- [x] Day 9's `[GitHub link]` placeholder turned out to hide a bigger issue
+      (a false `announced_date` product claim) — see the corrected copy in
+      §3.9. Went through a couple of false-done markings along the way
+      (once from a `curl -o /dev/null` 200 check that only confirms the
+      page loads, not the text; once from an edit that fixed only the
+      notebook link — to the wrong notebook — while leaving the false claim
+      untouched) before actually landing.
+      **LinkedIn (urn:li:activity:7493512667886837760): confirmed fixed
+      2026-08-17.** `announced_date` no longer appears anywhere in the
+      post (checked via the `og:description`/`twitter:description` meta
+      tags, which mirror the full post text); the corrected paragraph
+      matches §3.9 verbatim. Notebook link on the live post is a
+      `lnkd.in/dAFEebZS` short link — couldn't resolve it directly
+      (LinkedIn 403s non-browser requests), but the user confirmed it
+      redirects to `notebooks/action_event_examples.ipynb`. Closed.
+      **Substack (https://tickertruth.substack.com/p/one-week-in-what-we-covered-and-whats):
+      confirmed fixed 2026-08-17.** Read the rendered post body directly
+      (not just HTTP status) — `announced_date` no longer appears anywhere,
+      both corrected paragraphs match §3.9 verbatim, and the single
+      "Sample notebook" link now points straight at
+      `https://github.com/brkrishna/TickerTruth/blob/main/notebooks/action_event_examples.ipynb`
+      with no shortener. Closed. Both Day 9 posts (LinkedIn + Substack) are
+      done.
 
 ---
 
