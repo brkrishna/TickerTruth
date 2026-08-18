@@ -380,6 +380,38 @@ also closed on 2026-08-14 (not 08-12 as originally scoped here — see
 Day 9/10 reschedule in `docs/marketing-plan.md` §2) so the window to
 check should extend through 08-14.
 
+**Result (2026-08-18): user pulled the correct Traffic/Top-referrers
+view — top referrer is `(none)`, not `linkedin.com` or `substack.com`.**
+No confirmed click-through attribution from either platform for the
+Aug 3–14 window.
+
+**Likely cause, not yet verified:** every post in `content-queue.yaml`
+links out as bare text — `tickertruth.com`, `tickertruth.com/pricing`,
+`tickertruth.com/release-notes` — not a markdown/HTML hyperlink. LinkedIn
+does auto-link plain URLs in feed posts, but routes the click through an
+`lnkd.in` redirect (already seen on the Day 9 post, §3.9) which can drop
+or rewrite the `Referer` header before the final hop lands on
+tickertruth.com — Cloudflare would then log that hit as direct/`(none)`
+even though the click genuinely came from LinkedIn. Substack normally
+preserves referrer on outbound markdown links, so `(none)` covering both
+platforms points more at a shared cause (redirect stripping, or genuinely
+thin/no click-through volume — consistent with the small Core Web Vitals
+sample already noted above) than at two independent failures.
+
+**Not verified because:** dashboard access is required and this session
+doesn't have it. To actually distinguish "LinkedIn's redirect stripped
+the referrer" from "nobody clicked," check UTM-tagged links instead —
+neither the LinkedIn nor Substack drafts use one now, and a raw domain
+mention is the reason referrer data comes back empty regardless of
+click volume.
+
+**Closing this follow-up as answered — no referrer attribution recoverable
+for the Aug 3–14 window itself** (the retroactive analytics tag is
+already gone). Follow-up work, if wanted, is forward-looking: add UTM
+parameters (`?utm_source=linkedin&utm_medium=social&utm_campaign=<day>`)
+to the link text in future posts so click-through is attributable
+per-platform, per-day, next time content goes out.
+
 ---
 
 ## Infrastructure — pipeline release blockers
