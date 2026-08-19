@@ -112,6 +112,20 @@
     .btn-pay-contact { background: var(--accent); color: #fff; }
     .pay-note { font-size: 0.72rem; color: var(--text-muted); text-align: center; margin-top: 0.25rem; }
 
+    /* Founding offer */
+    .founding-offer {
+      background: var(--accent-glow, rgba(255,180,0,0.12));
+      border: 1px solid var(--accent);
+      border-radius: 6px;
+      padding: 0.5rem 0.75rem;
+      font-size: 0.78rem;
+      color: var(--text);
+      text-align: center;
+      margin-bottom: 0.5rem;
+    }
+    .founding-offer strong { color: var(--accent); }
+    .btn-pay-standard { background: transparent; border: 1px solid var(--border); color: var(--text-muted); }
+
     /* Value prop */
     .value-points { display: flex; flex-direction: column; gap: 0.6rem; }
     .value-point {
@@ -261,10 +275,18 @@
           <li>Email support</li>
         </ul>
         <div class="tier-cta">
-          <a href="https://rzp.io/rzp/kRMYpwc" target="_blank" rel="noopener" class="btn-pay btn-pay-rzp">
-            Subscribe — INR · UPI / Card
+          <div class="founding-offer">🎉 Founding offer: <strong>INR 10,000/mo</strong> locked for 12 months — 5 of 5 slots left</div>
+          <!-- Founding link created 2026-08-19 — see docs/marketing/payment-setup.md §1.
+               Has an expiry date set in Razorpay; when it fills or expires, remove this
+               founding-offer block and the standard-price link below reverts to being the sole CTA. -->
+          <a href="https://rzp.io/rzp/u2MmrcZ4" target="_blank" rel="noopener" class="btn-pay btn-pay-rzp">
+            Subscribe — Founding rate
+          </a>
+          <a href="https://rzp.io/rzp/kRMYpwc" target="_blank" rel="noopener" class="btn-pay btn-pay-standard pay-note">
+            Or standard rate — INR 14,999/mo
           </a>
           <p class="pay-note">Billed monthly. Cancel anytime.</p>
+          <a href="https://calendly.com/ramkybodi/30min" target="_blank" rel="noopener" class="pay-note" style="text-decoration: underline;">Or book a 20-min call first</a>
         </div>
         <div class="tier-usecase">Small teams, backtesting, research</div>
       </div>
@@ -285,6 +307,7 @@
             Subscribe — INR · UPI / Card
           </a>
           <p class="pay-note">Billed monthly. Cancel anytime.</p>
+          <a href="https://calendly.com/ramkybodi/30min" target="_blank" rel="noopener" class="pay-note" style="text-decoration: underline;">Or book a 20-min call first</a>
         </div>
         <div class="tier-usecase">Production quant systems, broker platforms</div>
       </div>

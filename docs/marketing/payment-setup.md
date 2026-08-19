@@ -5,6 +5,22 @@ done. Two providers: Razorpay for India (INR, UPI), Stripe for
 international (USD, card). Both are payment-link based — no checkout page
 build needed.
 
+**Status (2026-08-19): Razorpay is live — account, KYC, payment links, and
+test payment all confirmed done by the user, and the buy buttons are wired
+into `pricing.html`. Stripe is skipped entirely — Stripe does not support
+India-based business signups, so there's no USD path via Stripe. If
+international billing is ever needed, revisit with a provider that
+supports Indian merchants (e.g. Razorpay's own international payment
+methods, or Paddle/Lemon Squeezy as merchant-of-record).**
+
+**Note:** the live `pricing.html` uses a different scheme than §1/§3 below
+describe — three tiers (Starter INR 14,999/mo, Professional INR
+39,999/mo, Enterprise INR 1.5 lakh+/mo) with a Razorpay "Subscribe" button
+per tier, not the "Founding Starter INR 10,000 / Standard INR 15,000"
+two-tier founding-slot plan this doc was originally written against. No
+founding-slot counter and no Calendly link exist on `pricing.html` today
+— see the checklist below.
+
 ---
 
 ## 1. Razorpay (India — INR + UPI)
@@ -83,15 +99,31 @@ process is fine for the first 5–10 customers.
 
 ## Checklist
 
-- [ ] Razorpay account created, KYC submitted
-- [ ] Razorpay KYC approved
-- [ ] Razorpay Founding Starter payment link created (INR 10,000/month)
-- [ ] Razorpay Standard Starter payment link created (INR 15,000/month)
-- [ ] Razorpay test payment confirmed end-to-end
-- [ ] Stripe account created
-- [ ] Stripe Founding Starter payment link created ($120/month)
-- [ ] Stripe Standard Starter payment link created ($180/month)
-- [ ] Stripe test payment confirmed end-to-end
-- [ ] Buy-now button + founding-slot counter live on `pricing.html`
-- [ ] Calendly link confirmed present on pricing page (already live
-      elsewhere — verify it's also on `/pricing`, not just LinkedIn/posts)
+- [x] Razorpay account created, KYC approved (2026-08-19)
+- [x] Razorpay payment links created — live links are per-tier (Starter,
+      Professional), not the founding/standard split originally planned
+- [x] Razorpay test payment confirmed end-to-end
+- [x] Buy-now buttons live on `pricing.html` (`.btn-pay-rzp`, one per tier)
+- [x] ~~Stripe~~ — skipped. Stripe does not support India-based business
+      signups; no USD path exists via Stripe. Not pursuing an alternative
+      unless international demand actually shows up.
+- [x] Decided 2026-08-19: revive founding-slot framing — INR 10,000/mo
+      (vs INR 14,999 standard Starter rate), 5 slots, on the Starter tier
+      only.
+- [x] Founding-offer block + slot counter added to `pricing.html`
+      (2026-08-19), wired to the real founding-rate Razorpay link:
+      https://rzp.io/rzp/u2MmrcZ4 (INR 10,000/mo, 5 slots, expiry set in
+      Razorpay per the user).
+- [ ] Update the slot counter manually as subscribers come in — no
+      automation for this. Remove the founding-offer block entirely once
+      5 slots fill or the link's Razorpay expiry date passes, whichever
+      comes first.
+- [x] Founding link's payment flow verified end-to-end (2026-08-19) —
+      recreated the same recurring/amount/description setup as a Test
+      Mode link and confirmed a successful test payment. (Test Mode
+      cards can't touch a live link directly, so this validates the
+      mechanics rather than `u2MmrcZ4` itself; see payment-setup.md
+      discussion if a live+refund check is ever wanted instead.)
+- [x] Calendly link on `pricing.html` — added 2026-08-19, "Or book a
+      20-min call first" under the Starter and Professional buy buttons,
+      pointing to https://calendly.com/ramkybodi/30min.

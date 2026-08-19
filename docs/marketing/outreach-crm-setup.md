@@ -69,3 +69,27 @@ Once names are filled in for Tier 1 (8 companies): send Batch 1 using
 Template A (`marketing.md` §7), 5–7 DMs per session across 3 sessions in
 a day, not all 20 at once (LinkedIn spam-flags rapid-fire DMing). Log
 `Touch 1 Date` and set `Status = Contacted` for each as you go.
+
+## 7. Status (2026-08-19) — paused, resume week of 2026-08-25
+
+Tried using public web search/fetch (not LinkedIn) to pre-fill Tier 1
+names ahead of the manual pass in §3. Result: 1 of 3 companies attempted
+worked cleanly —
+
+- **Marcellus Investment Managers** — filled in: Krishnan V R, Head of
+  Quantitative Research (found via marcellus.in/our-team/, LinkedIn URL
+  cross-checked via search). Still needs a live LinkedIn check before
+  Touch 1 to confirm he's still current, same as any other row.
+- **White Oak Capital** — team page blocks non-browser fetches (403);
+  general web search only surfaces the founder, not a quant/systematic
+  lead. Not filled in.
+- **Quantum AMC** — general web search surfaces MD/CIO-level names only,
+  not the quant/research-desk person the role hint is looking for. Not
+  filled in.
+
+Remaining Tier 1 rows (DSP Quant Fund, Nippon India Quant, Edelweiss
+AIF, Axis AMC, Motilal Oswal AMC) not attempted. Takeaway: public search
+has a low hit rate for this (~1 in 3, and every hit still needs manual
+LinkedIn confirmation per §3) — the direct LinkedIn search in §3 is
+likely faster for the rest. User is picking this back up the week of
+2026-08-25.
