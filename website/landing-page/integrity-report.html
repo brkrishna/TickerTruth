@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>India Backtest Integrity Report — TickerTruth</title>
+
+  <!-- SEO -->
+  <meta name="description" content="Five common NSE data errors that silently distort backtests — symbol discontinuity, mislabeled bonus issues, survivorship bias, ex-date misalignment, and untracked face-value changes — with a pandas snippet to check each one against your own data.">
+  <meta name="keywords" content="NSE backtest errors, India equity data quality, survivorship bias backtest, corporate action data errors, bonus issue vs stock split, NSE data audit, backtest integrity check">
+  <meta name="author" content="TickerTruth">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://tickertruth.com/integrity-report">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="TickerTruth">
+  <meta property="og:title" content="India Backtest Integrity Report — TickerTruth">
+  <meta property="og:description" content="Five common NSE data errors that silently distort backtests, with a pandas snippet to check each one against your own data.">
+  <meta property="og:url" content="https://tickertruth.com/integrity-report">
+  <meta property="og:image" content="https://tickertruth.com/assets/images/tickertruth_og.png">
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="India Backtest Integrity Report — TickerTruth">
+  <meta name="twitter:description" content="Five common NSE data errors that silently distort backtests, with a pandas snippet to check each one against your own data.">
+  <meta name="twitter:image" content="https://tickertruth.com/assets/images/tickertruth_og.png">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="icon" href="assets/images/tickertruth_favicon.svg" type="image/svg+xml">
+  <style>
+    :root {
+      --bg:             #06091a;
+      --surface:        #0c1228;
+      --surface-raised: #101930;
+      --border:         #1a2847;
+      --text:           #dbe8f8;
+      --text-muted:     #6b8db5;
+      --accent:         #3b82f6;
+      --accent-hover:   #2563eb;
+      --accent-glow:    rgba(59,130,246,0.12);
+      --green:          #10b981;
+      --amber:          #f59e0b;
+      --red:            #f87171;
+      --code-bg:        #020712;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      font-size: 16px; line-height: 1.6; color: var(--text); background: var(--bg);
+    }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 1.25rem 2rem;
+      display: flex; align-items: center; justify-content: space-between;
+      position: sticky; top: 0; z-index: 50;
+    }
+    header .logo { display: flex; align-items: center; gap: 0.45rem; text-decoration: none; }
+    .logo-wordmark { font-family: Georgia, serif; font-size: 1.05rem; font-weight: 700; letter-spacing: 0.01em; line-height: 1; }
+    .logo-ticker { color: var(--text); }
+    .logo-truth { color: var(--accent); }
+    header nav { display: flex; gap: 1.5rem; font-size: 0.875rem; }
+    header nav a { color: var(--text-muted); }
+    header nav a:hover { color: var(--text); text-decoration: none; }
+    .page-header {
+      max-width: 720px; margin: 3rem auto 2rem; padding: 0 2rem;
+      border-bottom: 1px solid var(--border); padding-bottom: 2rem;
+    }
+    .page-header h1 { font-size: 1.75rem; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 0.5rem; color: var(--text); }
+    .page-header p { color: var(--text-muted); }
+    section { max-width: 720px; margin: 2.5rem auto; padding: 0 2rem; }
+    h2 { font-size: 1rem; font-weight: 600; letter-spacing: -0.01em; margin-bottom: 0.4rem; color: var(--text); }
+    h3 { font-size: 0.95rem; font-weight: 600; margin: 1.25rem 0 0.5rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; }
+    p { color: var(--text-muted); margin-bottom: 0.75rem; }
+    .divider { border: none; border-top: 1px solid var(--border); margin: 0 2rem; }
+
+    .error-block {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1.25rem 1.5rem;
+      margin-bottom: 1.5rem;
+    }
+    .error-num {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 1.75rem; height: 1.75rem; border-radius: 50%;
+      background: var(--accent); color: #fff; font-size: 0.8rem; font-weight: 700;
+      margin-right: 0.6rem;
+    }
+    .error-title { display: flex; align-items: center; margin-bottom: 0.75rem; }
+
+    pre {
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      color: #e2e8f0; border-radius: 8px;
+      padding: 1.25rem 1.5rem; overflow-x: auto; font-size: 0.82rem;
+      line-height: 1.65;
+      font-family: 'JetBrains Mono', ui-monospace, monospace;
+      margin-top: 0.75rem;
+    }
+    .kw  { color: #7dd3fc; }
+    .fn  { color: #a78bfa; }
+    .str { color: #86efac; }
+    .cm  { color: #64748b; }
+
+    .checklist { list-style: none; padding: 0; }
+    .checklist li {
+      padding: 0.6rem 0.9rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--accent);
+      border-radius: 6px;
+      margin-bottom: 0.6rem;
+      font-size: 0.9rem;
+      color: var(--text-muted);
+    }
+    .checklist code { color: var(--text); font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 0.85rem; }
+
+    .cta {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1.5rem;
+      text-align: center;
+      margin-top: 1rem;
+    }
+    .cta p { margin-bottom: 1rem; }
+    .btn {
+      display: inline-block;
+      background: var(--accent);
+      color: #fff;
+      padding: 0.65rem 1.5rem;
+      border-radius: 6px;
+      font-weight: 600;
+      font-size: 0.9rem;
+    }
+    .btn:hover { background: var(--accent-hover); text-decoration: none; }
+
+    footer {
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      padding: 2rem;
+      text-align: center; font-size: 0.8rem; color: var(--text-muted); margin-top: 4rem;
+    }
+    .menu-toggle {
+      display: none;
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 0.25rem;
+      color: var(--text);
+    }
+    .menu-toggle span {
+      display: block;
+      width: 22px;
+      height: 2px;
+      background: currentColor;
+      margin: 5px 0;
+      transition: transform 0.2s, opacity 0.2s;
+    }
+    .menu-toggle.open span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+    .menu-toggle.open span:nth-child(2) { opacity: 0; }
+    .menu-toggle.open span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+
+    .mobile-nav {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: var(--surface);
+      z-index: 49;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 2rem;
+    }
+    .mobile-nav a { font-size: 1.25rem; color: var(--text); font-weight: 500; }
+    .mobile-nav a:hover { color: var(--accent); text-decoration: none; }
+    .mobile-nav.open { display: flex; }
+
+    @media (max-width: 600px) {
+      header nav { display: none; }
+      .menu-toggle { display: block; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <a href="/" class="logo" aria-label="TickerTruth home">
+    <svg width="22" height="22" viewBox="-1 0 23 22" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <rect x="0" y="10" width="5" height="9" rx="1" fill="#1A6EE8"/>
+      <line x1="2.5" y1="9" x2="2.5" y2="10" stroke="#1A6EE8" stroke-width="1"/>
+      <line x1="2.5" y1="19" x2="2.5" y2="20" stroke="#1A6EE8" stroke-width="1"/>
+      <rect x="8" y="5" width="5" height="14" rx="1" fill="#35C28A"/>
+      <line x1="10.5" y1="4" x2="10.5" y2="5" stroke="#35C28A" stroke-width="1"/>
+      <line x1="10.5" y1="19" x2="10.5" y2="20" stroke="#35C28A" stroke-width="1"/>
+      <rect x="16" y="2" width="5" height="18" rx="1" fill="#1A6EE8"/>
+      <line x1="18.5" y1="1" x2="18.5" y2="2" stroke="#1A6EE8" stroke-width="1"/>
+      <line x1="18.5" y1="20" x2="18.5" y2="21" stroke="#1A6EE8" stroke-width="1"/>
+      <polyline points="3,13 9,19 18,5" fill="none" stroke="#FFFFFF" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" opacity="0.9"/>
+    </svg>
+    <span class="logo-wordmark"><span class="logo-ticker">Ticker</span><span class="logo-truth">Truth</span></span>
+  </a>
+  <nav>
+    <a href="/methodology">Methodology</a>
+    <a href="/pricing">Pricing</a>
+    <a href="/sample-queries">Sample Queries</a>
+    <a href="/release-notes">Release Notes</a>
+    <a href="blog/">Blog</a>
+    <a href="/contact">Contact</a>
+  </nav>
+  <button class="menu-toggle" aria-label="Toggle navigation" aria-expanded="false">
+    <span></span><span></span><span></span>
+  </button>
+</header>
+<nav class="mobile-nav" aria-label="Mobile navigation">
+  <a href="/methodology">Methodology</a>
+  <a href="/pricing">Pricing</a>
+  <a href="/sample-queries">Sample Queries</a>
+  <a href="/release-notes">Release Notes</a>
+  <a href="blog/">Blog</a>
+  <a href="/contact">Contact</a>
+</nav>
+
+<main>
+  <div class="page-header">
+    <h1>India Backtest Integrity Report</h1>
+    <p>Five NSE data errors that silently distort backtests, plus a pandas snippet to check each one against your own price series. No signup required.</p>
+  </div>
+
+  <section>
+    <div class="error-block">
+      <div class="error-title"><span class="error-num">1</span><h2>Symbol discontinuity at merger or rename</h2></div>
+      <p>When a company merges or renames, most vendors either drop the old ticker or start a new series with no link back to it. A strategy backtested against the new series alone never "traded" the pre-merger entity, even though it existed and had a price history.</p>
+      <p>Check: does your universe have a gap where a symbol should continue under a new name?</p>
+      <pre><span class="cm"># Flag symbols whose price series ends abruptly with no delisting record</span>
+last_seen = df.groupby(<span class="str">"symbol"</span>)[<span class="str">"date"</span>].max()
+stale = last_seen[last_seen &lt; df[<span class="str">"date"</span>].max() - pd.Timedelta(days=<span class="fn">30</span>)]
+<span class="fn">print</span>(stale)  <span class="cm"># investigate each: merger/rename, or a real gap?</span></pre>
+    </div>
+
+    <div class="error-block">
+      <div class="error-title"><span class="error-num">2</span><h2>Bonus issue mislabeled as a stock split</h2></div>
+      <p>A 1:1 bonus and a 2:1 split both double the share count, but the adjustment math differs (a bonus doesn't reduce reserves the same way a split does). Vendors that normalize both to a generic "split factor" produce a price series that's off by the mismatch.</p>
+      <pre><span class="cm"># Compare pre/post-event share count ratio against the vendor's recorded adjustment factor</span>
+implied_factor = new_shares / old_shares
+mismatch = df[(df[<span class="str">"action_type"</span>] == <span class="str">"BONUS"</span>) &amp;
+              (df[<span class="str">"adjustment_factor"</span>] != implied_factor)]
+<span class="fn">print</span>(mismatch)</pre>
+    </div>
+
+    <div class="error-block">
+      <div class="error-title"><span class="error-num">3</span><h2>Survivorship bias from dropped delistings</h2></div>
+      <p>If your data feed only carries currently-listed securities, every company that delisted, went to zero, or was struck off is invisible to your backtest. That inflates Sharpe and CAGR on any strategy that would have held losers.</p>
+      <pre><span class="cm"># Rough check: what fraction of your universe five years ago is still listed today?</span>
+listed_5y_ago = universe_snapshot(<span class="str">"5y_ago"</span>)
+still_listed = set(listed_5y_ago) &amp; set(current_universe)
+survivorship_ratio = <span class="fn">len</span>(still_listed) / <span class="fn">len</span>(listed_5y_ago)
+<span class="fn">print</span>(f<span class="str">"{survivorship_ratio:.1%} of the 5-year-ago universe is still in your feed"</span>)</pre>
+    </div>
+
+    <div class="error-block">
+      <div class="error-title"><span class="error-num">4</span><h2>Announcement date vs ex-date misalignment</h2></div>
+      <p>Event studies often key off the wrong date — using the announcement date when the price impact actually lands on the ex-date, or vice versa. For many NSE corporate action types the gap between the two is 1–3 weeks, enough to shift an entire cumulative abnormal return (CAR) window.</p>
+      <pre><span class="cm"># Check the average gap between announcement and ex-date by action type</span>
+gap_days = (df[<span class="str">"ex_date"</span>] - df[<span class="str">"announced_date"</span>]).dt.days
+<span class="fn">print</span>(df.groupby(<span class="str">"action_type"</span>)[<span class="str">"gap_days"</span>].mean() <span class="cm"># uses gap_days above</span>)</pre>
+    </div>
+
+    <div class="error-block">
+      <div class="error-title"><span class="error-num">5</span><h2>Face-value change not tracked as a price adjustment</h2></div>
+      <p>A face-value split (e.g. ₹10 → ₹2 per share) is economically a split, but some vendors treat it as a metadata-only change and leave the price series unadjusted — the series shows a sudden multi-fold drop that looks like a crash.</p>
+      <pre><span class="cm"># Flag large single-day price drops that coincide with a face-value change record</span>
+pct_change = df.groupby(<span class="str">"symbol"</span>)[<span class="str">"close"</span>].pct_change()
+suspect = df[(pct_change &lt; -<span class="fn">0.4</span>) &amp;
+             (df[<span class="str">"symbol"</span>].isin(face_value_change_symbols))]
+<span class="fn">print</span>(suspect)</pre>
+    </div>
+  </section>
+
+  <section>
+    <h3>Run these against your own data</h3>
+    <ul class="checklist">
+      <li><code>check_1</code> — any symbol whose series ends without a recorded delisting event?</li>
+      <li><code>check_2</code> — any BONUS event where the recorded adjustment factor doesn't match the implied share-count ratio?</li>
+      <li><code>check_3</code> — what fraction of your universe from 5 years ago is still in your current feed?</li>
+      <li><code>check_4</code> — what's the average announcement-to-ex-date gap per action type?</li>
+      <li><code>check_5</code> — any large single-day drop that coincides with an untracked face-value change?</li>
+    </ul>
+  </section>
+
+  <section>
+    <div class="cta">
+      <p>TickerTruth's versioned NSE + BSE reference layer carries a lineage, adjustment-factor, and corporate-action table built to answer all five checks above directly — with a confidence score and source provenance on every row.</p>
+      <a class="btn" href="/pricing">See pricing and the free sample</a>
+    </div>
+  </section>
+</main>
+
+<footer>
+  &copy; 2026 TickerTruth &middot; NSE + BSE reference data for quantitative research
+</footer>
+
+<script>
+  const toggle = document.querySelector('.menu-toggle');
+  const mobileNav = document.querySelector('.mobile-nav');
+  toggle.addEventListener('click', () => {
+    const open = toggle.classList.toggle('open');
+    mobileNav.classList.toggle('open', open);
+    toggle.setAttribute('aria-expanded', open);
+  });
+  mobileNav.querySelectorAll('a').forEach(a => {
+    a.addEventListener('click', () => {
+      toggle.classList.remove('open');
+      mobileNav.classList.remove('open');
+      toggle.setAttribute('aria-expanded', 'false');
+    });
+  });
+</script>
+
+<script defer src="https://static.cloudflareinsights.com/beacon.min.js"
+        data-cf-beacon='{"token": "5e7540b0c0d541d59248c1e3f9e3a08f"}'></script>
+</body>
+</html>
