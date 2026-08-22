@@ -236,6 +236,54 @@ def test_map_to_fact_corporate_action_event_happy_path(mapper):
     assert row["confidence_flag"] == "HIGH"
 
 
+def test_map_to_fact_corporate_action_event_bonus_old_value_is_ratio_not_face_value(
+    mapper,
+):
+    # old_value must be the price adjustment factor parsed from the ratio in
+    # the action text (existing / (existing + bonus)), not FACE_VALUE — two
+    # securities can both have "Bonus 1:1" with different face values and
+    # must get the same old_value.
+    raw = pd.DataFrame(
+        [
+            {
+                "SYMBOL": "INFY",
+                "ACTION_TYPE_RAW": "Bonus 1:1",
+                "EX_DATE": "15-06-2026",
+                "FACE_VALUE": "10",
+            }
+        ]
+    )
+    dim_security = _dim_security_for(["INFY"])
+
+    out = mapper.map_to_fact_corporate_action_event(raw, dim_security)
+
+    row = out.iloc[0]
+    assert row["action_code"] == "BONUS"
+    assert row["old_value"] == pytest.approx(0.5)
+
+
+def test_map_to_fact_corporate_action_event_split_old_value_is_ratio_not_face_value(
+    mapper,
+):
+    raw = pd.DataFrame(
+        [
+            {
+                "SYMBOL": "INFY",
+                "ACTION_TYPE_RAW": "Face Value Split (Sub-Division) - From Rs 10/- Per Share To Rs 2/- Per Share",
+                "EX_DATE": "15-06-2026",
+                "FACE_VALUE": "2",
+            }
+        ]
+    )
+    dim_security = _dim_security_for(["INFY"])
+
+    out = mapper.map_to_fact_corporate_action_event(raw, dim_security)
+
+    row = out.iloc[0]
+    assert row["action_code"] == "SPLIT"
+    assert row["old_value"] == pytest.approx(0.2)
+
+
 def test_map_to_fact_corporate_action_event_flags_unresolved_symbol(mapper):
     raw = pd.DataFrame(
         [

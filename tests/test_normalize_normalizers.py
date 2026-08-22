@@ -124,9 +124,62 @@ def test_normalize_action_type_partial_match():
     assert FN.normalize_action_type("Interim Dividend - Rs 5.00") == "DIVIDEND"
 
 
+def test_normalize_action_type_scheme_of_arrangement_bonus_ncrps_is_merger():
+    # A scheme of arrangement issuing preference shares ("Ncrps") is not a
+    # common-equity bonus even though the raw text contains "bonus" — it
+    # must not be classified as BONUS (would corrupt adjustment factors).
+    assert (
+        FN.normalize_action_type("Scheme Of Arrangement - Bonus Ncrps 4:1") == "MERGER"
+    )
+
+
 @pytest.mark.parametrize("bad", [None, "", "Something Completely Unrelated"])
 def test_normalize_action_type_unknown_returns_unknown(bad):
     assert FN.normalize_action_type(bad) == "UNKNOWN"
+
+
+# ── extract_bonus_adjustment_factor ──────────────────────────────────────────
+
+
+@pytest.mark.parametrize(
+    "raw,expected",
+    [
+        ("Bonus 1:1", 0.5),
+        ("Bonus 1:2", 2 / 3),
+        ("Bonus 2:1", 1 / 3),
+        ("Bonus 1:3", 0.75),
+        ("Bonus 10:1", 1 / 11),
+    ],
+)
+def test_extract_bonus_adjustment_factor_known_ratios(raw, expected):
+    assert FN.extract_bonus_adjustment_factor(raw) == pytest.approx(expected)
+
+
+@pytest.mark.parametrize("bad", [None, "", "Dividend - Rs 5 Per Share", "Bonus"])
+def test_extract_bonus_adjustment_factor_unparseable_returns_none(bad):
+    assert FN.extract_bonus_adjustment_factor(bad) is None
+
+
+# ── extract_split_adjustment_factor ──────────────────────────────────────────
+
+
+def test_extract_split_adjustment_factor_face_value_split():
+    text = (
+        "Face Value Split (Sub-Division) - From Rs 10/- Per Share To Rs 2/- Per Share"
+    )
+    assert FN.extract_split_adjustment_factor(text) == pytest.approx(0.2)
+
+
+def test_extract_split_adjustment_factor_handles_re_one():
+    text = (
+        "Face Value Split (Sub-Division) - From Rs 10/- Per Share To Re 1/- Per Share"
+    )
+    assert FN.extract_split_adjustment_factor(text) == pytest.approx(0.1)
+
+
+@pytest.mark.parametrize("bad", [None, "", "Bonus 1:1"])
+def test_extract_split_adjustment_factor_unparseable_returns_none(bad):
+    assert FN.extract_split_adjustment_factor(bad) is None
 
 
 # ── normalize_numeric ─────────────────────────────────────────────────────────

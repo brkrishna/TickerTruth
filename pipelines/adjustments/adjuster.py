@@ -96,33 +96,44 @@ class AdjustmentFactorBuilder:
             bonus_acc = 1.0
             warnings: list[str] = []
 
-            for _, row in group.iterrows():
-                try:
-                    factors = AdjustmentCalculator.calculate_cumulative_adjustment(
-                        pd.DataFrame([row])
-                    )
-                    event_split = factors["cumulative_split_adjustment"]
-                    event_bonus = factors["cumulative_bonus_adjustment"]
-                except ValueError as exc:
-                    warnings.append(f"{row['event_date'].date()}: {exc}")
+            # Two distinct corporate actions can legitimately share the same
+            # event_date for the same security (e.g. two bonus tranches
+            # announced together). Apply all of that date's events before
+            # emitting one row per date, so (security_id, as_of_date) stays
+            # unique in the output.
+            for event_date, day_group in group.groupby("event_date"):
+                any_applied = False
+                for _, row in day_group.iterrows():
+                    try:
+                        factors = AdjustmentCalculator.calculate_cumulative_adjustment(
+                            pd.DataFrame([row])
+                        )
+                        event_split = factors["cumulative_split_adjustment"]
+                        event_bonus = factors["cumulative_bonus_adjustment"]
+                    except ValueError as exc:
+                        warnings.append(f"{event_date.date()}: {exc}")
+                        continue
+
+                    # Validate individual event factor
+                    event_factor = event_split * event_bonus
+                    if not (_MIN_FACTOR <= event_factor <= _MAX_FACTOR):
+                        warnings.append(
+                            f"{event_date.date()}: factor {event_factor} out of bounds"
+                        )
+                        continue
+
+                    split_acc *= event_split
+                    bonus_acc *= event_bonus
+                    any_applied = True
+
+                if not any_applied:
                     continue
 
-                # Validate individual event factor
-                event_factor = event_split * event_bonus
-                if not (_MIN_FACTOR <= event_factor <= _MAX_FACTOR):
-                    warnings.append(
-                        f"{row['event_date'].date()}: factor {event_factor} out of bounds"
-                    )
-                    continue
-
-                split_acc *= event_split
-                bonus_acc *= event_bonus
                 total = round(split_acc * bonus_acc, 8)
-
                 output_rows.append(
                     {
                         "security_id": security_id,
-                        "as_of_date": row["event_date"].date().isoformat(),
+                        "as_of_date": event_date.date().isoformat(),
                         "cumulative_split_adjustment": round(split_acc, 8),
                         "cumulative_bonus_adjustment": round(bonus_acc, 8),
                         "cumulative_dividend_adjustment": 1.0,  # dividends not adjusted by default

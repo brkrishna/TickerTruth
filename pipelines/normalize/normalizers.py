@@ -23,6 +23,12 @@ _ACTION_TYPE_MAP: dict[str, str] = {
     "special dividend": "SPECIAL_DIVIDEND",
     "preference dividend": "PREFERENCE_DIVIDEND",
     "dividend reinvestment": "DIVIDEND_REINVESTMENT",
+    # Scheme of arrangement — checked before "bonus" below so text like
+    # "Scheme Of Arrangement - Bonus Ncrps 4:1" (issuing preference shares,
+    # not a common-equity bonus) maps to MERGER rather than BONUS. Insertion
+    # order matters: normalize_action_type's substring loop returns the
+    # first match found while iterating this dict.
+    "scheme of arrangement": "MERGER",
     # Bonus
     "bonus": "BONUS",
     "bonus issue": "BONUS",
@@ -105,6 +111,20 @@ _COMPANY_NAME_SUBS: list[tuple[re.Pattern, str]] = [
 
 # Currency / unit symbols to strip when normalising numerics
 _CURRENCY_RE = re.compile(r"[₹$€£¥]|Rs\.?\s*|INR\s*|USD\s*", re.IGNORECASE)
+
+# "Bonus 1:2", "Bonus 10:1" — first number is new bonus shares issued,
+# second is existing shares held (NSE convention), e.g. "1:2" = 1 new
+# share for every 2 held.
+_BONUS_RATIO_RE = re.compile(
+    r"bonus\D*?(\d+(?:\.\d+)?)\s*:\s*(\d+(?:\.\d+)?)", re.IGNORECASE
+)
+
+# "Face Value Split (Sub-Division) - From Rs 10/- Per Share To Rs 2/- Per Share"
+# (also "Re 1/-" for a face value of 1).
+_SPLIT_FACE_VALUE_RE = re.compile(
+    r"from\s+r[es]\.?\s*(\d+(?:\.\d+)?).*?to\s+r[es]\.?\s*(\d+(?:\.\d+)?)",
+    re.IGNORECASE,
+)
 
 
 # ── normalizer class ──────────────────────────────────────────────────────────
@@ -267,3 +287,48 @@ class FieldNormalizer:
             return float(cleaned)
         except ValueError:
             return None
+
+    @staticmethod
+    def extract_bonus_adjustment_factor(action_text: str) -> float | None:
+        """
+        Parse a bonus ratio out of raw NSE action text and return the price
+        adjustment factor (existing / (existing + bonus)), not the raw ratio.
+
+        "Bonus 1:2" → 1 new share per 2 held → factor = 2 / (2 + 1) ≈ 0.667
+        "Bonus 2:1" → 2 new shares per 1 held → factor = 1 / (1 + 2) ≈ 0.333
+
+        Returns None if no "X:Y" ratio can be found in the text (caller
+        should treat this as an unparseable event, not silently default to
+        some other field like face value).
+        """
+        if not action_text or not isinstance(action_text, str):
+            return None
+        match = _BONUS_RATIO_RE.search(action_text)
+        if not match:
+            return None
+        bonus_shares = float(match.group(1))
+        existing_shares = float(match.group(2))
+        if bonus_shares <= 0 or existing_shares <= 0:
+            return None
+        return existing_shares / (existing_shares + bonus_shares)
+
+    @staticmethod
+    def extract_split_adjustment_factor(action_text: str) -> float | None:
+        """
+        Parse a face-value split description out of raw NSE action text and
+        return the price adjustment factor (new_face_value / old_face_value).
+
+        "From Rs 10/- ... To Rs 2/- ..." → factor = 2 / 10 = 0.2
+
+        Returns None if no "From Rs X ... To Rs Y" pattern can be found.
+        """
+        if not action_text or not isinstance(action_text, str):
+            return None
+        match = _SPLIT_FACE_VALUE_RE.search(action_text)
+        if not match:
+            return None
+        old_face = float(match.group(1))
+        new_face = float(match.group(2))
+        if old_face <= 0 or new_face <= 0:
+            return None
+        return new_face / old_face

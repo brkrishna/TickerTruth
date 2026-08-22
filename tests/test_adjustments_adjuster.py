@@ -333,6 +333,37 @@ def test_build_from_corporate_actions_duplicate_as_of_date_raises_via_validation
         builder.build_from_corporate_actions(actions, symbols=pd.DataFrame())
 
 
+def test_build_from_corporate_actions_merges_events_on_identical_event_date(builder):
+    """
+    Two distinct events for the same security sharing the exact same
+    event_date (not just the same calendar day — the literal same parsed
+    timestamp, as happens when NSE reports two corporate actions on one
+    ex-date) must be merged into a single output row rather than producing
+    a duplicate (security_id, as_of_date) key.
+    """
+    actions = _actions(
+        [
+            {
+                "security_id": 1,
+                "action_code": "BONUS",
+                "event_date": "2026-08-21",
+                "old_value": 0.75,
+            },
+            {
+                "security_id": 1,
+                "action_code": "BONUS",
+                "event_date": "2026-08-21",
+                "old_value": 0.5,
+            },
+        ]
+    )
+    out = builder.build_from_corporate_actions(actions, symbols=pd.DataFrame())
+
+    assert len(out) == 1
+    assert out.iloc[0]["as_of_date"] == "2026-08-21"
+    assert out.iloc[0]["cumulative_bonus_adjustment"] == pytest.approx(0.75 * 0.5)
+
+
 # ── _validate_factors (direct) ───────────────────────────────────────────────
 
 

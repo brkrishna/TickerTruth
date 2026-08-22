@@ -318,9 +318,22 @@ class RawToCanonicalMapper:
             else None
         )
 
-        # Normalise value/ratio
-        df["old_value"] = (
-            df[value_col].apply(FN.normalize_numeric) if value_col else None
+        # Normalise value/ratio. For BONUS/SPLIT, old_value must be the price
+        # adjustment factor (see pipelines/adjustments/calculator.py), parsed
+        # from the ratio embedded in the action text — NOT the face value
+        # column, which happens to share a column with FACE_VALUE_CHANGE
+        # events but has no relationship to a bonus/split ratio.
+        face_value = df[value_col].apply(FN.normalize_numeric) if value_col else None
+        parsed_ratio = df.apply(
+            lambda r: FN.extract_bonus_adjustment_factor(r[action_col])
+            if r["action_code"] == "BONUS"
+            else FN.extract_split_adjustment_factor(r[action_col])
+            if r["action_code"] in ("SPLIT", "REVERSE_SPLIT")
+            else None,
+            axis=1,
+        )
+        df["old_value"] = parsed_ratio.where(
+            df["action_code"].isin(["BONUS", "SPLIT", "REVERSE_SPLIT"]), face_value
         )
         df["new_value"] = None  # populated by adjustment pipeline (Task 8)
         df["adjustment_factor"] = None  # populated by adjustment pipeline (Task 8)
