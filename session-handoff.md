@@ -144,3 +144,47 @@ Three things happened in this session, in order:
    never marked). Also corrected two stale docs: top-level `CLAUDE.md`'s
    BSE "nothing implemented" note (phases B1–B7 are done) and
    `pipelines/extract/CLAUDE.md`'s Parquet-vs-CSV claim (`todo.md` DOC-1).
+
+## (2026-08-22) `nightly.yml` 8-21 run failure — root cause was a real data bug, not infra
+
+`nightly.yml` runs 8-17 through 8-20 were green (confirming INFRA-1's fix
+holds); the 8-21 run failed at the `adjust` stage: "1 duplicate
+(security_id, as_of_date) rows in adjustment output". Because both push
+steps in `nightly.yml` are gated `if: success()`, nothing from that run
+was pushed — no data was lost, just not advanced.
+
+Root cause, reproduced locally against live data: NSE reported two
+"Scheme Of Arrangement - Bonus Ncrps X:Y" events (preference-share
+issuance) for SIYSIL on the same date. `normalize_action_type` matched
+the substring "bonus" and misclassified both as canonical `BONUS`
+(common-equity bonus), which fed `AdjustmentFactorBuilder` two
+identical-looking rows.
+
+Investigating that surfaced a much bigger, pre-existing bug:
+`old_value` for every BONUS/SPLIT event has been sourced from the
+`FACE_VALUE` column, not the actual ratio in the action text (e.g. "Bonus
+1:1" with face value 10 and another "Bonus 1:1" with face value 5 were
+producing *different* factors for the *same ratio*). This means every
+adjustment factor the pipeline has ever computed for a real bonus/split
+was likely wrong. Fixed in commit `c13eca1`:
+- `_ACTION_TYPE_MAP` now checks "scheme of arrangement" before "bonus",
+  so NCRPS/preference-share schemes classify as MERGER, not BONUS.
+- `FieldNormalizer.extract_bonus_adjustment_factor` /
+  `extract_split_adjustment_factor` parse the real ratio out of
+  `ACTION_TYPE_RAW` ("Bonus X:Y", "From Rs A/- ... To Rs B/-") and
+  `old_value` now uses these for BONUS/SPLIT/REVERSE_SPLIT instead of
+  face value.
+- `AdjustmentFactorBuilder` now merges multiple genuine same-day events
+  for a security into one output row instead of one row per event, so a
+  legitimate multi-event day can't crash the duplicate-key check either.
+- 14 new tests added; full suite (442 tests) and `ruff check` both pass.
+  Verified via a local `--dry-run` full pipeline run (extract through
+  load) — `adjust` now succeeds and computed factors match hand-checked
+  ratios (e.g. "Bonus 1:1" → 0.5, "10 → 2" face-value split → 0.2).
+
+**Not yet done:** re-running the full historical pipeline / re-importing
+Dolt so previously-published `fact_adjustment_factor` rows (computed with
+the old face-value bug) get corrected — existing Dolt history and any
+already-shipped release still has the wrong factors until a fresh
+`load` runs. Next session should confirm this looks right in Dolt and
+consider whether any published release needs a correction note.
