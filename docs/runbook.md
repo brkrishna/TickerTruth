@@ -85,13 +85,12 @@ ls -lh data/curated/*.csv data/curated/*.parquet 2>/dev/null
 ### Step 5 — Tag and release
 
 ```bash
-# Tag a release (triggers release.yml workflow if pushed)
-git tag v$(date +%Y.%m.%d)
-git push origin v$(date +%Y.%m.%d)
-
-# Or run the export + manifest manually without GitHub Actions:
+# Run the export + manifest (release.yml was removed — this is now manual, see docs/deploy.md §6/§7):
 python pipelines/run.py --no-fetch --no-dolt-commit \
   --tasks export,manifest,release-notes
+
+git tag v$(date +%Y.%m.%d)
+git push origin v$(date +%Y.%m.%d)
 ```
 
 ---
@@ -185,9 +184,9 @@ print(orphans[['security_id', 'action_code', 'event_date']].head(10))
 
 ### GitHub Actions monitoring
 
-- CI runs on every push to `main` and pull request: check **Actions** tab.
-- Nightly refresh runs at 8:30 PM UTC Mon–Fri: check the latest **Nightly Data Refresh** run.
-- If the nightly run fails, GitHub sends an email to the repository owner.
+- CI (`ci.yml`) runs on every push to `main` and pull request: check **Actions** tab.
+- `nightly.yml` and `release.yml` were removed (2026-09-05) — nightly refresh and
+  tag-triggered releases are now manual. See docs/deploy.md §6/§7.
 
 ### Manual health check script
 
@@ -203,7 +202,7 @@ echo "Exit code: $?"
 
 ### Nightly pipeline fails mid-run
 
-1. Check the GitHub Actions run log for which task failed.
+1. Check the output of your manual `pipelines/run.py` run (nightly.yml no longer runs this automatically).
 2. Fix the root cause (bad data, NSE URL change, etc.).
 3. Re-run only the failed task:
    ```bash
@@ -247,7 +246,7 @@ python pipelines/run.py --date <YYYY-MM-DD>
   print(s3.list_buckets())
   "
   ```
-- If upload fails after 3 retries in the workflow, download the artifacts from the GitHub Actions run and upload manually using the script above.
+- If a manual upload fails partway, re-run the script above — it's safe to retry.
 
 ---
 

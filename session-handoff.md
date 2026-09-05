@@ -13,8 +13,8 @@ All five implementation phases are complete (phases 1–5 committed).
 - `pipelines/run.py` — end-to-end orchestrator (extract → normalize → lineage → adjust →
   validate → load → export → manifest → release-notes)
 - `dolt/schema.sql` — full DDL; Dolt repo initialized at `dolt/`
-- `website/` — Cloudflare Pages landing page and docs mirror
-- `.github/workflows/` — ci.yml, nightly.yml, release.yml
+- `website/` — Cloudflare Worker (`website/public/`, `src/index.js`, `wrangler.jsonc`) landing page and docs mirror; migrated from Cloudflare Pages 2026-09-05
+- `.github/workflows/` — ci.yml only (nightly.yml, release.yml removed 2026-09-05, see dated entry below)
 - First release tagged: `v2026.06.01`
 
 ## Open items
@@ -188,3 +188,30 @@ the old face-value bug) get corrected — existing Dolt history and any
 already-shipped release still has the wrong factors until a fresh
 `load` runs. Next session should confirm this looks right in Dolt and
 consider whether any published release needs a correction note.
+
+## (2026-09-05) Website migrated Pages → Workers; nightly.yml and release.yml removed
+
+The public site (`website/landing-page` → `website/public`) now deploys as a
+Cloudflare Worker (`src/index.js`, `wrangler.jsonc`, `package.json` +
+eslint/vitest/playwright), matching the structure of the `quietrollout`
+project. Domain mapping and GitHub git-integration (Cloudflare Workers
+Builds) are now configured in the dashboard — pushes to `main` build and
+deploy the Worker automatically (build command must run
+`hugo --source website/blog --destination ../public/blog --minify` before
+`wrangler deploy`; confirm this is actually set in the Worker's Build
+settings). `functions/api/{contact,razorpay-webhook}.js` and
+`website/*/functions/_middleware.js` (Pages Functions) were merged into
+`src/index.js`'s `fetch` handler.
+
+Same session, at the user's explicit request (not an implication of the
+website migration — these workflows have nothing to do with the website):
+**`nightly.yml` and `release.yml` were deleted.** This means:
+- The Mon–Fri NSE data refresh into Dolt no longer runs automatically.
+- Tag-triggered releases (export, R2 upload, GitHub Release, website
+  release-notes injection) no longer run automatically.
+
+Both are now fully manual — see `docs/deploy.md` §6/§7 and
+`docs/runbook.md` for the by-hand replacement commands. `ci.yml` (lint,
+pytest, Hugo build-check) was kept as-is; it was never related to
+deployment. If nightly/release automation is wanted back, restore from git
+history: `git log -- .github/workflows/nightly.yml .github/workflows/release.yml`.

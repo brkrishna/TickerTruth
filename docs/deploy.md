@@ -212,10 +212,11 @@ for obj in resp.get("Contents", []):
 EOF
 ```
 
-### Automated upload via GitHub Actions
+### Automated upload
 
-The `release.yml` workflow uploads paid-tier exports automatically when a tag
-is pushed. See Section 6 below.
+There is no `release.yml` workflow anymore (removed — see Section 6). Run the
+upload script above manually after each release, or write a replacement
+automation if you want this hands-off again.
 
 ---
 
@@ -253,53 +254,50 @@ for the MVP.
 
 ---
 
-## 6. GitHub Release Tag
+## 6. GitHub Release Tag (manual — `release.yml` removed)
 
-Pushing a version tag triggers `release.yml`, which:
-1. Runs `export`, `manifest`, and `release-notes` tasks.
-2. Creates a GitHub Release with the release notes as the description.
-3. Attaches the public sample CSV and manifest as release assets.
-4. Uploads paid-tier Parquet files to R2 (if secrets are configured).
-
-Tag format: `v<YYYY>.<MM>.<DD>` matching the run date.
+`release.yml` used to run this automatically on a version tag push. It was
+removed (2026-09-05) along with `nightly.yml`; both were unrelated to the
+website's Pages→Workers migration but were dropped in the same pass. Run
+the equivalent steps by hand for each release:
 
 ```bash
+python pipelines/run.py --date <YYYY-MM-DD> \
+  --tasks export,manifest,release-notes,website \
+  --no-fetch --no-dolt-commit
+
 git tag v2026.06.01
 git push origin v2026.06.01
+
+gh release create v2026.06.01 \
+  --title "Release v2026.06.01" \
+  --notes-file releases/monthly/v2026.06.01.md \
+  data/samples/public/*.csv data/samples/public/*.sha256 data/samples/metadata/manifest_*.md
 ```
 
-To confirm the workflow ran: **GitHub → Actions → Release**.
-
-### GitHub Actions secrets required
-
-Set these under **GitHub → Repository → Settings → Secrets and variables → Actions**:
-
-| Secret | Value |
-|---|---|
-| `R2_BUCKET` | `tickertruth-releases` |
-| `R2_ENDPOINT` | `https://<account-id>.r2.cloudflarestorage.com` |
-| `R2_ACCESS_KEY_ID` | R2 API token access key |
-| `R2_SECRET_ACCESS_KEY` | R2 API token secret |
-
-Without these secrets the workflow still creates the GitHub Release; only the
-R2 upload step is skipped.
+Then upload paid-tier artifacts to R2 using the script in Section 4 above.
+Commit the updated `website/public/release-notes.html` and
+`releases/monthly/<tag>.md` to `main` yourself — there is no bot pushing
+this back anymore.
 
 ---
 
-## 7. Nightly Automation
+## 7. Nightly Data Refresh (manual — `nightly.yml` removed)
 
-The `nightly.yml` workflow runs Mon–Fri at 2:00 AM IST (20:30 UTC previous day).
-It runs the full pipeline, commits to Dolt, and uploads exports to R2.
+`nightly.yml` used to run the extract → normalize → lineage → adjust →
+validate → load pipeline Mon–Fri at 2:00 AM IST and push Dolt state to this
+repo. That automation no longer runs. Refresh data by running the pipeline
+yourself:
 
-To trigger a one-off run manually:
+```bash
+python pipelines/run.py --tasks extract,normalize,lineage,adjust,validate,load
+cd dolt && dolt push origin main
+```
 
-1. Go to **GitHub → Actions → Nightly Data Refresh**.
-2. Click **Run workflow**.
-3. Optionally set `run_date` (defaults to today) and `dry_run`.
-
-If the nightly run fails, GitHub emails the repository owner. Check the Actions
-log for which task failed, fix the root cause, and re-run the affected tasks
-locally or via workflow dispatch.
+If you want this hands-off again, either restore `nightly.yml` from git
+history (`git log -- .github/workflows/nightly.yml`) or write a replacement
+scheduler. If a run fails, fix the root cause and re-run the affected tasks
+locally.
 
 ---
 
