@@ -234,14 +234,23 @@ Or click the green **Squash and merge** button on the PR page. This is the
 gate from Section 0: without Step 4's approval, this button/command is
 blocked.
 
-Merging does **not** auto-deploy — the Worker has no git-connected build.
-Deploy manually right after merging:
+The Worker is git-connected — pushing to `main` triggers an automatic
+Cloudflare build + deploy. But Cloudflare's build environment doesn't have
+Hugo, so `website/public/blog/` has to already be built and committed
+*before* you push — merging only adds the new post's Markdown source, it
+doesn't rebuild the site. Right after merging:
 
 ```bash
 git checkout main && git pull
 hugo --source website/blog --destination ../public/blog --minify
-npx wrangler deploy
+git add website/public/blog
+git commit -m "blog: rebuild for <post title>"
+git push origin main
 ```
+
+The push is what triggers the live deploy — no manual `wrangler deploy`
+needed. If you'd rather deploy from your machine instead of waiting on
+Cloudflare's build, `npx wrangler deploy` still works after the commit above.
 
 ### Step 6 — Confirm it's live
 

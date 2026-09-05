@@ -308,7 +308,7 @@ It is deployed as static assets on a Cloudflare Worker (`src/index.js` also
 handles `/api/contact` and `/api/razorpay-webhook`). Config lives in
 `wrangler.jsonc` at the repo root.
 
-### First-time Workers setup
+### First-time Workers setup (done — recorded for reference)
 
 ```bash
 # Install dependencies (wrangler, eslint, vitest, playwright)
@@ -317,34 +317,46 @@ npm install
 # Authenticate
 npx wrangler login
 
-# Build the blog into website/public/blog (gitignored — must be regenerated
-# before every deploy)
-hugo --source website/blog --destination ../public/blog --minify
-
 # Deploy — creates the Worker project on first run
 npx wrangler deploy
 ```
 
-Set secrets once (or after rotating them):
+Secrets (set once, or after rotating them):
 
 ```bash
 npx wrangler secret put RESEND_API_KEY
 npx wrangler secret put RAZORPAY_WEBHOOK_SECRET
 ```
 
-Point the `tickertruth.com` custom domain at the Worker from
-**dash.cloudflare.com → Workers & Pages → tickertruth → Settings → Domains & Routes**.
+The `tickertruth.com` custom domain is mapped to the Worker from
+**dash.cloudflare.com → Workers & Pages → tickertruth → Settings → Domains & Routes**,
+and the Worker is git-connected (Workers Builds) to this repo — pushing to
+`main` triggers an automatic build + deploy.
 
-### Redeploying
+### Redeploying — the Hugo blog is a committed artifact, not a build step
+
+**Cloudflare's Workers Builds environment does not have Hugo installed.**
+`website/public/blog/` is therefore committed to git (unlike the old Pages
+build, which had a `HUGO_VERSION` buildpack) — Cloudflare's auto-deploy just
+uploads whatever is already in `website/public/`. If you edit anything under
+`website/blog/` (a new post, template change, etc.) you must rebuild and
+commit the output yourself, or the live site won't reflect it:
 
 ```bash
 hugo --source website/blog --destination ../public/blog --minify
-npx wrangler deploy
+git add website/public/blog
+git commit -m "blog: rebuild"
+git push origin main   # triggers the Cloudflare build + deploy
 ```
 
-There is no git-connected auto-deploy for this Worker — pushing to `main` does
-not redeploy it. Run `wrangler deploy` manually (or wire up a GitHub Actions
-step that does) after merging site changes.
+Everything else under `website/public/` (pricing.html, methodology.html,
+etc.) is already committed directly — just edit and push.
+
+To deploy from your machine instead of waiting on Cloudflare's build:
+
+```bash
+npx wrangler deploy
+```
 
 ### Updating public docs
 

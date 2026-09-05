@@ -5,13 +5,15 @@ site_url: https://tickertruth.com
 # The landing pages are plain static HTML — no build step for those.
 # Source files: website/public/*.html
 #
-# The /blog/ section is a Hugo site built at deploy time.
-# Source: website/blog/  →  publishDir writes into website/public/blog/
-# (generated, gitignored — never commit website/public/blog/)
+# The /blog/ section is a Hugo site. Source: website/blog/  →  publishDir
+# writes into website/public/blog/, which IS committed to git — Cloudflare's
+# Workers Build has no Hugo installed, so the built output has to already be
+# in the repo. Rebuild and commit after any change under website/blog/:
+#     hugo --source website/blog --destination ../public/blog --minify
+#     git add website/public/blog && git commit -m "blog: rebuild"
 #
 # Deployed as a Cloudflare Worker (see wrangler.jsonc at repo root):
 #   assets.directory:  website/public
-#   Before `wrangler deploy`, build the blog into website/public/blog:
-#     hugo --source website/blog --destination ../public/blog --minify
+#   Git-connected (Workers Builds) — pushing to main auto-deploys.
 #
 # This file is retained for site metadata only.
