@@ -98,9 +98,17 @@ TickerTruth.code-workspace
 
 # Wrangler CLI local cache/auth state
 .wrangler/
+.dev.vars
 
-# Hugo blog — generated output (Cloudflare Pages builds this at deploy time)
-website/landing-page/blog/
+# Node tooling (wrangler, eslint, vitest, playwright)
+node_modules/
+test-results/
+playwright-report/
+blob-report/
+coverage/
+
+# Hugo blog — generated output (built into website/public/blog before `wrangler deploy`)
+website/public/blog/
 website/blog/public/
 website/blog/resources/
 website/blog/.hugo_build.lock

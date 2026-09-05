@@ -66,7 +66,7 @@ founding-slot counter and no Calendly link exist on `pricing.html` today
 ## 3. Wire Links into the Pricing Page
 
 - Add a "Buy now" button on the Starter tier card in
-  `website/landing-page/pricing.html`, linking to the Razorpay founding
+  `website/public/pricing.html`, linking to the Razorpay founding
   payment link by default (primary INR audience).
 - Add a smaller "Paying in USD?" link near it pointing to the Stripe link.
 - Add a founding-slot counter next to the button: "X of 5 founding slots

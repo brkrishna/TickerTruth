@@ -2,7 +2,7 @@
 
 This guide covers everything needed to go from a clean checkout to a published
 monthly release: environment setup, pipeline execution, bundle generation,
-R2 artifact upload, GitHub release tagging, buyer delivery, and Cloudflare Pages
+R2 artifact upload, GitHub release tagging, buyer delivery, and Cloudflare Workers
 deployment. It assumes familiarity with the pipeline (see `runbook.md`) but not
 with the infrastructure.
 
@@ -303,67 +303,64 @@ locally or via workflow dispatch.
 
 ---
 
-## 8. Cloudflare Pages (Public Site)
+## 8. Cloudflare Workers (Public Site)
 
-The `website/` directory contains the landing page and public docs. It is
-deployed to Cloudflare Pages.
+The `website/public/` directory contains the landing page and public docs.
+It is deployed as static assets on a Cloudflare Worker (`src/index.js` also
+handles `/api/contact` and `/api/razorpay-webhook`). Config lives in
+`wrangler.jsonc` at the repo root.
 
-### First-time Pages setup
-
-Cloudflare merged Workers and Pages under a single **Workers & Pages** section.
-When creating a project you must explicitly select the **Pages** tab — the default
-lands on Workers, which will ask for a deploy command and is the wrong product for
-a static site.
-
-1. Go to [dash.cloudflare.com](https://dash.cloudflare.com) → **Workers & Pages** → **Create**.
-2. At the top of the creation screen, select the **Pages** tab (not Workers).
-3. Choose **Connect to Git**, authorize GitHub, and select the `TickerTruth` repository.
-4. Set build configuration:
-   - **Framework preset:** None
-   - **Build command:** *(leave blank — delete anything Cloudflare pre-fills)*
-   - **Build output directory:** `website/landing-page`
-   - **Root directory:** *(leave blank)*
-5. Click **Save and Deploy**.
-
-> **Common failure — wrong product:** if you see a required "Deploy command" field,
-> you are in the Workers flow. Go back and select the **Pages** tab instead.
-
-> **Common failure — Python build step:** if the build log shows
-> `pip install -r requirements.txt` running, Cloudflare auto-detected the repo's
-> Python dependencies and injected a build step. Clear the Build command field
-> and redeploy — the site is static HTML and needs no build step.
-
-Subsequent pushes to `main` redeploy automatically.
-
-### Manual deploy (without GitHub integration)
-
-Use `wrangler pages deploy` — note this is different from `wrangler deploy`
-(which deploys a Worker, not a Pages site):
+### First-time Workers setup
 
 ```bash
-# Install Wrangler (Cloudflare's CLI)
-npm install -g wrangler
+# Install dependencies (wrangler, eslint, vitest, playwright)
+npm install
 
 # Authenticate
-wrangler login
+npx wrangler login
 
-# Deploy — creates the Pages project on first run
-wrangler pages deploy website/landing-page --project-name tickertruth
+# Build the blog into website/public/blog (gitignored — must be regenerated
+# before every deploy)
+hugo --source website/blog --destination ../public/blog --minify
+
+# Deploy — creates the Worker project on first run
+npx wrangler deploy
 ```
+
+Set secrets once (or after rotating them):
+
+```bash
+npx wrangler secret put RESEND_API_KEY
+npx wrangler secret put RAZORPAY_WEBHOOK_SECRET
+```
+
+Point the `tickertruth.com` custom domain at the Worker from
+**dash.cloudflare.com → Workers & Pages → tickertruth → Settings → Domains & Routes**.
+
+### Redeploying
+
+```bash
+hugo --source website/blog --destination ../public/blog --minify
+npx wrangler deploy
+```
+
+There is no git-connected auto-deploy for this Worker — pushing to `main` does
+not redeploy it. Run `wrangler deploy` manually (or wire up a GitHub Actions
+step that does) after merging site changes.
 
 ### Updating public docs
 
-The `website/landing-page/` files mirror `docs/`. To sync after editing docs:
+The `website/public/` files mirror `docs/`. To sync after editing docs:
 
 ```bash
 # Copy updated docs into the website (only the subscriber-facing ones)
-cp docs/product-overview.md website/landing-page/
-cp docs/methodology.md      website/landing-page/
-cp docs/pricing.md          website/landing-page/
-cp docs/sample-queries.md   website/landing-page/
+cp docs/product-overview.md website/public/
+cp docs/methodology.md      website/public/
+cp docs/pricing.md          website/public/
+cp docs/sample-queries.md   website/public/
 ```
 
-Then commit and push — Pages redeploys automatically.
+Then commit, and redeploy per the steps above.
 
 ---
 

@@ -181,7 +181,7 @@ Or open `https://github.com/brkrishna/TickerTruth/pulls` in a browser.
 
 ### Step 2 — Wait for the checks
 
-Four automated checks run on every PR and must all go green before you
+Three automated checks run on every PR and must all go green before you
 review the content:
 
 | Check | What it verifies |
@@ -189,17 +189,22 @@ review the content:
 | `Lint` | Python pipeline lint (unaffected by blog-only posts, runs anyway) |
 | `Blog Build Check` | The post's front matter and Markdown build without error |
 | `Unit Tests` | Full pipeline test suite (unaffected, runs anyway) |
-| `Cloudflare Pages` | Full site build + a live preview deployment |
 
 ```bash
 gh pr checks <pr-number>
 ```
 
-### Step 3 — Review the live preview
+### Step 3 — Review a local preview
 
-A Cloudflare bot comments on the PR with a **Preview URL**
-(`https://<hash>.tickertruth.pages.dev`) within ~30–60 seconds of the checks
-finishing. Open it and check:
+The site now deploys as a Cloudflare Worker (`wrangler deploy`), which has no
+automatic per-PR preview URL. Build and preview locally instead:
+
+```bash
+hugo --source website/blog --destination ../public/blog --minify
+npx wrangler dev
+```
+
+Open `http://127.0.0.1:8787` and check:
 
 - [ ] Post renders at `/blog/posts/<slug>/` with the right title, date, tags
 - [ ] `date` is today or earlier — not in the future
@@ -227,8 +232,16 @@ gh pr merge <pr-number> --squash
 
 Or click the green **Squash and merge** button on the PR page. This is the
 gate from Section 0: without Step 4's approval, this button/command is
-blocked. Merging triggers an automatic Cloudflare Pages production deploy,
-usually live within a minute.
+blocked.
+
+Merging does **not** auto-deploy — the Worker has no git-connected build.
+Deploy manually right after merging:
+
+```bash
+git checkout main && git pull
+hugo --source website/blog --destination ../public/blog --minify
+npx wrangler deploy
+```
 
 ### Step 6 — Confirm it's live
 
@@ -409,7 +422,8 @@ For reference — this has already been configured on this repo:
 ## 6. Checklist (Approver)
 
 - [ ] PR was opened by the Content Creator (not you) — required for your approval to count
-- [ ] All 4 checks green (`Lint`, `Blog Build Check`, `Unit Tests`, `Cloudflare Pages`)
+- [ ] All 3 checks green (`Lint`, `Blog Build Check`, `Unit Tests`)
+- [ ] Deployed manually via `wrangler deploy` after merge
 - [ ] Preview URL checked — renders correctly, date isn't in the future
 - [ ] PR approved and merged
 - [ ] Production URL returns `200`

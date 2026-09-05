@@ -22,7 +22,7 @@ counts against one dashboard:
 
 | Where | File |
 |---|---|
-| The 6 landing pages | `website/landing-page/index.html`, `pricing.html`, `methodology.html`, `sample-queries.html`, `release-notes.html`, `contact.html` |
+| The 6 landing pages | `website/public/index.html`, `pricing.html`, `methodology.html`, `sample-queries.html`, `release-notes.html`, `contact.html` |
 | Every blog page | `website/blog/layouts/partials/footer.html` (Hugo partial, renders site-wide) |
 
 The blog placement is recent — until it was added, blog traffic wasn't
@@ -31,15 +31,15 @@ before that change as landing-page-only data.
 
 ## Where to find the dashboard
 
-Web Analytics is its own product, not nested inside the Pages project:
+Web Analytics is its own product, not nested inside the Worker's dashboard:
 
 1. [dash.cloudflare.com](https://dash.cloudflare.com) → select the account
 2. Left sidebar → **Analytics & Logs** → **Web Analytics**
 3. Click into the `tickertruth.com` site (identified by the token above)
 
-This is a different screen from the Pages project's own **Analytics** tab
-(which shows deploy/build/request-serving stats — infrastructure metrics,
-not visitor behavior). Both exist; they answer different questions.
+This is a different screen from the Worker's own **Analytics** tab (which
+shows invocation/request-serving stats — infrastructure metrics, not visitor
+behavior). Both exist; they answer different questions.
 
 ## What each metric means
 

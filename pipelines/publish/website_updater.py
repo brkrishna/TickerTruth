@@ -1,6 +1,6 @@
 """
 WebsiteUpdater — parses a versioned release notes MD file and injects a
-matching HTML card into website/landing-page/release-notes.html.
+matching HTML card into website/public/release-notes.html.
 
 Idempotent: skips injection if a card for the version already exists.
 
@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 
 PROJECT_ROOT = Path(__file__).parent.parent.parent
 RELEASES_DIR = PROJECT_ROOT / "releases" / "monthly"
-RELEASE_NOTES_HTML = PROJECT_ROOT / "website" / "landing-page" / "release-notes.html"
+RELEASE_NOTES_HTML = PROJECT_ROOT / "website" / "public" / "release-notes.html"
 
 # Exact string in the HTML after which new cards are prepended.
 _INJECTION_MARKER = "    <h2>Latest Releases</h2>"
@@ -266,7 +266,7 @@ def _inject_card(html: str, card: str) -> str:
         raise ValueError(
             f"Injection marker not found in HTML.\n"
             f"Expected line: {_INJECTION_MARKER!r}\n"
-            f"Check website/landing-page/release-notes.html."
+            f"Check website/public/release-notes.html."
         )
     end_of_marker_line = html.index("\n", idx) + 1
     return html[:end_of_marker_line] + "\n" + card + html[end_of_marker_line:]

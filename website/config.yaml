@@ -3,15 +3,15 @@ site_description: Versioned NSE symbol lineage and corporate action reference da
 site_url: https://tickertruth.com
 
 # The landing pages are plain static HTML — no build step for those.
-# Source files: website/landing-page/*.html
+# Source files: website/public/*.html
 #
 # The /blog/ section is a Hugo site built at deploy time.
-# Source: website/blog/  →  publishDir writes into website/landing-page/blog/
-# (generated, gitignored — never commit website/landing-page/blog/)
+# Source: website/blog/  →  publishDir writes into website/public/blog/
+# (generated, gitignored — never commit website/public/blog/)
 #
-# Cloudflare Pages settings:
-#   Build command:        hugo --source website/blog --minify
-#   Build output dir:     website/landing-page
-#   Env var:               HUGO_VERSION = 0.164.0
+# Deployed as a Cloudflare Worker (see wrangler.jsonc at repo root):
+#   assets.directory:  website/public
+#   Before `wrangler deploy`, build the blog into website/public/blog:
+#     hugo --source website/blog --destination ../public/blog --minify
 #
 # This file is retained for site metadata only.

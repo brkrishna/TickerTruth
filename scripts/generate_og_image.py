@@ -3,8 +3,8 @@
 from pathlib import Path
 
 ROOT = Path(__file__).parent.parent
-SVG_PATH = ROOT / "website/landing-page/assets/images/tickertruth_hero_image.svg"
-OUT_PATH = ROOT / "website/landing-page/assets/images/tickertruth_og.png"
+SVG_PATH = ROOT / "website/public/assets/images/tickertruth_hero_image.svg"
+OUT_PATH = ROOT / "website/public/assets/images/tickertruth_og.png"
 
 OG_W, OG_H = 1200, 630
 

@@ -158,7 +158,7 @@ def check_directory_structure():
         "data/curated",
         "data/samples",
         "docs",
-        "website/landing-page",
+        "website/public",
         "releases",
         "tests",
     ]
@@ -224,12 +224,12 @@ def check_docs_and_website():
 
     # landing-page files must exist; warn if empty (content optional at scaffold stage)
     lp_files = [
-        "website/landing-page/index.md",
-        "website/landing-page/methodology.md",
-        "website/landing-page/pricing.md",
-        "website/landing-page/product-overview.md",
-        "website/landing-page/release-notes.md",
-        "website/landing-page/sample-queries.md",
+        "website/public/index.md",
+        "website/public/methodology.md",
+        "website/public/pricing.md",
+        "website/public/product-overview.md",
+        "website/public/release-notes.md",
+        "website/public/sample-queries.md",
     ]
     print("  Landing-page files (warn if empty):")
     empty = []

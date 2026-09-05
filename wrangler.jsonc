@@ -1,0 +1,23 @@
+// Environment variables — set via `wrangler secret put <NAME>` or in
+// Cloudflare dashboard → Workers & Pages → tickertruth → Settings → Variables:
+//
+// RESEND_API_KEY             Resend API key for email delivery (re_xxxxxxxxxxxx
+//                            from resend.com). Domain tickertruth.com must be
+//                            verified in Resend.
+//
+// RAZORPAY_WEBHOOK_SECRET    Razorpay webhook signing secret.
+//                            From: Razorpay Dashboard → Settings → Webhooks
+//                            → <your webhook> → Secret
+//                            Webhook URL to register: https://tickertruth.com/api/razorpay-webhook
+//                            Event to subscribe: payment_link.paid
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "tickertruth",
+  "main": "src/index.js",
+  "compatibility_date": "2026-08-22",
+  "assets": {
+    "directory": "./website/public",
+    "binding": "ASSETS",
+    "run_worker_first": ["/api/*"]
+  }
+}

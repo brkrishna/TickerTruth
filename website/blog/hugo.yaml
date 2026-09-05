@@ -1,7 +1,7 @@
 baseURL: https://tickertruth.com/blog/
 locale: en-us
 title: TickerTruth Blog
-publishDir: ../landing-page/blog
+publishDir: ../public/blog
 
 pagination:
   pagerSize: 10

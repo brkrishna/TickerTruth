@@ -82,7 +82,7 @@ jobs:
           # per-release notes file under it is a real deliverable that must
           # be committed here. Plain `git add` errors out (exit 1) on an
           # explicitly-named ignored path instead of silently skipping it.
-          git add website/landing-page/release-notes.html
+          git add website/public/release-notes.html
           git add -f releases/monthly/${TAG}.md
 
           # Nothing staged means the card was already injected on a prior run

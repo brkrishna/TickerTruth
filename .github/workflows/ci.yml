@@ -68,5 +68,5 @@ jobs:
           hugo-version: "0.164.0"
           extended: true
 
-      - name: Build blog (validation only — Cloudflare Pages does the real build)
+      - name: Build blog (validation only — `wrangler deploy` does the real build)
         run: hugo --source website/blog --destination /tmp/hugo-check --minify

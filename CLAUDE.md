@@ -10,7 +10,7 @@ Build a Python-based reference-data product that normalizes NSE (and BSE, in pro
 - pandas for transforms
 - pytest + ruff for tests and linting
 - Dolt for versioned tabular releases (repo at `dolt/`)
-- Cloudflare Pages/R2 for low-cost MVP distribution
+- Cloudflare Workers/R2 for low-cost MVP distribution (site is `website/public/`, deployed via `wrangler deploy`; config in `wrangler.jsonc`)
 
 ## Commands
 ```bash

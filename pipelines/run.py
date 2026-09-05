@@ -330,7 +330,7 @@ def run_manifest(run_date: date, export_paths: dict) -> bool:
 
 
 def run_website(run_date: date) -> bool:
-    """Task 13: inject release card into website/landing-page/release-notes.html."""
+    """Task 13: inject release card into website/public/release-notes.html."""
     from pipelines.publish.website_updater import WebsiteUpdater
 
     updater = WebsiteUpdater()
