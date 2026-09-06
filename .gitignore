@@ -90,7 +90,7 @@ logs/
 *.temp
 tmp/
 temp/
-.claude/settings.json
+.claude/settings.local.json
 releases/bundles/
 releases/monthly/
 
