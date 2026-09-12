@@ -1,5 +1,39 @@
 const CANONICAL_HOST = "tickertruth.com";
 
+async function verifyTurnstile(token, ip, env) {
+  const expectedHostnames = new Set(
+    (env.TURNSTILE_HOSTNAMES || "")
+      .split(",")
+      .map((hostname) => hostname.trim())
+      .filter(Boolean)
+  );
+
+  if (typeof token !== "string" || token.length === 0 || token.length > 2048 || expectedHostnames.size === 0) {
+    return false;
+  }
+
+  let result;
+  try {
+    const res = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      signal: AbortSignal.timeout(10_000),
+      body: new URLSearchParams({
+        secret: env.TURNSTILE_SECRET,
+        response: token,
+        remoteip: ip,
+      }),
+    });
+    if (!res.ok) throw new Error(`siteverify ${res.status}`);
+    result = await res.json();
+  } catch (err) {
+    console.error("turnstile siteverify error:", err);
+    return false;
+  }
+
+  return result.success === true && result.action === "contact" && expectedHostnames.has(result.hostname);
+}
+
 async function handleContact(request, env) {
   try {
     let body;
@@ -14,6 +48,15 @@ async function handleContact(request, env) {
     // Honeypot — bots fill this
     if (body.botcheck) {
       return Response.json({ success: true });
+    }
+
+    const ip = request.headers.get("CF-Connecting-IP") || "unknown";
+    const turnstileOk = await verifyTurnstile(body["cf-turnstile-response"], ip, env);
+    if (!turnstileOk) {
+      return Response.json(
+        { success: false, message: "Verification failed. Please try again." },
+        { status: 403 }
+      );
     }
 
     const name = (body.name || "").trim();

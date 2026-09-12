@@ -293,6 +293,8 @@
         <textarea id="notes" name="notes" placeholder="Tell us about your use case — backtesting, data pipeline, research, compliance, etc."></textarea>
       </div>
 
+      <div id="turnstile-container"></div>
+
       <div class="form-status" id="form-status" role="alert"></div>
 
       <button type="submit" class="btn-submit" id="submit-btn">
@@ -320,6 +322,7 @@
   &copy; 2026 TickerTruth &middot; NSE + BSE reference data for quantitative research
 </footer>
 
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js"></script>
 <script>
   const toggle = document.querySelector('.menu-toggle');
   const mobileNav = document.querySelector('.mobile-nav');
@@ -340,6 +343,14 @@
   const statusEl = document.getElementById('form-status');
   const submitBtn = document.getElementById('submit-btn');
 
+  let turnstileWidgetId = null;
+  turnstile.ready(() => {
+    turnstileWidgetId = turnstile.render('#turnstile-container', {
+      sitekey: '0x4AAAAAAExCst0JSsIImaRt',
+      action: 'contact',
+    });
+  });
+
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
     statusEl.className = 'form-status';
@@ -349,6 +360,7 @@
 
     try {
       const data = Object.fromEntries(new FormData(form));
+      data['cf-turnstile-response'] = turnstileWidgetId !== null ? turnstile.getResponse(turnstileWidgetId) : '';
       const res = await fetch('/api/contact', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
@@ -370,6 +382,7 @@
     } finally {
       submitBtn.disabled = false;
       submitBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg> Send Inquiry';
+      if (turnstileWidgetId !== null) turnstile.reset(turnstileWidgetId);
     }
   });
 </script>
