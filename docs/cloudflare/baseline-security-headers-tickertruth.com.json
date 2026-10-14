@@ -1,0 +1,49 @@
+{
+  "description": "",
+  "id": "6951302744ce45b093713c14aa601297",
+  "kind": "zone",
+  "last_updated": "2026-09-20T07:20:10.968935Z",
+  "name": "default",
+  "phase": "http_response_headers_transform",
+  "rules": [
+    {
+      "action": "rewrite",
+      "action_parameters": {
+        "headers": {
+          "Content-Security-Policy-Report-Only": {
+            "operation": "set",
+            "value": "default-src 'self'; script-src 'self' 'unsafe-inline' https://challenges.cloudflare.com https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://challenges.cloudflare.com; frame-src https://challenges.cloudflare.com; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
+          },
+          "Permissions-Policy": {
+            "operation": "set",
+            "value": "geolocation=(), camera=(), microphone=(), interest-cohort=()"
+          },
+          "Referrer-Policy": {
+            "operation": "set",
+            "value": "strict-origin-when-cross-origin"
+          },
+          "Strict-Transport-Security": {
+            "operation": "set",
+            "value": "max-age=15552000; includeSubDomains"
+          },
+          "X-Content-Type-Options": {
+            "operation": "set",
+            "value": "nosniff"
+          },
+          "X-Frame-Options": {
+            "operation": "set",
+            "value": "DENY"
+          }
+        }
+      },
+      "description": "Baseline security headers - tickertruth.com",
+      "enabled": true,
+      "expression": "true",
+      "id": "80490981da774fb7b490b6d3b07a1aeb",
+      "last_updated": "2026-09-20T07:20:10.968935Z",
+      "ref": "80490981da774fb7b490b6d3b07a1aeb",
+      "version": "1"
+    }
+  ],
+  "version": "1"
+}
