@@ -4,13 +4,13 @@
 
 ### Summary
 
-**5 of 15 done** · `███████░░░░░░░░░░░░░` 33% · 🔴 0 overdue · 🟡 4 due within 7 days · ⚪ 6 later
+**7 of 15 done** · `█████████░░░░░░░░░░░` 47% · 🔴 0 overdue · 🟡 2 due within 7 days · ⚪ 6 later
 
 | Area | Open | Done |
 |------|------|------|
-| infra | 3 | 3 |
+| infra | 2 | 4 |
 | security | 5 | 1 |
-| email | 2 | 1 |
+| email | 1 | 2 |
 
 ### Open
 
@@ -18,8 +18,6 @@
 
 | id | area | description | due_date |
 |----|------|-------------|----------|
-| 6 | email | Change the Email Routing catch-all on tickertruth.com from forward to drop (Email > Email Routing > Routing rules; currently all -> forward) so random local-parts stop reaching the inbox (spam floods, address harvesting); named rules today: connect@tickertruth.com only; add a named rule first for any published address that is not listed | 2026-10-16 |
-| 3 | infra | Switch SSL/TLS encryption mode on tickertruth.com from Full to Full (strict) (SSL/TLS > Overview; API setting ssl=full) - Full accepts a self-signed origin certificate; the site is served by a Worker with no external origin so strict has no downside; verify the site and webhook endpoints still respond afterwards | 2026-10-20 |
 | 9 | security | Re-run Security Center scan for tickertruth.com and dismiss the stale Security.txt not configured finding - https://tickertruth.com/.well-known/security.txt already returns 200 with Contact connect@tickertruth.com and Expires 2027-08-23; if it persists add Policy and Encryption fields | 2026-10-20 |
 | 10 | security | Verify Bot Fight Mode (on) and AI bot blocking (ai_bots_protection=block, crawler_protection=enabled) on tickertruth.com do not challenge the Razorpay webhook to /api/razorpay-webhook or Resend callbacks - trigger a Razorpay test event and confirm 200; this is the only zone with Bot Fight Mode enabled | 2026-10-20 |
 
@@ -43,3 +41,5 @@
 | 5 | email | Added DMARC TXT at _dmarc.tickertruth.com (done 2026-10-16 via DNS > Settings > Email Security wizard; `dig TXT _dmarc.tickertruth.com +short` returns `v=DMARC1; p=none; rua=mailto:brkrishna@gmail.com`; reports go to the account Gmail by choice) - Add a DMARC TXT record at _dmarc.tickertruth.com (none exists - Security Insights flags DMARC Record Error for tickertruth.com and send.tickertruth.com) starting with `v=DMARC1; p=none; rua=mailto:<Cloudflare DMARC Management address>` via DNS > Settings > Email Security; review aggregate reports for 2-4 weeks, then raise to p=quarantine and p=reject (the send.tickertruth.com Resend/SES subdomain inherits the org-domain policy) | 2026-10-16 |
 | 7 | security | Rate limiting deployed (done 2026-10-16, commit 24f044f; CONTACT_RATE_LIMITER 5/60s and WEBHOOK_RATE_LIMITER 30/60s bound on the live Worker; bursts against tickertruth.com returned 429 on /api/contact (16 of 100) and /api/razorpay-webhook (1 of 200) - Cloudflare's limiter is per-location and approximate, so it trips under sustained bursts rather than at exactly the limit; unit tests cover the 429 path) - Add rate limiting to POST /api/contact in src/index.js (also /api/razorpay-webhook: keep signature check, rate-limit unauthenticated hits) with a Workers Rate Limiting binding (ratelimits block in wrangler.jsonc, same as answerkept CONTACT_RATE_LIMITER limit 5 per 60s keyed on client IP), return 429 when exceeded and add a test - no ratelimits binding and no zone rate-limiting rule exists, so a bot holding valid Turnstile tokens can flood Resend sends and burn quota | 2026-10-16 |
 | 8 | infra | Disabled workers.dev and preview URLs (done 2026-10-16; https://tickertruth.brkrishna.workers.dev now 404) - Disable the public workers.dev route for Worker tickertruth - add workers_dev:false and preview_urls:false to wrangler.jsonc (both enabled today; https://tickertruth.brkrishna.workers.dev returns 200 with the full site and serves none of the zone security headers, Bot Fight Mode, rate limiting or redirects of tickertruth.com); if preview URLs are needed to validate non-main pushes keep them but put them behind Cloudflare Access | 2026-10-16 |
+| 3 | infra | Switched SSL/TLS encryption mode to Full (strict) (done 2026-10-16; dashboard shows Current encryption mode: Full (strict); https://tickertruth.com/ still 200 and /api/contact still answers 403 from Turnstile as expected) - Switch SSL/TLS encryption mode on tickertruth.com from Full to Full (strict) (SSL/TLS > Overview; API setting ssl=full) - Full accepts a self-signed origin certificate; the site is served by a Worker with no external origin so strict has no downside; verify the site and webhook endpoints still respond afterwards | 2026-10-16 |
+| 6 | email | Email Routing catch-all set to Drop (done 2026-10-16; routing rules now: catch-all Drop/Active, security@ and connect@ forward to brkrishna@gmail.com) - Change the Email Routing catch-all on tickertruth.com from forward to drop (Email > Email Routing > Routing rules; currently all -> forward) so random local-parts stop reaching the inbox (spam floods, address harvesting); named rules today: connect@tickertruth.com only; add a named rule first for any published address that is not listed | 2026-10-16 |
