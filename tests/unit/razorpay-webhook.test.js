@@ -83,3 +83,18 @@ describe("POST /api/razorpay-webhook", () => {
     expect(sentBody.text).toContain("buyer@example.com");
   });
 });
+
+describe("POST /api/razorpay-webhook rate limiting", () => {
+  it("returns 429 before checking the signature when the limiter rejects the client", async () => {
+    const limiter = { limit: vi.fn().mockResolvedValue({ success: false }) };
+    const ctx = createExecutionContext();
+    const res = await worker.fetch(
+      postWebhook("{}", "bad"),
+      { ...env, RAZORPAY_WEBHOOK_SECRET: WEBHOOK_SECRET, WEBHOOK_RATE_LIMITER: limiter },
+      ctx
+    );
+    await waitOnExecutionContext(ctx);
+    expect(res.status).toBe(429);
+    expect(limiter.limit).toHaveBeenCalledOnce();
+  });
+});

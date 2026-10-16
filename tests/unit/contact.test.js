@@ -13,7 +13,8 @@ function postContact(body, contentType = "application/json") {
 
 async function run(request) {
   const ctx = createExecutionContext();
-  const res = await worker.fetch(request, env, ctx);
+  const allowAll = { limit: async () => ({ success: true }) };
+  const res = await worker.fetch(request, { ...env, CONTACT_RATE_LIMITER: allowAll }, ctx);
   await waitOnExecutionContext(ctx);
   return res;
 }
@@ -132,5 +133,28 @@ describe("POST /api/contact", () => {
 
     expect(res.status).toBe(403);
     expect(resendSpy).not.toHaveBeenCalled();
+  });
+});
+
+describe("POST /api/contact rate limiting", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+  });
+
+  it("returns 429 without calling Turnstile or Resend when the limiter rejects the client", async () => {
+    const { fetchSpy } = stubFetch();
+    const limiter = { limit: vi.fn().mockResolvedValue({ success: false }) };
+    const ctx = createExecutionContext();
+    const res = await worker.fetch(
+      postContact({ name: "A", email: "a@example.com" }),
+      { ...env, CONTACT_RATE_LIMITER: limiter },
+      ctx
+    );
+    await waitOnExecutionContext(ctx);
+    expect(res.status).toBe(429);
+    expect((await res.json()).success).toBe(false);
+    expect(limiter.limit).toHaveBeenCalledOnce();
+    expect(fetchSpy).not.toHaveBeenCalled();
   });
 });

@@ -34,8 +34,21 @@ async function verifyTurnstile(token, ip, env) {
   return result.success === true && result.action === "contact" && expectedHostnames.has(result.hostname);
 }
 
+async function isRateLimited(limiter, key) {
+  const { success } = await limiter.limit({ key });
+  return !success;
+}
+
 async function handleContact(request, env) {
   try {
+    const clientIp = request.headers.get("CF-Connecting-IP") || "unknown";
+    if (await isRateLimited(env.CONTACT_RATE_LIMITER, clientIp)) {
+      return Response.json(
+        { success: false, message: "Too many requests. Please try again later." },
+        { status: 429 }
+      );
+    }
+
     let body;
     const ct = request.headers.get("content-type") || "";
     if (ct.includes("application/json")) {
@@ -177,6 +190,11 @@ async function sendRazorpayNotification(env, { tier, email, contact, amountInr, 
 }
 
 async function handleRazorpayWebhook(request, env) {
+  const clientIp = request.headers.get("CF-Connecting-IP") || "unknown";
+  if (await isRateLimited(env.WEBHOOK_RATE_LIMITER, clientIp)) {
+    return Response.json({ error: "rate limited" }, { status: 429 });
+  }
+
   const rawBody = await request.text();
   const signature = request.headers.get("X-Razorpay-Signature") || "";
 
