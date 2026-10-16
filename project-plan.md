@@ -4,13 +4,13 @@
 
 ### Summary
 
-**2 of 14 done** · `███░░░░░░░░░░░░░░░░░` 14% · 🔴 0 overdue · 🟡 7 due within 7 days · ⚪ 5 later
+**3 of 14 done** · `████░░░░░░░░░░░░░░░░` 21% · 🔴 0 overdue · 🟡 6 due within 7 days · ⚪ 5 later
 
 | Area | Open | Done |
 |------|------|------|
 | infra | 4 | 2 |
 | security | 6 | 0 |
-| email | 2 | 0 |
+| email | 1 | 1 |
 
 ### Open
 
@@ -18,7 +18,6 @@
 
 | id | area | description | due_date |
 |----|------|-------------|----------|
-| 5 | email | Add a DMARC TXT record at _dmarc.tickertruth.com (none exists - Security Insights flags DMARC Record Error for tickertruth.com and send.tickertruth.com) starting with `v=DMARC1; p=none; rua=mailto:<Cloudflare DMARC Management address>` via DNS > Settings > Email Security; review aggregate reports for 2-4 weeks, then raise to p=quarantine and p=reject (the send.tickertruth.com Resend/SES subdomain inherits the org-domain policy) | 2026-10-16 |
 | 6 | email | Change the Email Routing catch-all on tickertruth.com from forward to drop (Email > Email Routing > Routing rules; currently all -> forward) so random local-parts stop reaching the inbox (spam floods, address harvesting); named rules today: connect@tickertruth.com only; add a named rule first for any published address that is not listed | 2026-10-16 |
 | 3 | infra | Switch SSL/TLS encryption mode on tickertruth.com from Full to Full (strict) (SSL/TLS > Overview; API setting ssl=full) - Full accepts a self-signed origin certificate; the site is served by a Worker with no external origin so strict has no downside; verify the site and webhook endpoints still respond afterwards | 2026-10-20 |
 | 7 | security | Add rate limiting to POST /api/contact in src/index.js (also /api/razorpay-webhook: keep signature check, rate-limit unauthenticated hits) with a Workers Rate Limiting binding (ratelimits block in wrangler.jsonc, same as answerkept CONTACT_RATE_LIMITER limit 5 per 60s keyed on client IP), return 429 when exceeded and add a test - no ratelimits binding and no zone rate-limiting rule exists, so a bot holding valid Turnstile tokens can flood Resend sends and burn quota | 2026-10-20 |
@@ -42,3 +41,4 @@
 |----|------|-------------|----------|
 | 1 | infra | Turned on Always Use HTTPS for tickertruth.com (done 2026-10-16, `curl -I http://tickertruth.com/` now 301) (SSL/TLS > Edge Certificates; always_use_https is off) - `curl -I http://tickertruth.com/` currently returns 200 over plain HTTP so pages and the contact form can be loaded and submitted unencrypted before HSTS is learned; after the change expect a 301 to https://tickertruth.com/ and re-run smoke-test | 2026-10-16 |
 | 2 | infra | Raised Minimum TLS Version on tickertruth.com to 1.2 (done 2026-10-16; `openssl s_client -tls1_1 -cipher 'ALL:@SECLEVEL=0'` now gets `alert protocol version`, TLS 1.2 handshake and https site still 200) - Raise Minimum TLS Version on tickertruth.com from 1.0 to 1.2 (dashboard SSL/TLS > Edge Certificates; API setting min_tls_version is the default 1.0 today, so TLS 1.0/1.1 clients are still accepted although TLS 1.3 is on); verify afterwards that `openssl s_client -connect tickertruth.com:443 -tls1_1` fails and the site and /api/contact still work | 2026-10-16 |
+| 5 | email | Added DMARC TXT at _dmarc.tickertruth.com (done 2026-10-16 via DNS > Settings > Email Security wizard; `dig TXT _dmarc.tickertruth.com +short` returns `v=DMARC1; p=none; rua=mailto:brkrishna@gmail.com`; follow-up: review reports 2-4 weeks then raise to quarantine/reject, and consider moving rua to the Cloudflare DMARC Management address) - Add a DMARC TXT record at _dmarc.tickertruth.com (none exists - Security Insights flags DMARC Record Error for tickertruth.com and send.tickertruth.com) starting with `v=DMARC1; p=none; rua=mailto:<Cloudflare DMARC Management address>` via DNS > Settings > Email Security; review aggregate reports for 2-4 weeks, then raise to p=quarantine and p=reject (the send.tickertruth.com Resend/SES subdomain inherits the org-domain policy) | 2026-10-16 |
