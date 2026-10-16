@@ -4,11 +4,11 @@
 
 ### Summary
 
-**0 of 14 done** · `░░░░░░░░░░░░░░░░░░░░` 0% · 🔴 0 overdue · 🟡 9 due within 7 days · ⚪ 5 later
+**1 of 14 done** · `█░░░░░░░░░░░░░░░░░░░` 7% · 🔴 0 overdue · 🟡 8 due within 7 days · ⚪ 5 later
 
 | Area | Open | Done |
 |------|------|------|
-| infra | 6 | 0 |
+| infra | 5 | 1 |
 | security | 6 | 0 |
 | email | 2 | 0 |
 
@@ -18,7 +18,6 @@
 
 | id | area | description | due_date |
 |----|------|-------------|----------|
-| 1 | infra | Turn on Always Use HTTPS for tickertruth.com (SSL/TLS > Edge Certificates; always_use_https is off) - `curl -I http://tickertruth.com/` currently returns 200 over plain HTTP so pages and the contact form can be loaded and submitted unencrypted before HSTS is learned; after the change expect a 301 to https://tickertruth.com/ and re-run smoke-test | 2026-10-16 |
 | 2 | infra | Raise Minimum TLS Version on tickertruth.com from 1.0 to 1.2 (dashboard SSL/TLS > Edge Certificates; API setting min_tls_version is the default 1.0 today, so TLS 1.0/1.1 clients are still accepted although TLS 1.3 is on); verify afterwards that `openssl s_client -connect tickertruth.com:443 -tls1_1` fails and the site and /api/contact still work | 2026-10-16 |
 | 5 | email | Add a DMARC TXT record at _dmarc.tickertruth.com (none exists - Security Insights flags DMARC Record Error for tickertruth.com and send.tickertruth.com) starting with `v=DMARC1; p=none; rua=mailto:<Cloudflare DMARC Management address>` via DNS > Settings > Email Security; review aggregate reports for 2-4 weeks, then raise to p=quarantine and p=reject (the send.tickertruth.com Resend/SES subdomain inherits the org-domain policy) | 2026-10-16 |
 | 6 | email | Change the Email Routing catch-all on tickertruth.com from forward to drop (Email > Email Routing > Routing rules; currently all -> forward) so random local-parts stop reaching the inbox (spam floods, address harvesting); named rules today: connect@tickertruth.com only; add a named rule first for any published address that is not listed | 2026-10-16 |
@@ -42,3 +41,4 @@
 
 | id | area | description | due_date |
 |----|------|-------------|----------|
+| 1 | infra | Turned on Always Use HTTPS for tickertruth.com (done 2026-10-16, `curl -I http://tickertruth.com/` now 301) (SSL/TLS > Edge Certificates; always_use_https is off) - `curl -I http://tickertruth.com/` currently returns 200 over plain HTTP so pages and the contact form can be loaded and submitted unencrypted before HSTS is learned; after the change expect a 301 to https://tickertruth.com/ and re-run smoke-test | 2026-10-16 |
