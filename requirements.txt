@@ -4,7 +4,7 @@ numpy==2.1.3
 pyarrow==24.0.0
 
 # Web scraping and HTTP
-requests==2.32.3
+requests==2.33.0
 beautifulsoup4==4.12.3
 # NSE's API serves Brotli-compressed JSON; without this, requests silently
 # receives undecoded bytes and .json() fails with a JSONDecodeError that
