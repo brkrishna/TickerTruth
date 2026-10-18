@@ -28,7 +28,7 @@ matplotlib>=3.8.0
 # Development and testing
 pytest==7.4.4
 pytest-cov==4.1.0
-black==24.10.0
+black==26.3.1
 ruff==0.15.15
 pre-commit>=3.7.0
 
