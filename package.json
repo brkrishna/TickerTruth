@@ -19,7 +19,7 @@
     "@playwright/test": "^1.62.1",
     "eslint": "^10.9.1",
     "globals": "^17.11.0",
-    "vitest": "^4.1.11",
+    "vitest": "^4.1.12",
     "wrangler": "^4.125.0"
   }
 }
